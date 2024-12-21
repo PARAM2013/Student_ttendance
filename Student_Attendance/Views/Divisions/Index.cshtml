@@ -1,0 +1,108 @@
+﻿@model IEnumerable<Student_Attendance.Models.Division>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Divisions</h1>
+<div class="row">
+    <div class="col-md-8">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>
+                        @Html.DisplayNameFor(model => model.Name)
+                    </th>
+                    <th>
+                        Class
+                    </th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Name)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Class.Name)
+                        </td>
+
+                        <td>
+                            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal"
+                                    data-bs-target="#editDivisionModal" data-id="@item.Id" data-name="@item.Name" data-classid="@item.ClassId">
+                                Edit
+                            </button>
+                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">Delete</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                Add / Edit Division
+            </div>
+            <div class="card-body">
+                <div id="addEditDivision">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editDivisionModal" tabindex="-1" aria-labelledby="editDivisionModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editDivisionModalLabel">Edit Division</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="editAddDivision">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+          $(document).ready(function () {
+             loadAddEditDivision();
+        });
+        function loadAddEditDivision(){
+             $.ajax({
+                url: '/Divisions/AddEdit',
+                type: 'GET',
+                success: function (result) {
+                    $('#addEditDivision').html(result);
+                }
+            });
+        }
+        $('#editDivisionModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var id = button.data('id');
+            var name = button.data('name');
+            var classid = button.data('classid');
+
+
+            var modal = $(this);
+             $.ajax({
+                url: '/Divisions/AddEdit',
+                 type:'GET',
+                data: {id : id},
+                success: function (result) {
+                     $('#editAddDivision').html(result);
+                    $('#editAddDivision').find('#ClassId').val(classid);
+                }
+            });
+        });
+
+    </script>
+}

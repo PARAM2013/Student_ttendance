@@ -1,0 +1,117 @@
+﻿@model IEnumerable<Student_Attendance.Models.Class>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Classes</h1>
+<div class="row">
+    <div class="col-md-8">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>
+                        @Html.DisplayNameFor(model => model.Name)
+                    </th>
+                    <th>
+                        Course
+                    </th>
+                    <th>
+                        Academic Year
+                    </th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Name)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Course.Name)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.AcademicYear.Name)
+                        </td>
+
+                        <td>
+                            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal"
+                                    data-bs-target="#editClassModal" data-id="@item.Id" data-name="@item.Name" data-courseid="@item.CourseId" data-academicyearid="@item.AcademicYearId">
+                                Edit
+                            </button>
+                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">Delete</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                Add / Edit Class
+            </div>
+            <div class="card-body">
+                <div id="addEditClass">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editClassModal" tabindex="-1" aria-labelledby="editClassModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editClassModalLabel">Edit Class</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="editAddClass">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+         $(document).ready(function () {
+             loadAddEditClass();
+        });
+         function loadAddEditClass(){
+            $.ajax({
+                url: '/Classes/AddEdit',
+                type: 'GET',
+                success: function (result) {
+                    $('#addEditClass').html(result);
+                }
+            });
+         }
+        $('#editClassModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var id = button.data('id');
+            var name = button.data('name');
+            var courseid = button.data('courseid');
+            var academicyearid = button.data('academicyearid');
+
+
+            var modal = $(this);
+             $.ajax({
+                url: '/Classes/AddEdit',
+                 type:'GET',
+                data: {id : id},
+                success: function (result) {
+                    $('#editAddClass').html(result);
+                    $('#editAddClass').find('#CourseId').val(courseid);
+                     $('#editAddClass').find('#AcademicYearId').val(academicyearid);
+                }
+            });
+
+        });
+
+    </script>
+}

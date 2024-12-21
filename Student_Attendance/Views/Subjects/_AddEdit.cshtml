@@ -1,0 +1,132 @@
+﻿@model Student_Attendance.ViewModels.SubjectViewModel
+
+<form asp-action="CreateEdit">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <input type="hidden" id="Id" name="Id" value="@Model.Id" />
+    <div class="form-group">
+        <label for="Name">Name</label>
+        <input type="text" id="Name" name="Name" class="form-control" value="@Model.Name" />
+        <span class="text-danger" id="Name-Error"></span>
+    </div>
+    <div class="form-group">
+        <label for="Code">Code</label>
+        <input type="text" id="Code" name="Code" class="form-control" value="@Model.Code" />
+        <span class="text-danger" id="Code-Error"></span>
+    </div>
+    <div class="form-group">
+        <label for="SpecializationId">Specialization</label>
+        <select id="SpecializationId" name="SpecializationId" class="form-control">
+            <option value="">--- Select Specialization---</option>
+            @foreach (var item in Model.Specializations)
+            {
+                <option value="@item.Value">@item.Text</option>
+            }
+        </select>
+        <span class="text-danger" id="SpecializationId-Error"></span>
+    </div>
+    <div class="form-group">
+        <label for="Semester">Semester</label>
+        <select id="Semester" name="Semester" class="form-control">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+        </select>
+        <span class="text-danger" id="Semester-Error"></span>
+    </div>
+    <div class="form-group">
+        <label for="CourseId">Course</label>
+        <select id="CourseId" name="CourseId" class="form-control">
+            <option value="">--- Select Course---</option>
+            @foreach (var item in Model.Courses)
+            {
+                <option value="@item.Value">@item.Text</option>
+            }
+        </select>
+        <span class="text-danger" id="CourseId-Error"></span>
+    </div>
+    <div class="form-group">
+        <label for="AcademicYearId">Academic Year</label>
+        <select id="AcademicYearId" name="AcademicYearId" class="form-control">
+            <option value="">--- Select Academic Year---</option>
+            @foreach (var item in Model.AcademicYears)
+            {
+                <option value="@item.Value">@item.Text</option>
+            }
+        </select>
+        <span class="text-danger" id="AcademicYearId-Error"></span>
+    </div>
+    <div class="form-group mt-2">
+        <button type="submit" class="btn btn-primary">Save</button>
+    </div>
+</form>
+@section Scripts {
+    <script>
+
+         $("form[asp-action='CreateEdit']").submit(function(event) {
+           var name =  $(this).find('#Name').val();
+           var code = $(this).find('#Code').val();
+            var semester = $(this).find('#Semester').val();
+            var courseId =  $(this).find('#CourseId').val();
+              var academicYearId =  $(this).find('#AcademicYearId').val();
+           var error = false;
+           if(name == null || name == '')
+           {
+            event.preventDefault();
+            $(this).find('#Name-Error').text('Name is required');
+               error = true;
+           }
+            else
+           {
+               $(this).find('#Name-Error').text('');
+           }
+           if(code == null || code == '')
+           {
+            event.preventDefault();
+            $(this).find('#Code-Error').text('Code is required');
+              error = true;
+           }
+           else
+           {
+             $(this).find('#Code-Error').text('');
+           }
+             if(semester == null || semester == '')
+           {
+            event.preventDefault();
+             $(this).find('#Semester-Error').text('Semester is required');
+               error = true;
+           }
+            else
+           {
+               $(this).find('#Semester-Error').text('');
+           }
+            if(courseId == null || courseId == '')
+           {
+            event.preventDefault();
+            $(this).find('#CourseId-Error').text('Course is required');
+             error = true;
+           }
+            else
+           {
+                $(this).find('#CourseId-Error').text('');
+           }
+           if(academicYearId == null || academicYearId == '')
+           {
+            event.preventDefault();
+             $(this).find('#AcademicYearId-Error').text('Academic Year is required');
+               error = true;
+           }
+            else
+           {
+                $(this).find('#AcademicYearId-Error').text('');
+           }
+
+            if(error)
+            {
+                return false;
+            }
+             return true;
+        });
+
+    </script>
+}

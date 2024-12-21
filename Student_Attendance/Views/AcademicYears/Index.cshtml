@@ -1,0 +1,205 @@
+﻿@model IEnumerable<Student_Attendance.Models.AcademicYear>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Academic Years</h1>
+<div class="row">
+    <div class="col-md-8">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>
+                        @Html.DisplayNameFor(model => model.Name)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.StartDate)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.EndDate)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.IsActive)
+                    </th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Name)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.StartDate)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.EndDate)
+                        </td>
+                        <td>
+                            @if (item.IsActive)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">InActive</span>
+                            }
+
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal"
+                                    data-bs-target="#editAcademicYearModal" data-id="@item.Id" data-name="@item.Name"
+                                    data-startdate="@item.StartDate.ToString("yyyy-MM-dd")" data-enddate="@item.EndDate.ToString("yyyy-MM-dd")" data-isactive="@item.IsActive">
+                                Edit
+                            </button>
+                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">Delete</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                Add / Edit Academic Year
+            </div>
+            <div class="card-body">
+                <form asp-action="CreateEdit">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <input type="hidden" id="Id" name="Id" value="0" />
+                    <div class="form-group">
+                        <label for="Name">Name</label>
+                        <input type="text" id="Name" name="Name" class="form-control" />
+                        <span class="text-danger" id="Name-Error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="StartDate">Start Date</label>
+                        <input type="date" id="StartDate" name="StartDate" class="form-control" />
+                        <span class="text-danger" id="StartDate-Error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="EndDate">End Date</label>
+                        <input type="date" id="EndDate" name="EndDate" class="form-control" />
+                        <span class="text-danger" id="EndDate-Error"></span>
+                    </div>
+                    <div class="form-group form-check">
+                        <input type="checkbox" class="form-check-input" id="IsActive" name="IsActive" value="true" />
+                        <label class="form-check-label" for="IsActive">Active</label>
+                    </div>
+                    <div class="form-group mt-2">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editAcademicYearModal" tabindex="-1" aria-labelledby="editAcademicYearModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editAcademicYearModalLabel">Edit Academic Year</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form asp-action="CreateEdit">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <input type="hidden" id="editId" name="Id" value="" />
+                    <div class="form-group">
+                        <label for="editName">Name</label>
+                        <input type="text" id="editName" name="Name" class="form-control" />
+                        <span class="text-danger" id="editName-Error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="editStartDate">Start Date</label>
+                        <input type="date" id="editStartDate" name="StartDate" class="form-control" />
+                        <span class="text-danger" id="editStartDate-Error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="editEndDate">End Date</label>
+                        <input type="date" id="editEndDate" name="EndDate" class="form-control" />
+                        <span class="text-danger" id="editEndDate-Error"></span>
+                    </div>
+                    <div class="form-group form-check">
+                        <input type="checkbox" class="form-check-input" id="editIsActive" name="IsActive" value="true" />
+                        <label class="form-check-label" for="editIsActive">Active</label>
+                    </div>
+                    <div class="form-group mt-2">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $('#editAcademicYearModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var id = button.data('id');
+            var name = button.data('name');
+            var startDate = button.data('startdate');
+            var endDate = button.data('enddate');
+            var isActive = button.data('isactive');
+
+            var modal = $(this);
+            modal.find('#editId').val(id);
+            modal.find('#editName').val(name);
+            modal.find('#editStartDate').val(startDate);
+            modal.find('#editEndDate').val(endDate);
+            modal.find('#editIsActive').prop('checked', isActive);
+        });
+
+        $("form[asp-action='CreateEdit']").submit(function(event) {
+           var name =  $(this).find('#Name').val();
+           var startDate = $(this).find('#StartDate').val();
+           var endDate = $(this).find('#EndDate').val();
+          var error = false;
+           if(name == null || name == '')
+           {
+            event.preventDefault();
+            $(this).find('#Name-Error').text('Name is required');
+                error= true;
+           }
+           else
+           {
+               $(this).find('#Name-Error').text('');
+           }
+            if(startDate == null || startDate == '')
+           {
+            event.preventDefault();
+            $(this).find('#StartDate-Error').text('Start Date is required');
+               error= true;
+           }
+           else
+           {
+             $(this).find('#StartDate-Error').text('');
+           }
+            if(endDate == null || endDate == '')
+           {
+            event.preventDefault();
+            $(this).find('#EndDate-Error').text('End Date is required');
+                error= true;
+           }
+            else
+           {
+                $(this).find('#EndDate-Error').text('');
+           }
+
+             if(error)
+            {
+                return false;
+            }
+            return true;
+        });
+
+    </script>
+
+}
