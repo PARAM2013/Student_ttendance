@@ -75,8 +75,8 @@ namespace StudentAttendance.Controllers
                 return RedirectToAction(nameof(Index));
 
             }
-            var subjectList = await _context.Subjects.Include(c => c.Specialization).Include(c => c.Course).Include(c => c.AcademicYear).ToListAsync();
-            return View("Index", subjectList);
+            await LoadDropDowns(model);
+            return View("Index", await _context.Subjects.Include(c => c.Specialization).Include(c => c.Course).Include(c => c.AcademicYear).ToListAsync());
         }
 
 

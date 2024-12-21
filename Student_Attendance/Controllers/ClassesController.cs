@@ -18,6 +18,10 @@ namespace StudentAttendance.Controllers
         public async Task<IActionResult> Index()
         {
             var classes = await _context.Classes.Include(c => c.Course).Include(c => c.AcademicYear).ToListAsync();
+            var model = new ClassViewModel();
+            await LoadDropDowns(model);
+            ViewBag.Courses = model.Courses;
+            ViewBag.AcademicYears = model.AcademicYears;
             return View(classes);
         }
 
@@ -27,52 +31,67 @@ namespace StudentAttendance.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateEdit(ClassViewModel model)
         {
-            if (ModelState.IsValid)
+            try
             {
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState
+                       .Where(x => x.Value.Errors.Count > 0)
+                       .ToDictionary(
+                           kvp => kvp.Key,
+                           kvp => kvp.Value.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid value"
+                       );
+                    var classList = await _context.Classes.Include(c => c.Course).Include(c => c.AcademicYear).ToListAsync();
+                    var viewModel = new ClassViewModel();
+                    await LoadDropDowns(viewModel);
+                    ViewBag.Courses = viewModel.Courses;
+                    ViewBag.AcademicYears = viewModel.AcademicYears;
+                    return View("Index", classList);
+
+                }
+
+
                 if (model.Id > 0)
                 {
-                    try
+                    // Update existing class
+                    var existingClass = await _context.Classes.FindAsync(model.Id);
+                    if (existingClass == null)
                     {
-                        Class @class = new Class
-                        {
-                            Id = model.Id,
-                            Name = model.Name,
-                            CourseId = model.CourseId,
-                            AcademicYearId = model.AcademicYearId
-                        };
-                        _context.Update(@class);
-                        await _context.SaveChangesAsync();
+                        return NotFound();
                     }
-                    catch (DbUpdateConcurrencyException)
-                    {
-                        if (!ClassExists(model.Id))
-                        {
-                            return NotFound();
-                        }
-                        else
-                        {
-                            throw;
-                        }
-                    }
+
+                    existingClass.Name = model.Name;
+                    existingClass.CourseId = model.CourseId;
+                    existingClass.AcademicYearId = model.AcademicYearId;
+                    _context.Update(existingClass);
                 }
                 else
                 {
-                    Class @class = new Class
+                    // Create new class
+                    var newClass = new Class
                     {
                         Name = model.Name,
                         CourseId = model.CourseId,
                         AcademicYearId = model.AcademicYearId
                     };
-                    _context.Add(@class);
-                    await _context.SaveChangesAsync();
+                    _context.Add(newClass);
                 }
+
+                await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
-
             }
-            var classList = await _context.Classes.Include(c => c.Course).Include(c => c.AcademicYear).ToListAsync();
-            return View("Index", classList);
+            catch (Exception ex)
+            {
+                var classList = await _context.Classes.Include(c => c.Course).Include(c => c.AcademicYear).ToListAsync();
+                var viewModel = new ClassViewModel();
+                await LoadDropDowns(viewModel);
+                ViewBag.Courses = viewModel.Courses;
+                ViewBag.AcademicYears = viewModel.AcademicYears;
+                // Log the exception here
+                ModelState.AddModelError("general", "Error occurred while saving the record " + ex.Message);
+                return View("Index", classList);
+            }
         }
-
 
 
         // GET: Classes/Delete/5
@@ -105,25 +124,6 @@ namespace StudentAttendance.Controllers
             model.Courses = courses.Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Name }).ToList();
             var academicYears = await _context.AcademicYears.ToListAsync();
             model.AcademicYears = academicYears.Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Name }).ToList();
-        }
-
-        public async Task<IActionResult> AddEdit(int? id)
-        {
-            ClassViewModel model = new ClassViewModel();
-            if (id > 0)
-            {
-                var @class = await _context.Classes.FindAsync(id);
-                model = new ClassViewModel
-                {
-                    Id = @class.Id,
-                    Name = @class.Name,
-                    CourseId = @class.CourseId,
-                    AcademicYearId = @class.AcademicYearId
-                };
-            }
-
-            await LoadDropDowns(model);
-            return PartialView("_AddEdit", model);
         }
     }
 }

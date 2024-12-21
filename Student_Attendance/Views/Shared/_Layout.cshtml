@@ -30,6 +30,7 @@
                 <a class="list-group-item list-group-item-action list-group-item-light p-3" data-bs-toggle="collapse" href="#classMenu" role="button" aria-expanded="false" aria-controls="classMenu"><i class="fa fa-list me-2"></i> Classes</a>
                 <div class="collapse" id="classMenu">
                     <a class="list-group-item list-group-item-action list-group-item-light ps-5" asp-area="" asp-controller="Classes" asp-action="Index"> List</a>
+                    <a class="list-group-item list-group-item-action list-group-item-light ps-5" asp-area="" asp-controller="Classes" asp-action="_AddEdit"> AddEdit</a>
                 </div>
 
                 <a class="list-group-item list-group-item-action list-group-item-light p-3" data-bs-toggle="collapse" href="#divisionMenu" role="button" aria-expanded="false" aria-controls="divisionMenu"><i class="fa fa-sitemap me-2"></i> Divisions</a>
@@ -82,7 +83,9 @@
     </div>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    <script src="~/js/site.js"></script>  
     <script>
           window.addEventListener('DOMContentLoaded', event => {
 

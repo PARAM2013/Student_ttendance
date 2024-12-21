@@ -54,8 +54,41 @@
                 Add / Edit Class
             </div>
             <div class="card-body">
-                <div id="addEditClass">
-                </div>
+                <form asp-action="CreateEdit">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <input type="hidden" id="Id" name="Id" value="0" />
+                    <div class="form-group">
+                        <label for="Name">Name</label>
+                        <input type="text" id="Name" name="Name" class="form-control" />
+                        <span class="text-danger" id="Name-Error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="CourseId">Course</label>
+                        <select id="CourseId" name="CourseId" class="form-control">
+                            <option value="">--- Select Course---</option>
+                            @foreach (var item in ViewBag.Courses)
+                            {
+                                <option value="@item.Value">@item.Text</option>
+                            }
+                        </select>
+                        <span class="text-danger" id="CourseId-Error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="AcademicYearId">Academic Year</label>
+                        <select id="AcademicYearId" name="AcademicYearId" class="form-control">
+                            <option value="">--- Select Academic Year---</option>
+                            @foreach (var item in ViewBag.AcademicYears)
+                            {
+                                <option value="@item.Value">@item.Text</option>
+                            }
+                        </select>
+                        <span class="text-danger" id="AcademicYearId-Error"></span>
+                    </div>
+
+                    <div class="form-group mt-2">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -70,8 +103,40 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div id="editAddClass">
-                </div>
+                <form asp-action="CreateEdit">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <input type="hidden" id="editId" name="Id" value="" />
+                    <div class="form-group">
+                        <label for="Name">Name</label>
+                        <input type="text" id="editName" name="Name" class="form-control" />
+                        <span class="text-danger" id="editName-Error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="CourseId">Course</label>
+                        <select id="editCourseId" name="CourseId" class="form-control">
+                            <option value="">--- Select Course---</option>
+                            @foreach (var item in ViewBag.Courses)
+                            {
+                                <option value="@item.Value">@item.Text</option>
+                            }
+                        </select>
+                        <span class="text-danger" id="editCourseId-Error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="AcademicYearId">Academic Year</label>
+                        <select id="editAcademicYearId" name="AcademicYearId" class="form-control">
+                            <option value="">--- Select Academic Year---</option>
+                            @foreach (var item in ViewBag.AcademicYears)
+                            {
+                                <option value="@item.Value">@item.Text</option>
+                            }
+                        </select>
+                        <span class="text-danger" id="editAcademicYearId-Error"></span>
+                    </div>
+                    <div class="form-group mt-2">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -79,18 +144,6 @@
 
 @section Scripts {
     <script>
-         $(document).ready(function () {
-             loadAddEditClass();
-        });
-         function loadAddEditClass(){
-            $.ajax({
-                url: '/Classes/AddEdit',
-                type: 'GET',
-                success: function (result) {
-                    $('#addEditClass').html(result);
-                }
-            });
-         }
         $('#editClassModal').on('show.bs.modal', function (event) {
             var button = $(event.relatedTarget);
             var id = button.data('id');
@@ -98,20 +151,57 @@
             var courseid = button.data('courseid');
             var academicyearid = button.data('academicyearid');
 
-
             var modal = $(this);
-             $.ajax({
-                url: '/Classes/AddEdit',
-                 type:'GET',
-                data: {id : id},
-                success: function (result) {
-                    $('#editAddClass').html(result);
-                    $('#editAddClass').find('#CourseId').val(courseid);
-                     $('#editAddClass').find('#AcademicYearId').val(academicyearid);
-                }
-            });
+            modal.find('#editId').val(id);
+            modal.find('#editName').val(name);
+              modal.find('#editCourseId').val(courseid);
+               modal.find('#editAcademicYearId').val(academicyearid);
+        });
+         $("form[asp-action='CreateEdit']").submit(function(event) {
+             event.preventDefault();
+           var form = $(this);
+           var name =  $(this).find('#Name').val();
+           var courseId =  $(this).find('#CourseId').val();
+           var academicYearId =  $(this).find('#AcademicYearId').val();
+           var error = false;
+           $('.text-danger').text('');
+           if(name == null || name == '')
+           {
+
+            $(this).find('#Name-Error').text('Name is required');
+             error = true;
+           }
+            else
+           {
+            $(this).find('#Name-Error').text('');
+           }
+            if(courseId == null || courseId == '')
+           {
+
+            $(this).find('#CourseId-Error').text('Course is required');
+              error = true;
+           }
+            else
+           {
+            $(this).find('#CourseId-Error').text('');
+           }
+           if(academicYearId == null || academicYearId == '')
+           {
+
+            $(this).find('#AcademicYearId-Error').text('Academic Year is required');
+                error = true;
+           }
+           else
+           {
+              $(this).find('#AcademicYearId-Error').text('');
+           }
+
+            if(error)
+            {
+                return false;
+            }
+               form[0].submit();
 
         });
-
     </script>
 }
