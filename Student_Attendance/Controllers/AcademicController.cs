@@ -179,7 +179,7 @@ namespace Student_Attendance.Controllers
             {
                 _context.Classes.Add(model);
                 _context.SaveChanges();
-                return Ok(); // Return a 200 OK status code
+                return RedirectToAction("Classes");
             }
             ViewBag.Courses = _context.Courses.ToList();
             ViewBag.AcademicYears = _context.AcademicYears.ToList();
@@ -190,7 +190,7 @@ namespace Student_Attendance.Controllers
         [HttpGet]
         public IActionResult EditClass(int id)
         {
-            var classItem = _context.Classes.Include(c => c.Course).Include(c => c.AcademicYear).FirstOrDefault(c => c.Id == id);
+            var classItem = _context.Classes.Find(id);
 
             if (classItem == null)
             {
@@ -208,7 +208,7 @@ namespace Student_Attendance.Controllers
             {
                 _context.Classes.Update(model);
                 _context.SaveChanges();
-                return Ok(); // Return a 200 OK status code
+                return RedirectToAction("Classes");
             }
             ViewBag.Courses = _context.Courses.ToList();
             ViewBag.AcademicYears = _context.AcademicYears.ToList();
@@ -228,7 +228,7 @@ namespace Student_Attendance.Controllers
             {
                 _context.Classes.Remove(classItem);
                 _context.SaveChanges();
-                return Ok("Class deleted successfully");
+                return RedirectToAction("Classes");
             }
             catch (DbUpdateException ex)
             {
@@ -238,13 +238,7 @@ namespace Student_Attendance.Controllers
 
         public IActionResult Divisions()
         {
-            var divisions = _context.Divisions
-                 .Include(d => d.Class)
-                     .ThenInclude(c => c.Course)
-                  .Include(d => d.Class)
-                     .ThenInclude(c => c.AcademicYear)
-                 .ToList();
-
+            var divisions = _context.Divisions.Include(d => d.Class).ThenInclude(c => c.Course).Include(d => d.Class).ThenInclude(c => c.AcademicYear).ToList();
             return View(divisions);
         }
 
@@ -255,7 +249,6 @@ namespace Student_Attendance.Controllers
             return PartialView("_AddEditDivision", new Division());
         }
 
-
         [HttpPost]
         public IActionResult CreateDivision(Division model)
         {
@@ -263,18 +256,16 @@ namespace Student_Attendance.Controllers
             {
                 _context.Divisions.Add(model);
                 _context.SaveChanges();
-                return Ok(); // Return a 200 OK status code
+                return RedirectToAction("Divisions");
             }
             ViewBag.Classes = _context.Classes.Include(c => c.Course).Include(c => c.AcademicYear).ToList();
             return PartialView("_AddEditDivision", model);
         }
 
-
         [HttpGet]
         public IActionResult EditDivision(int id)
         {
-            var divisionItem = _context.Divisions.Include(d => d.Class).FirstOrDefault(d => d.Id == id);
-
+            var divisionItem = _context.Divisions.Find(id);
             if (divisionItem == null)
             {
                 return NotFound();
@@ -290,7 +281,7 @@ namespace Student_Attendance.Controllers
             {
                 _context.Divisions.Update(model);
                 _context.SaveChanges();
-                return Ok(); // Return a 200 OK status code
+                return RedirectToAction("Divisions");
             }
             ViewBag.Classes = _context.Classes.Include(c => c.Course).Include(c => c.AcademicYear).ToList();
             return PartialView("_AddEditDivision", model);
@@ -304,17 +295,9 @@ namespace Student_Attendance.Controllers
             {
                 return NotFound();
             }
-
-            try
-            {
-                _context.Divisions.Remove(divisionItem);
-                _context.SaveChanges();
-                return PartialView("_AlertPartial", "Division deleted successfully");
-            }
-            catch (DbUpdateException ex)
-            {
-                return BadRequest(ex.InnerException?.Message ?? ex.Message);
-            }
+            _context.Divisions.Remove(divisionItem);
+            _context.SaveChanges();
+            return RedirectToAction("Divisions");
         }
     }
 }

@@ -19,10 +19,10 @@
         </select>
         <span asp-validation-for="ClassId" class="text-danger"></span>
     </div>
-
     <button type="submit" class="btn btn-primary">@(Model.Id == 0 ? "Create" : "Update")</button>
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
 </form>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
 }
