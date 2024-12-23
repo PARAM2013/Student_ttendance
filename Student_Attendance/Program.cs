@@ -5,6 +5,9 @@ using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 

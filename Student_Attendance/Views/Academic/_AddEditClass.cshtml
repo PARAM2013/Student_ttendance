@@ -1,6 +1,6 @@
 ﻿@model Student_Attendance.Models.Class
 
-<form method="post" asp-action="@(Model.Id == 0 ? "CreateClass" : "EditClass")">
+<form id="classForm" method="post" asp-action="@(Model.Id == 0 ? "CreateClass" : "EditClass")">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
     @if (Model.Id != 0)
     {
@@ -9,19 +9,19 @@
 
     <div class="mb-3">
         <label asp-for="Name" class="form-label">Name</label>
-        <input asp-for="Name" class="form-control" />
+        <input asp-for="Name" class="form-control" autocomplete="off" />
         <span asp-validation-for="Name" class="text-danger"></span>
     </div>
     <div class="mb-3">
         <label asp-for="CourseId" class="form-label">Course</label>
-        <select asp-for="CourseId" class="form-select" asp-items="@(new SelectList(ViewBag.Courses, "Id", "Name"))">
+        <select asp-for="CourseId" class="form-select" asp-items="@(new SelectList(ViewBag.Courses, "Id", "Name"))" autocomplete="off">
             <option value="">Select a Course</option>
         </select>
         <span asp-validation-for="CourseId" class="text-danger"></span>
     </div>
     <div class="mb-3">
         <label asp-for="AcademicYearId" class="form-label">Academic Year</label>
-        <select asp-for="AcademicYearId" class="form-select" asp-items="@(new SelectList(ViewBag.AcademicYears, "Id", "Name"))">
+        <select asp-for="AcademicYearId" class="form-select" asp-items="@(new SelectList(ViewBag.AcademicYears, "Id", "Name"))" autocomplete="off">
             <option value="">Select an Academic Year</option>
         </select>
         <span asp-validation-for="AcademicYearId" class="text-danger"></span>

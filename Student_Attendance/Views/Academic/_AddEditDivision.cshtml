@@ -1,0 +1,28 @@
+﻿@model Student_Attendance.Models.Division
+
+<form id="divisionForm" method="post" asp-action="@(Model.Id == 0 ? "CreateDivision" : "EditDivision")">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    @if (Model.Id != 0)
+    {
+        <input type="hidden" asp-for="Id" />
+    }
+
+    <div class="mb-3">
+        <label asp-for="Name" class="form-label">Name</label>
+        <input asp-for="Name" class="form-control" autocomplete="off" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="ClassId" class="form-label">Class</label>
+        <select asp-for="ClassId" class="form-select" asp-items="@(new SelectList(ViewBag.Classes, "Id", "Name"))" autocomplete="off">
+            <option value="">Select a Class</option>
+        </select>
+        <span asp-validation-for="ClassId" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">@(Model.Id == 0 ? "Create" : "Update")</button>
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+</form>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -36,9 +36,8 @@ namespace Student_Attendance.Controllers
             {
                 _context.AcademicYears.Add(model);
                 _context.SaveChanges();
-                return RedirectToAction("AcademicYears");
+                return Ok(); // Return a 200 OK status code
             }
-
             return PartialView("_AddEditAcademicYear", model);
         }
 
@@ -61,7 +60,7 @@ namespace Student_Attendance.Controllers
             {
                 _context.AcademicYears.Update(model);
                 _context.SaveChanges();
-                return RedirectToAction("AcademicYears");
+                return Ok(); // Return a 200 OK status code
             }
             return PartialView("_AddEditAcademicYear", model);
         }
@@ -74,13 +73,20 @@ namespace Student_Attendance.Controllers
             {
                 return NotFound();
             }
-            _context.AcademicYears.Remove(academicYear);
-            _context.SaveChanges();
-            return RedirectToAction("AcademicYears");
+
+            try
+            {
+                _context.AcademicYears.Remove(academicYear);
+                _context.SaveChanges();
+                return Ok();
+            }
+            catch (DbUpdateException ex)
+            {
+                return BadRequest(ex.InnerException?.Message ?? ex.Message);
+
+            }
+
         }
-
-        //Courses page code
-
         public IActionResult Courses()
         {
             var courses = _context.Courses.ToList();
@@ -101,7 +107,7 @@ namespace Student_Attendance.Controllers
             {
                 _context.Courses.Add(model);
                 _context.SaveChanges();
-                return RedirectToAction("Courses");
+                return Ok(); // Return a 200 OK status code
             }
 
             return PartialView("_AddEditCourse", model);
@@ -126,7 +132,7 @@ namespace Student_Attendance.Controllers
             {
                 _context.Courses.Update(model);
                 _context.SaveChanges();
-                return RedirectToAction("Courses");
+                return Ok(); // Return a 200 OK status code
             }
             return PartialView("_AddEditCourse", model);
         }
@@ -139,12 +145,18 @@ namespace Student_Attendance.Controllers
             {
                 return NotFound();
             }
-            _context.Courses.Remove(course);
-            _context.SaveChanges();
-            return RedirectToAction("Courses");
-        }
+            try
+            {
+                _context.Courses.Remove(course);
+                _context.SaveChanges();
+                return Ok();
+            }
+            catch (DbUpdateException ex)
+            {
+                return BadRequest(ex.InnerException?.Message ?? ex.Message);
 
-        //Classes page 
+            }
+        }
         public IActionResult Classes()
         {
             var classes = _context.Classes.Include(c => c.Course).Include(c => c.AcademicYear).ToList();
@@ -167,7 +179,7 @@ namespace Student_Attendance.Controllers
             {
                 _context.Classes.Add(model);
                 _context.SaveChanges();
-                return RedirectToAction("Classes");
+                return Ok(); // Return a 200 OK status code
             }
             ViewBag.Courses = _context.Courses.ToList();
             ViewBag.AcademicYears = _context.AcademicYears.ToList();
@@ -178,7 +190,8 @@ namespace Student_Attendance.Controllers
         [HttpGet]
         public IActionResult EditClass(int id)
         {
-            var classItem = _context.Classes.Find(id);
+            var classItem = _context.Classes.Include(c => c.Course).Include(c => c.AcademicYear).FirstOrDefault(c => c.Id == id);
+
             if (classItem == null)
             {
                 return NotFound();
@@ -195,7 +208,7 @@ namespace Student_Attendance.Controllers
             {
                 _context.Classes.Update(model);
                 _context.SaveChanges();
-                return RedirectToAction("Classes");
+                return Ok(); // Return a 200 OK status code
             }
             ViewBag.Courses = _context.Courses.ToList();
             ViewBag.AcademicYears = _context.AcademicYears.ToList();
@@ -210,13 +223,98 @@ namespace Student_Attendance.Controllers
             {
                 return NotFound();
             }
-            _context.Classes.Remove(classItem);
-            _context.SaveChanges();
-            return RedirectToAction("Classes");
+
+            try
+            {
+                _context.Classes.Remove(classItem);
+                _context.SaveChanges();
+                return Ok("Class deleted successfully");
+            }
+            catch (DbUpdateException ex)
+            {
+                return BadRequest(ex.InnerException?.Message ?? ex.Message);
+            }
         }
 
-        // page 
+        public IActionResult Divisions()
+        {
+            var divisions = _context.Divisions
+                 .Include(d => d.Class)
+                     .ThenInclude(c => c.Course)
+                  .Include(d => d.Class)
+                     .ThenInclude(c => c.AcademicYear)
+                 .ToList();
 
-        // page 
+            return View(divisions);
+        }
+
+        [HttpGet]
+        public IActionResult CreateDivision()
+        {
+            ViewBag.Classes = _context.Classes.Include(c => c.Course).Include(c => c.AcademicYear).ToList();
+            return PartialView("_AddEditDivision", new Division());
+        }
+
+
+        [HttpPost]
+        public IActionResult CreateDivision(Division model)
+        {
+            if (ModelState.IsValid)
+            {
+                _context.Divisions.Add(model);
+                _context.SaveChanges();
+                return Ok(); // Return a 200 OK status code
+            }
+            ViewBag.Classes = _context.Classes.Include(c => c.Course).Include(c => c.AcademicYear).ToList();
+            return PartialView("_AddEditDivision", model);
+        }
+
+
+        [HttpGet]
+        public IActionResult EditDivision(int id)
+        {
+            var divisionItem = _context.Divisions.Include(d => d.Class).FirstOrDefault(d => d.Id == id);
+
+            if (divisionItem == null)
+            {
+                return NotFound();
+            }
+            ViewBag.Classes = _context.Classes.Include(c => c.Course).Include(c => c.AcademicYear).ToList();
+            return PartialView("_AddEditDivision", divisionItem);
+        }
+
+        [HttpPost]
+        public IActionResult EditDivision(Division model)
+        {
+            if (ModelState.IsValid)
+            {
+                _context.Divisions.Update(model);
+                _context.SaveChanges();
+                return Ok(); // Return a 200 OK status code
+            }
+            ViewBag.Classes = _context.Classes.Include(c => c.Course).Include(c => c.AcademicYear).ToList();
+            return PartialView("_AddEditDivision", model);
+        }
+
+        [HttpPost]
+        public IActionResult DeleteDivision(int id)
+        {
+            var divisionItem = _context.Divisions.Find(id);
+            if (divisionItem == null)
+            {
+                return NotFound();
+            }
+
+            try
+            {
+                _context.Divisions.Remove(divisionItem);
+                _context.SaveChanges();
+                return PartialView("_AlertPartial", "Division deleted successfully");
+            }
+            catch (DbUpdateException ex)
+            {
+                return BadRequest(ex.InnerException?.Message ?? ex.Message);
+            }
+        }
     }
 }
