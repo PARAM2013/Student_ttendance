@@ -163,37 +163,12 @@ namespace Student_Attendance.Controllers
         [HttpPost]
         public IActionResult CreateClass(Class model)
         {
-            // Debug information
-            var modelStateErrors = ModelState.Values
-                .SelectMany(v => v.Errors)
-                .Select(e => e.ErrorMessage)
-                .ToList();
-
-            if (!ModelState.IsValid)
-            {
-                // Log the errors
-                foreach (var error in modelStateErrors)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Validation Error: {error}");
-                }
-            }
-
             if (ModelState.IsValid)
             {
-                try
-                {
-                    _context.Classes.Add(model);
-                    _context.SaveChanges();
-                    return RedirectToAction("Classes");
-                }
-                catch (Exception ex)
-                {
-                    // Log the exception
-                    System.Diagnostics.Debug.WriteLine($"Save Error: {ex.Message}");
-                    ModelState.AddModelError("", "Error saving to database");
-                }
+                _context.Classes.Add(model);
+                _context.SaveChanges();
+                return RedirectToAction("Classes");
             }
-
             ViewBag.Courses = _context.Courses.ToList();
             ViewBag.AcademicYears = _context.AcademicYears.ToList();
             return PartialView("_AddEditClass", model);
@@ -203,8 +178,7 @@ namespace Student_Attendance.Controllers
         [HttpGet]
         public IActionResult EditClass(int id)
         {
-            var classItem = _context.Classes.Include(c => c.Course).Include(c => c.AcademicYear).FirstOrDefault(c => c.Id == id);
-
+            var classItem = _context.Classes.Find(id);
             if (classItem == null)
             {
                 return NotFound();
