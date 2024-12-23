@@ -1,0 +1,22 @@
+﻿@model Student_Attendance.Models.Course
+
+<form method="post" asp-action="@(Model.Id == 0 ? "CreateCourse" : "EditCourse")">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    @if (Model.Id != 0)
+    {
+        <input type="hidden" asp-for="Id" />
+    }
+
+    <div class="mb-3">
+        <label asp-for="Name" class="form-label">Name</label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">@(Model.Id == 0 ? "Create" : "Update")</button>
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
