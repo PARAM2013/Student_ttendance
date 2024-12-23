@@ -175,15 +175,22 @@ namespace Student_Attendance.Controllers
         [HttpPost]
         public IActionResult CreateClass(Class model)
         {
-            if (ModelState.IsValid)
+            try
             {
-                _context.Classes.Add(model);
-                _context.SaveChanges();
-                return RedirectToAction("Classes");
+                if (ModelState.IsValid)
+                {
+                    _context.Classes.Add(model);
+                    _context.SaveChanges();
+                    return Ok(); // Return success for AJAX
+                }
+                ViewBag.Courses = _context.Courses.ToList();
+                ViewBag.AcademicYears = _context.AcademicYears.ToList();
+                return PartialView("_AddEditClass", model);
             }
-            ViewBag.Courses = _context.Courses.ToList();
-            ViewBag.AcademicYears = _context.AcademicYears.ToList();
-            return PartialView("_AddEditClass", model);
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
 
@@ -204,15 +211,22 @@ namespace Student_Attendance.Controllers
         [HttpPost]
         public IActionResult EditClass(Class model)
         {
-            if (ModelState.IsValid)
+            try
             {
-                _context.Classes.Update(model);
-                _context.SaveChanges();
-                return RedirectToAction("Classes");
+                if (ModelState.IsValid)
+                {
+                    _context.Classes.Update(model);
+                    _context.SaveChanges();
+                    return Ok(); // Return success for AJAX
+                }
+                ViewBag.Courses = _context.Courses.ToList();
+                ViewBag.AcademicYears = _context.AcademicYears.ToList();
+                return PartialView("_AddEditClass", model);
             }
-            ViewBag.Courses = _context.Courses.ToList();
-            ViewBag.AcademicYears = _context.AcademicYears.ToList();
-            return PartialView("_AddEditClass", model);
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpPost]
@@ -252,14 +266,21 @@ namespace Student_Attendance.Controllers
         [HttpPost]
         public IActionResult CreateDivision(Division model)
         {
-            if (ModelState.IsValid)
+            try
             {
-                _context.Divisions.Add(model);
-                _context.SaveChanges();
-                return RedirectToAction("Divisions");
+                if (ModelState.IsValid)
+                {
+                    _context.Divisions.Add(model);
+                    _context.SaveChanges();
+                    return Ok();
+                }
+                ViewBag.Classes = _context.Classes.Include(c => c.Course).Include(c => c.AcademicYear).ToList();
+                return PartialView("_AddEditDivision", model);
             }
-            ViewBag.Classes = _context.Classes.Include(c => c.Course).Include(c => c.AcademicYear).ToList();
-            return PartialView("_AddEditDivision", model);
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpGet]
@@ -277,14 +298,21 @@ namespace Student_Attendance.Controllers
         [HttpPost]
         public IActionResult EditDivision(Division model)
         {
-            if (ModelState.IsValid)
+            try
             {
-                _context.Divisions.Update(model);
-                _context.SaveChanges();
-                return RedirectToAction("Divisions");
+                if (ModelState.IsValid)
+                {
+                    _context.Divisions.Update(model);
+                    _context.SaveChanges();
+                    return Ok();
+                }
+                ViewBag.Classes = _context.Classes.Include(c => c.Course).Include(c => c.AcademicYear).ToList();
+                return PartialView("_AddEditDivision", model);
             }
-            ViewBag.Classes = _context.Classes.Include(c => c.Course).Include(c => c.AcademicYear).ToList();
-            return PartialView("_AddEditDivision", model);
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpPost]

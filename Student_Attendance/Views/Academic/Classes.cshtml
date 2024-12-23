@@ -62,33 +62,26 @@
                 var modal = $(this);
 
                 modal.find('.modal-body').load(url, function () {
-                         $.validator.unobtrusive.parse('#classForm');
-                         $('#classForm').submit(function (event) {
-                                event.preventDefault();
-                                    var form = $(this);
-                                     $.ajax({
-                                        type: "POST",
-                                        url: form.attr('action'),
-                                        data: form.serialize(),
-                                         success: function (data) {
-                                            if (data.startsWith('<')) {
-                                                modal.find('.modal-body').html(data);
-                                                $.validator.unobtrusive.parse('#classForm');
-                                              }
-                                              else {
-                                                  $('#addEditModal').modal('hide');
-                                                   location.reload();
-                                             }
-
-                                        },
-                                         error : function(data){
-                                                 modal.find('.modal-body').html(data.responseText);
-                                               $.validator.unobtrusive.parse('#classForm');
-                                        }
-                                    });
-
-
-                            });
+                    $.validator.unobtrusive.parse('#classForm');
+                    $('#classForm').submit(function (event) {
+                        event.preventDefault();
+                        var form = $(this);
+                        $.ajax({
+                            type: "POST",
+                            url: form.attr('action'),
+                            data: form.serialize(),
+                            success: function (data) {
+                                $('#addEditModal').modal('hide');
+                                location.reload();
+                            },
+                            error: function (xhr) {
+                                if (xhr.responseText) {
+                                    $('.modal-body').html(xhr.responseText);
+                                    $.validator.unobtrusive.parse('#classForm');
+                                }
+                            }
+                        });
+                    });
                 });
             });
         });
