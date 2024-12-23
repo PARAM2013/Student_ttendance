@@ -15,47 +15,34 @@
         <div class="border-end bg-white" id="sidebar-wrapper">
             <div class="sidebar-heading border-bottom bg-light">Student Attendance</div>
             <div class="list-group list-group-flush">
-                <a class="list-group-item list-group-item-action list-group-item-light p-3" asp-area="" asp-controller="Home" asp-action="Index"><i class="fa fa-home me-2"></i> Home</a>
-
-                <a class="list-group-item list-group-item-action list-group-item-light p-3" data-bs-toggle="collapse" href="#academicMenu" role="button" aria-expanded="false" aria-controls="academicMenu"><i class="fa fa-calendar-alt me-2"></i> Academic Years</a>
-                <div class="collapse" id="academicMenu">
-                    <a class="list-group-item list-group-item-action list-group-item-light ps-5" asp-area="" asp-controller="AcademicYears" asp-action="Index">  List</a>
-                </div>
-
-                <a class="list-group-item list-group-item-action list-group-item-light p-3" data-bs-toggle="collapse" href="#courseMenu" role="button" aria-expanded="false" aria-controls="courseMenu"><i class="fa fa-book me-2"></i> Courses</a>
-                <div class="collapse" id="courseMenu">
-                    <a class="list-group-item list-group-item-action list-group-item-light ps-5" asp-area="" asp-controller="Courses" asp-action="Index">  List</a>
-                </div>
-
-                <a class="list-group-item list-group-item-action list-group-item-light p-3" data-bs-toggle="collapse" href="#classMenu" role="button" aria-expanded="false" aria-controls="classMenu"><i class="fa fa-list me-2"></i> Classes</a>
-                <div class="collapse" id="classMenu">
-                    <a class="list-group-item list-group-item-action list-group-item-light ps-5" asp-area="" asp-controller="Classes" asp-action="Index"> List</a>
-                    <a class="list-group-item list-group-item-action list-group-item-light ps-5" asp-area="" asp-controller="Classes" asp-action="_AddEdit"> AddEdit</a>
-                </div>
-
-                <a class="list-group-item list-group-item-action list-group-item-light p-3" data-bs-toggle="collapse" href="#divisionMenu" role="button" aria-expanded="false" aria-controls="divisionMenu"><i class="fa fa-sitemap me-2"></i> Divisions</a>
-                <div class="collapse" id="divisionMenu">
-                    <a class="list-group-item list-group-item-action list-group-item-light ps-5" asp-area="" asp-controller="Divisions" asp-action="Index">  List</a>
-                </div>
-
-                <a class="list-group-item list-group-item-action list-group-item-light p-3" data-bs-toggle="collapse" href="#specializationMenu" role="button" aria-expanded="false" aria-controls="specializationMenu"><i class="fa fa-graduation-cap me-2"></i> Specializations</a>
-                <div class="collapse" id="specializationMenu">
-                    <a class="list-group-item list-group-item-action list-group-item-light ps-5" asp-area="" asp-controller="Specializations" asp-action="Index"> List</a>
-                </div>
-
-                <a class="list-group-item list-group-item-action list-group-item-light p-3" data-bs-toggle="collapse" href="#subjectMenu" role="button" aria-expanded="false" aria-controls="subjectMenu"><i class="fa fa-book-open me-2"></i> Subjects</a>
-                <div class="collapse" id="subjectMenu">
-                    <a class="list-group-item list-group-item-action list-group-item-light ps-5" asp-area="" asp-controller="Subjects" asp-action="Index">  List</a>
-                </div>
+                <a class="list-group-item list-group-item-action list-group-item-light p-3" asp-area="" asp-controller="Home" asp-action="Index"><i class="fa fa-home me-2"></i> Dashboard</a>
 
 
-                <a class="list-group-item list-group-item-action list-group-item-light p-3" data-bs-toggle="collapse" href="#studentMenu" role="button" aria-expanded="false" aria-controls="studentMenu"><i class="fa fa-user-graduate me-2"></i> Students</a>
+                <a class="list-group-item list-group-item-action list-group-item-light p-3" data-bs-toggle="collapse" href="#studentMenu" role="button" aria-expanded="false" aria-controls="studentMenu">
+                    <i class="fa fa-user-graduate me-2"></i>  Students Master
+                </a>
                 <div class="collapse" id="studentMenu">
-                    <a class="list-group-item list-group-item-action list-group-item-light ps-5" asp-area="" asp-controller="Students" asp-action="Index">  List</a>
-                    <a class="list-group-item list-group-item-action list-group-item-light ps-5" asp-area="" asp-controller="Students" asp-action="Create">Add New</a>
-                    <a class="list-group-item list-group-item-action list-group-item-light ps-5" asp-area="" asp-controller="Students" asp-action="Import">Import</a>
-
+                    <a class="list-group-item list-group-item-action list-group-item-light ps-5" asp-controller="Students" asp-action="Index">  List</a>
+                    <a class="list-group-item list-group-item-action list-group-item-light ps-5" asp-controller="Students" asp-action="Create">Add New</a>
+                    <a class="list-group-item list-group-item-action list-group-item-light ps-5" asp-controller="Students" asp-action="Import">Import</a>
                 </div>
+
+                <a class="list-group-item list-group-item-action list-group-item-light p-3" data-bs-toggle="collapse" href="#attendanceMenu" role="button" aria-expanded="false" aria-controls="attendanceMenu"><i class="fa fa-calendar-check me-2"></i> Attendance Master</a>
+                <div class="collapse" id="attendanceMenu">
+                </div>
+
+                <a class="list-group-item list-group-item-action list-group-item-light p-3" data-bs-toggle="collapse" href="#academicMenu" role="button" aria-expanded="false" aria-controls="academicMenu"><i class="fa fa-cog me-2"></i> Academic Settings</a>
+                <div class="collapse" id="academicMenu">
+                    <a class="list-group-item list-group-item-action list-group-item-light ps-5" asp-area="" asp-controller="Academic" asp-action="AcademicYears"> Academic Years</a>
+                    <a class="list-group-item list-group-item-action list-group-item-light ps-5" asp-area="" asp-controller="Academic" asp-action="Courses"> Courses</a>
+                    <a class="list-group-item list-group-item-action list-group-item-light ps-5" asp-area="" asp-controller="Academic" asp-action="Classes"> Classes</a>
+                    <a class="list-group-item list-group-item-action list-group-item-light ps-5" asp-area="" asp-controller="Academic" asp-action="Divisions"> Divisions</a>
+                    <a class="list-group-item list-group-item-action list-group-item-light ps-5" asp-area="" asp-controller="Academic" asp-action="Specializations"> Specializations</a>
+                    <a class="list-group-item list-group-item-action list-group-item-light ps-5" asp-area="" asp-controller="Academic" asp-action="Subjects"> Subjects</a>
+                    <a class="list-group-item list-group-item-action list-group-item-light ps-5" asp-area="" asp-controller="Admin" asp-action="Users"> User Management</a>
+                </div>
+
+                <a class="list-group-item list-group-item-action list-group-item-light p-3" asp-area="" asp-controller="Admin" asp-action="Logout"><i class="fa fa-sign-out-alt me-2"></i> Logout</a>
             </div>
         </div>
         <!-- Page Content -->
@@ -85,7 +72,7 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
     <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
-    <script src="~/js/site.js"></script>  
+    <script src="~/js/site.js"></script>
     <script>
           window.addEventListener('DOMContentLoaded', event => {
 
