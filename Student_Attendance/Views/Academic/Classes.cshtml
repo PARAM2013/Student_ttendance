@@ -4,6 +4,7 @@
 }
 
 <div class="container">
+    <div id="alert-container" class="mb-3"></div>
     <h2>Classes</h2>
 
     <button type="button" class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addEditModal" data-url="@Url.Action("CreateClass", "Academic")">Add New Class</button>
@@ -55,6 +56,19 @@
 
 @section Scripts {
     <script>
+        function showAlert(message, type) {
+            const alertHtml = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>`;
+            $("#alert-container").html(alertHtml);
+
+            setTimeout(() => {
+                $("#alert-container .alert").alert('close');
+            }, 5000);
+        }
+
         $(document).ready(function () {
             $('#addEditModal').on('show.bs.modal', function (e) {
                 var button = $(e.relatedTarget);
@@ -62,59 +76,63 @@
                 var modal = $(this);
 
                 modal.find('.modal-body').load(url, function () {
-                         $.validator.unobtrusive.parse('#classForm');
-                         $('#classForm').submit(function (event) {
-                                event.preventDefault();
-                                    var form = $(this);
-                                     $.ajax({
-                                        type: "POST",
-                                        url: form.attr('action'),
-                                        data: form.serialize(),
-                                         success: function (data) {
-                                            if (data.startsWith('<')) {
-                                                modal.find('.modal-body').html(data);
-                                                $.validator.unobtrusive.parse('#classForm');
-                                              }
-                                              else {
-                                                  $('#addEditModal').modal('hide');
-                                                   location.reload();
-                                             }
+                    // Form submission
+                    $('#classForm').on('submit', function (event) {
+                        event.preventDefault();
 
-                                        },
-                                         error : function(data){
-                                                 modal.find('.modal-body').html(data.responseText);
-                                               $.validator.unobtrusive.parse('#classForm');
-                                        }
-                                    });
+                        // Get form values
+                        var name = $('#Name').val();
+                        var courseId = $('#CourseId').val();
+                        var academicYearId = $('#AcademicYearId').val();
 
+                        // Validate form
+                        if (!name || !courseId || !academicYearId) {
+                            showAlert('Please fill in all required fields', 'danger');
+                            return false;
+                        }
 
-                            });
+                        var formData = new FormData(this);
+
+                        $.ajax({
+                            type: "POST",
+                            url: $(this).attr('action'),
+                            data: $(this).serialize(),
+                            success: function (response) {
+                                if (response.success) {
+                                    $('#addEditModal').modal('hide');
+                                    showAlert('Class created successfully', 'success');
+                                    setTimeout(() => location.reload(), 1000);
+                                } else {
+                                    showAlert(response.message || 'Error occurred', 'danger');
+                                }
+                            },
+                            error: function (xhr) {
+                                showAlert(xhr.responseText || 'An error occurred', 'danger');
+                            }
+                        });
+                    });
                 });
             });
+
+            // Delete handling
+            $('form[action*="Delete"]').submit(function (event) {
+                event.preventDefault();
+                if (confirm("Are you sure you want to delete this class?")) {
+                    var form = $(this);
+                    $.ajax({
+                        type: "POST",
+                        url: form.attr('action'),
+                        data: form.serialize(),
+                        success: function (response) {
+                            showAlert('Class deleted successfully', 'success');
+                            setTimeout(() => location.reload(), 1000);
+                        },
+                        error: function (xhr) {
+                            showAlert(xhr.responseText || 'An error occurred while deleting', 'danger');
+                        }
+                    });
+                }
+            });
         });
-         $(document).ready(function () {
-                 $('form[action*="Delete"]').submit(function (event) {
-                    var result = confirm("Are you sure want to delete this?");
-                     if(result){
-
-                            var form = $(this);
-                                     $.ajax({
-                                        type: "POST",
-                                        url: form.attr('action'),
-                                        data: form.serialize(),
-                                         success: function (data) {
-                                                $("#alert-container").html(`<div class="alert alert-success alert-dismissible fade show" role="alert">${data}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>`);
-                                                location.reload();
-                                        },
-                                         error : function(data){
-                                                 $("#alert-container").html(`<div class="alert alert-danger alert-dismissible fade show" role="alert">${data.responseText}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>`);
-                                        }
-                                    });
-                     }
-                     event.preventDefault();
-                   });
-           });
-
-
     </script>
 }

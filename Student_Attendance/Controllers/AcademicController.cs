@@ -173,17 +173,34 @@ namespace Student_Attendance.Controllers
 
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult CreateClass(Class model)
         {
             if (ModelState.IsValid)
             {
-                _context.Classes.Add(model);
-                _context.SaveChanges();
-                return Ok(); // Return a 200 OK status code
+                try
+                {
+                    // Verify the values are present
+                    if (model.CourseId == 0 || model.AcademicYearId == 0)
+                    {
+                        return Json(new { success = false, message = "Please select both Course and Academic Year" });
+                    }
+
+                    _context.Classes.Add(model);
+                    _context.SaveChanges();
+                    return Json(new { success = true, message = "Class created successfully" });
+                }
+                catch (Exception ex)
+                {
+                    return Json(new { success = false, message = ex.Message });
+                }
             }
-            ViewBag.Courses = _context.Courses.ToList();
-            ViewBag.AcademicYears = _context.AcademicYears.ToList();
-            return PartialView("_AddEditClass", model);
+
+            // If we get here, something failed
+            var errors = string.Join(", ", ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage));
+            return Json(new { success = false, message = errors });
         }
 
 
@@ -206,9 +223,16 @@ namespace Student_Attendance.Controllers
         {
             if (ModelState.IsValid)
             {
-                _context.Classes.Update(model);
-                _context.SaveChanges();
-                return Ok(); // Return a 200 OK status code
+                try
+                {
+                    _context.Classes.Update(model);
+                    _context.SaveChanges();
+                    return Json(new { success = true, message = "Class updated successfully" });
+                }
+                catch (Exception ex)
+                {
+                    return Json(new { success = false, message = ex.Message });
+                }
             }
             ViewBag.Courses = _context.Courses.ToList();
             ViewBag.AcademicYears = _context.AcademicYears.ToList();
