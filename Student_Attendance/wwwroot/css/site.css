@@ -1,81 +1,249 @@
-html {
-  font-size: 14px;
+/* Base styles */
+:root {
+    --sidebar-width: 280px;
+    --sidebar-bg: #2f3a4e;
+    --sidebar-hover: #3a4661;
+    --sidebar-active: #1e2a3e;
+    --text-primary: #ffffff;
+    --text-secondary: #b3b8c3;
+    --primary-color: #4c84ff;
 }
 
-@media (min-width: 768px) {
-  html {
+html {
     font-size: 16px;
-  }
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
 }
 
 body {
-  margin-bottom: 60px;
-}
-
-body {
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    background: #f4f6f9;
     overflow-x: hidden;
 }
 
-#sidebar-wrapper {
+/* Wrapper */
+.wrapper {
+    display: flex;
     min-height: 100vh;
-    margin-left: -15rem;
-    -webkit-transition: margin 0.25s ease-out;
-    -moz-transition: margin 0.25s ease-out;
-    -o-transition: margin 0.25s ease-out;
-    transition: margin 0.25s ease-out;
+    position: relative;
 }
 
-    #sidebar-wrapper .sidebar-heading {
-        padding: 0.875rem 1.25rem;
-        font-size: 1.2rem;
-    }
-
-    #sidebar-wrapper .list-group {
-        width: 15rem;
-    }
-
-#page-content-wrapper {
-    min-width: 100vw;
+/* Sidebar */
+#sidebar {
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    background: var(--sidebar-bg);
+    color: var(--text-primary);
+    transition: all 0.3s;
+    position: fixed;
+    height: 100vh;
+    z-index: 1000;
 }
 
-body.sb-sidenav-toggled #wrapper #sidebar-wrapper {
-    margin-left: 0;
-}
-
-#sidebar-wrapper .list-group-item {
-    border: 0;
-    border-radius: 0;
-    padding: 15px;
-}
-
-    #sidebar-wrapper .list-group-item:hover {
-        background: #e2e6ea;
+    #sidebar.active {
+        margin-left: calc(-1 * var(--sidebar-width));
     }
 
-    #sidebar-wrapper .list-group-item:active {
-        background: #e2e6ea;
+.sidebar-header {
+    padding: 1.5rem;
+    background: var(--sidebar-active);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+    .sidebar-header h3 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        white-space: nowrap;
     }
 
-@media (min-width: 768px) {
-    #sidebar-wrapper {
+.sidebar-content {
+    height: calc(100vh - 5rem);
+    overflow-y: auto;
+    padding-top: 1rem;
+}
+
+/* Menu Items */
+.menu-item {
+    margin: 0.25rem 0;
+}
+
+.menu-link {
+    display: flex;
+    align-items: center;
+    padding: 0.875rem 1.5rem;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 1.1rem;
+    transition: all 0.3s;
+}
+
+    .menu-link:hover {
+        background: var(--sidebar-hover);
+        color: var(--text-primary);
+        text-decoration: none;
+    }
+
+    .menu-link i {
+        width: 1.5rem;
+        margin-right: 1rem;
+        font-size: 1.25rem;
+    }
+
+    .menu-link span {
+        flex: 1;
+    }
+
+    .menu-link.dropdown-toggle i.fa-chevron-down {
+        font-size: 0.875rem;
+        transition: transform 0.3s;
+    }
+
+    .menu-link.expanded i.fa-chevron-down {
+        transform: rotate(180deg);
+    }
+
+/* Submenu */
+.submenu {
+    background: var(--sidebar-active);
+    padding-left: 1rem;
+}
+
+.submenu-link {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 1rem;
+    transition: all 0.3s;
+}
+
+    .submenu-link:hover {
+        color: var(--text-primary);
+        background: var(--sidebar-hover);
+        text-decoration: none;
+    }
+
+    .submenu-link i {
+        width: 1.25rem;
+        margin-right: 0.875rem;
+        font-size: 1rem;
+    }
+
+/* Content Area */
+#content {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    transition: all 0.3s;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+    #content.active {
         margin-left: 0;
     }
 
-    #page-content-wrapper {
-        min-width: 0;
-        width: 100%;
+/* Navbar */
+.navbar {
+    background: #ffffff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    padding: 1rem 1.5rem;
+}
+
+.btn-toggle {
+    color: var(--sidebar-bg);
+    padding: 0.5rem;
+    font-size: 1.25rem;
+    border: none;
+    background: transparent;
+}
+
+    .btn-toggle:hover {
+        color: var(--primary-color);
     }
 
-    body.sb-sidenav-toggled #wrapper #sidebar-wrapper {
-        margin-left: -15rem;
-    }
+.navbar .nav-link {
+    padding: 0.5rem 1rem;
+    font-size: 1.25rem;
+    color: var(--sidebar-bg);
 }
+
+    .navbar .nav-link:hover {
+        color: var(--primary-color);
+    }
+
+/* Content Body */
+.content-body {
+    flex: 1;
+    padding: 1.5rem;
+    background: #f4f6f9;
+}
+
+/* Footer */
+.footer {
+    background: #ffffff;
+    padding: 1rem 0;
+    text-align: center;
+    border-top: 1px solid #dee2e6;
+}
+
+/* Active State */
+.current-page {
+    background: var(--sidebar-hover) !important;
+    border-left: 4px solid var(--primary-color);
+}
+
+/* Mobile Styles */
+@media (max-width: 767.98px) {
+    :root {
+        --sidebar-width: 260px;
+    }
+
+    #sidebar {
+        margin-left: calc(-1 * var(--sidebar-width));
+    }
+
+        #sidebar.mobile-active {
+            margin-left: 0;
+        }
+
+    #content {
+        margin-left: 0;
+    }
+
+    .content-body {
+        padding: 1rem;
+    }
+
+    .menu-link {
+        padding: 1rem 1.25rem;
+    }
+
+    .submenu-link {
+        padding: 0.875rem 1.25rem;
+    }
+
+    /*
+
+        /* Add this to your site.css */
+    .submenu {
+        counter-reset: none; /* Reset any counters */
+        list-style: none; /* Remove default list styling */
+    }
+
+        .submenu li {
+            list-style-type: none; /* Ensure no list markers appear */
+        }
+    /* Add this to your site.css */
+    #mobileSidebarCollapse {
+        display: none; /* Hide by default */
+    }
+
+    #sidebar.mobile-active #mobileSidebarCollapse {
+        display: block; /* Show only when sidebar is active */
+    }
