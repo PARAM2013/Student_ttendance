@@ -1,28 +1,20 @@
-﻿@model Student_Attendance.Models.Division
+﻿@model Student_Attendance.ViewModels.DivisionViewModel
 
-<form id="divisionForm" method="post" asp-action="@(Model.Id == 0 ? "CreateDivision" : "EditDivision")">
-    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-    @if (Model.Id != 0)
-    {
+<form asp-action="@(Model.Id > 0 ? "EditDivision" : "CreateDivision")" asp-controller="Academic" onsubmit="return submitForm(this);" autocomplete="off">
+    <div class="form-group">
         <input type="hidden" asp-for="Id" />
-    }
-
-    <div class="mb-3">
-        <label asp-for="Name" class="form-label">Name</label>
-        <input asp-for="Name" class="form-control" autocomplete="off" />
+        <label asp-for="Name">Division Name</label>
+        <input asp-for="Name" class="form-control" />
         <span asp-validation-for="Name" class="text-danger"></span>
     </div>
-    <div class="mb-3">
-        <label asp-for="ClassId" class="form-label">Class</label>
-        <select asp-for="ClassId" class="form-select" asp-items="@(new SelectList(ViewBag.Classes, "Id", "Name"))" autocomplete="off">
-            <option value="">Select a Class</option>
+    <div class="form-group">
+        <label asp-for="ClassId">Class</label>
+        <select asp-for="ClassId" class="form-control" asp-items="@(Model.Classes ?? new List<SelectListItem>())">
+            <option value="">Select Class</option>
         </select>
         <span asp-validation-for="ClassId" class="text-danger"></span>
     </div>
-
-    <button type="submit" class="btn btn-primary">@(Model.Id == 0 ? "Create" : "Update")</button>
-    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <div class="form-group mt-3">
+        <input type="submit" value="Submit" class="btn btn-primary" />
+    </div>
 </form>
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}

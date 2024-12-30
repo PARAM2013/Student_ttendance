@@ -7,8 +7,6 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Logging;
 
 
-
-
 namespace Student_Attendance.Controllers
 {
     public class AcademicController : Controller
@@ -186,30 +184,55 @@ namespace Student_Attendance.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateClass(ClassViewModel model)
         {
-            if (ModelState.IsValid)
+            try
             {
-                try
+                if (!ModelState.IsValid)
                 {
-                    Class classObj = new Class
-                    {
-                        Name = model.Name,
-                        CourseId = model.CourseId,
-                        AcademicYearId = model.AcademicYearId
-                    };
+                    await LoadClassDropDowns(model);
+                    var errors = string.Join(", ", ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage));
+                    return Json(new { success = false, message = errors });
+                }
 
-                    await _context.Classes.AddAsync(classObj);
-                    await _context.SaveChangesAsync();
+                // Verify the values are present
+                if (model.CourseId <= 0 || model.AcademicYearId <= 0)
+                {
+                    return Json(new { success = false, message = "Invalid Course or Academic Year selection" });
+                }
+
+                var classObj = new Class
+                {
+                    Name = model.Name,
+                    CourseId = model.CourseId,
+                    AcademicYearId = model.AcademicYearId
+                };
+
+                // Verify the referenced entities exist
+                var courseExists = await _context.Courses.AnyAsync(c => c.Id == model.CourseId);
+                var academicYearExists = await _context.AcademicYears.AnyAsync(a => a.Id == model.AcademicYearId);
+
+                if (!courseExists || !academicYearExists)
+                {
+                    return Json(new { success = false, message = "Selected Course or Academic Year does not exist" });
+                }
+
+                await _context.Classes.AddAsync(classObj);
+                var result = await _context.SaveChangesAsync();
+
+                if (result > 0)
+                {
                     return Json(new { success = true, message = "Class created successfully" });
                 }
-                catch (Exception ex)
-                {
-                    return Json(new { success = false, message = ex.Message });
-                }
-            }
 
-            await LoadClassDropDowns(model);
-            return Json(new { success = false, message = "Validation failed" });
+                return Json(new { success = false, message = "Failed to save to database" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error: {ex.Message}" });
+            }
         }
+
 
 
         private async Task LoadClassDropDowns(ClassViewModel model)
@@ -306,6 +329,164 @@ namespace Student_Attendance.Controllers
                 return BadRequest(ex.InnerException?.Message ?? ex.Message);
             }
         }
-                
+
+        // division part code
+
+        public IActionResult Divisions()
+        {
+            var divisions = _context.Divisions
+                                   .Include(d => d.Class)
+                                   .ThenInclude(c => c.Course)
+                                   .ToList();
+            return View(divisions);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CreateDivision()
+        {
+            DivisionViewModel model = new DivisionViewModel();
+            await LoadDivisionDropDowns(model);
+            return PartialView("_AddEditDivision", model);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateDivision(DivisionViewModel model)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    await LoadDivisionDropDowns(model);
+                    var errors = string.Join(", ", ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage));
+                    return Json(new { success = false, message = errors });
+                }
+
+                Division division = new Division
+                {
+                    Name = model.Name,
+                    ClassId = model.ClassId
+                };
+
+                await _context.Divisions.AddAsync(division);
+                var result = await _context.SaveChangesAsync();
+
+                if (result > 0)
+                {
+                    return Json(new { success = true, message = "Division created successfully" });
+                }
+                return Json(new { success = false, message = "Failed to save division" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error: {ex.Message}" });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> EditDivision(int id)
+        {
+            var division = await _context.Divisions.FindAsync(id);
+            if (division == null)
+            {
+                return NotFound();
+            }
+
+            DivisionViewModel model = new DivisionViewModel
+            {
+                Id = division.Id,
+                Name = division.Name,
+                ClassId = division.ClassId
+            };
+            await LoadDivisionDropDowns(model);
+            return PartialView("_AddEditDivision", model);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> EditDivision(DivisionViewModel model)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    await LoadDivisionDropDowns(model);
+                    var errors = string.Join(", ", ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage));
+                    return Json(new { success = false, message = errors });
+                }
+
+                var division = new Division
+                {
+                    Id = model.Id,
+                    Name = model.Name,
+                    ClassId = model.ClassId
+                };
+
+                _context.Divisions.Update(division);
+                var result = await _context.SaveChangesAsync();
+
+                if (result > 0)
+                {
+                    return Json(new { success = true, message = "Division updated successfully" });
+                }
+                return Json(new { success = false, message = "Failed to update division" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error: {ex.Message}" });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteDivision(int id)
+        {
+            var division = await _context.Divisions.FindAsync(id);
+            if (division == null)
+            {
+                return Json(new { success = false, message = "Division not found" });
+            }
+
+            try
+            {
+                _context.Divisions.Remove(division);
+                await _context.SaveChangesAsync();
+                return Json(new { success = true, message = "Division deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error deleting division: {ex.Message}" });
+            }
+        }
+
+        private async Task LoadDivisionDropDowns(DivisionViewModel model)
+        {
+            try
+            {
+                var classes = await _context.Classes
+                    .Include(c => c.Course)
+                    .Include(c => c.AcademicYear)
+                    .ToListAsync();
+
+                model.Classes = classes.Select(c => new SelectListItem
+                {
+                    Value = c.Id.ToString(),
+                    Text = $"{c.Name} ({c.Course.Name} - {c.AcademicYear.Name})"
+                }).ToList();
+
+                if (!model.Classes.Any())
+                {
+                    throw new Exception("No classes found in database");
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error loading classes: {ex.Message}");
+            }
+        }
+
+
+
     }
 }
