@@ -1,79 +1,36 @@
-﻿@model Student_Attendance.Models.Class
+﻿@model Student_Attendance.ViewModels.ClassViewModel
 
-<form id="classForm" method="post" asp-action="@(Model.Id == 0 ? "CreateClass" : "EditClass")" asp-controller="Academic">
-    @Html.AntiForgeryToken()
-
-    <div asp-validation-summary="All" class="text-danger"></div>
-    @if (Model.Id != 0)
-    {
+<form asp-action="@(Model.Id > 0 ? "EditClass" : "CreateClass")"
+      asp-controller="Academic"
+      onsubmit="return submitForm(this);"
+      autocomplete="off">
+    <div class="form-group">
         <input type="hidden" asp-for="Id" />
-    }
-
-    <div class="mb-3">
-        <label asp-for="Name" class="form-label">Name</label>
+        <label asp-for="Name">Class Name</label>
         <input asp-for="Name" class="form-control" />
         <span asp-validation-for="Name" class="text-danger"></span>
     </div>
-
-    <div class="mb-3">
-        <label asp-for="CourseId" class="form-label">Course</label>
-        <select name="CourseId" id="CourseId" class="form-select">
-            <option value="">Select a Course</option>
-            @foreach (var course in (IEnumerable<Course>)ViewBag.Courses)
-            {
-                <option value="@course.Id">@course.Name</option>
-            }
+    <div class="form-group">
+        <label asp-for="CourseId">Course</label>
+        <select asp-for="CourseId" class="form-control" asp-items="@Model.Courses">
+            <option value="">Select Course</option>
         </select>
         <span asp-validation-for="CourseId" class="text-danger"></span>
     </div>
-
-    <div class="mb-3">
-        <label asp-for="AcademicYearId" class="form-label">Academic Year</label>
-        <select name="AcademicYearId" id="AcademicYearId" class="form-select">
-            <option value="">Select an Academic Year</option>
-            @foreach (var year in (IEnumerable<AcademicYear>)ViewBag.AcademicYears)
-            {
-                <option value="@year.Id">@year.Name</option>
-            }
+    <div class="form-group">
+        <label asp-for="AcademicYearId">Academic Year</label>
+        <select asp-for="AcademicYearId" class="form-control" asp-items="@Model.AcademicYears">
+            <option value="">Select Academic Year</option>
         </select>
         <span asp-validation-for="AcademicYearId" class="text-danger"></span>
     </div>
-
-    <div class="modal-footer">
-        <button type="submit" class="btn btn-primary">@(Model.Id == 0 ? "Create" : "Update")</button>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <div class="form-group mt-3">
+        <input type="submit" value="@(Model.Id > 0 ? "Update" : "Create")" class="btn btn-primary" />
     </div>
 </form>
 
 @section Scripts {
-    <script>
-        $(document).ready(function() {
-            // Add client-side validation for dropdowns
-            $('select').on('change', function() {
-                $(this).valid();  // Trigger validation on change
-            });
-
-            // Initialize validation
-            $("#classForm").validate({
-                rules: {
-                    CourseId: {
-                        required: true
-                    },
-                    AcademicYearId: {
-                        required: true
-                    }
-                },
-                messages: {
-                    CourseId: {
-                        required: "Please select a course"
-                    },
-                    AcademicYearId: {
-                        required: "Please select an academic year"
-                    }
-                },
-                errorElement: 'span',
-                errorClass: 'text-danger'
-            });
-        });
-    </script>
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }

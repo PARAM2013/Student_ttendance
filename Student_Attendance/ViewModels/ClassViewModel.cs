@@ -6,14 +6,19 @@ namespace Student_Attendance.ViewModels
     public class ClassViewModel
     {
         public int Id { get; set; }
+
         [Required(ErrorMessage = "Class Name is required")]
-        [StringLength(100, ErrorMessage = "Name can not be greater then 100 charactors.")]
         public string Name { get; set; }
-        [Required(ErrorMessage = "Course is required.")]
+
+        [Required(ErrorMessage = "Course is required")]
         public int CourseId { get; set; }
-        [Required(ErrorMessage = "Academic Year is required.")]
+
+        [Required(ErrorMessage = "Academic Year is required")]
         public int AcademicYearId { get; set; }
-        public List<SelectListItem> Courses { get; set; }
-        public List<SelectListItem> AcademicYears { get; set; }
+
+        public List<SelectListItem> Courses { get; set; } = new List<SelectListItem>();
+        public List<SelectListItem> AcademicYears { get; set; } = new List<SelectListItem>();
     }
+
+
 }

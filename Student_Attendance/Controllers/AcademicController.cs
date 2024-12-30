@@ -1,19 +1,26 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Student_Attendance.Data;
 using Student_Attendance.Models;
-using Microsoft.EntityFrameworkCore;
+using Student_Attendance.ViewModels;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Extensions.Logging;
+
+
+
 
 namespace Student_Attendance.Controllers
 {
     public class AcademicController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<AcademicController> _logger;
 
-        public AcademicController(ApplicationDbContext context)
+        public AcademicController(ApplicationDbContext context, ILogger<AcademicController> logger)
         {
             _context = context;
+            _logger = logger;
         }
-
 
         public IActionResult AcademicYears()
         {
@@ -157,37 +164,41 @@ namespace Student_Attendance.Controllers
 
             }
         }
+
         public IActionResult Classes()
         {
-            var classes = _context.Classes.Include(c => c.Course).Include(c => c.AcademicYear).ToList();
+            var classes = _context.Classes.Include(c => c.Course)
+                                        .Include(c => c.AcademicYear)
+                                        .ToList();
             return View(classes);
         }
 
         [HttpGet]
-        public IActionResult CreateClass()
+        public async Task<IActionResult> CreateClass()
         {
-            ViewBag.Courses = _context.Courses.ToList();
-            ViewBag.AcademicYears = _context.AcademicYears.ToList();
-            return PartialView("_AddEditClass", new Class());
+            var model = new ClassViewModel();
+            await LoadClassDropDowns(model);
+            return PartialView("_AddEditClass", model);
         }
 
 
+
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult CreateClass(Class model)
+        public async Task<IActionResult> CreateClass(ClassViewModel model)
         {
             if (ModelState.IsValid)
             {
                 try
                 {
-                    // Verify the values are present
-                    if (model.CourseId == 0 || model.AcademicYearId == 0)
+                    Class classObj = new Class
                     {
-                        return Json(new { success = false, message = "Please select both Course and Academic Year" });
-                    }
+                        Name = model.Name,
+                        CourseId = model.CourseId,
+                        AcademicYearId = model.AcademicYearId
+                    };
 
-                    _context.Classes.Add(model);
-                    _context.SaveChanges();
+                    await _context.Classes.AddAsync(classObj);
+                    await _context.SaveChangesAsync();
                     return Json(new { success = true, message = "Class created successfully" });
                 }
                 catch (Exception ex)
@@ -196,149 +207,105 @@ namespace Student_Attendance.Controllers
                 }
             }
 
-            // If we get here, something failed
-            var errors = string.Join(", ", ModelState.Values
-                .SelectMany(v => v.Errors)
-                .Select(e => e.ErrorMessage));
-            return Json(new { success = false, message = errors });
+            await LoadClassDropDowns(model);
+            return Json(new { success = false, message = "Validation failed" });
         }
 
 
-        [HttpGet]
-        public IActionResult EditClass(int id)
+        private async Task LoadClassDropDowns(ClassViewModel model)
         {
-            var classItem = _context.Classes.Include(c => c.Course).Include(c => c.AcademicYear).FirstOrDefault(c => c.Id == id);
+            var courses = await _context.Courses.ToListAsync();
+            var academicYears = await _context.AcademicYears.ToListAsync();
 
-            if (classItem == null)
+            model.Courses = courses.Select(c => new SelectListItem
+            {
+                Value = c.Id.ToString(),
+                Text = c.Name
+            }).ToList();
+
+            model.AcademicYears = academicYears.Select(ay => new SelectListItem
+            {
+                Value = ay.Id.ToString(),
+                Text = ay.Name
+            }).ToList();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> EditClass(int id)
+        {
+            var classObj = await _context.Classes.FindAsync(id);
+            if (classObj == null)
             {
                 return NotFound();
             }
-            ViewBag.Courses = _context.Courses.ToList();
-            ViewBag.AcademicYears = _context.AcademicYears.ToList();
-            return PartialView("_AddEditClass", classItem);
-        }
 
-        [HttpPost]
-        public IActionResult EditClass(Class model)
-        {
-            if (ModelState.IsValid)
+            ClassViewModel model = new ClassViewModel
             {
-                try
-                {
-                    _context.Classes.Update(model);
-                    _context.SaveChanges();
-                    return Json(new { success = true, message = "Class updated successfully" });
-                }
-                catch (Exception ex)
-                {
-                    return Json(new { success = false, message = ex.Message });
-                }
-            }
-            ViewBag.Courses = _context.Courses.ToList();
-            ViewBag.AcademicYears = _context.AcademicYears.ToList();
+                Id = classObj.Id,
+                Name = classObj.Name,
+                CourseId = classObj.CourseId,
+                AcademicYearId = classObj.AcademicYearId
+            };
+            await LoadClassDropDowns(model);
             return PartialView("_AddEditClass", model);
         }
 
         [HttpPost]
-        public IActionResult DeleteClass(int id)
+        public async Task<IActionResult> EditClass(ClassViewModel model)
         {
-            var classItem = _context.Classes.Find(id);
-            if (classItem == null)
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage);
+                    return Json(new { success = false, message = string.Join(", ", errors) });
+                }
+
+                var existingClass = await _context.Classes.FindAsync(model.Id);
+                if (existingClass == null)
+                {
+                    return Json(new { success = false, message = "Class not found" });
+                }
+
+                // Update existing class properties
+                existingClass.Name = model.Name;
+                existingClass.CourseId = model.CourseId;
+                existingClass.AcademicYearId = model.AcademicYearId;
+
+                _context.Classes.Update(existingClass);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Class updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error updating class: {ex.Message}" });
+            }
+        }
+
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteClass(int id)
+        {
+            var classObj = await _context.Classes.FindAsync(id);
+            if (classObj == null)
             {
                 return NotFound();
             }
 
             try
             {
-                _context.Classes.Remove(classItem);
-                _context.SaveChanges();
-                return Ok("Class deleted successfully");
+                _context.Classes.Remove(classObj);
+                await _context.SaveChangesAsync();
+                return Ok();
             }
             catch (DbUpdateException ex)
             {
                 return BadRequest(ex.InnerException?.Message ?? ex.Message);
             }
         }
-
-        public IActionResult Divisions()
-        {
-            var divisions = _context.Divisions
-                 .Include(d => d.Class)
-                     .ThenInclude(c => c.Course)
-                  .Include(d => d.Class)
-                     .ThenInclude(c => c.AcademicYear)
-                 .ToList();
-
-            return View(divisions);
-        }
-
-        [HttpGet]
-        public IActionResult CreateDivision()
-        {
-            ViewBag.Classes = _context.Classes.Include(c => c.Course).Include(c => c.AcademicYear).ToList();
-            return PartialView("_AddEditDivision", new Division());
-        }
-
-
-        [HttpPost]
-        public IActionResult CreateDivision(Division model)
-        {
-            if (ModelState.IsValid)
-            {
-                _context.Divisions.Add(model);
-                _context.SaveChanges();
-                return Ok(); // Return a 200 OK status code
-            }
-            ViewBag.Classes = _context.Classes.Include(c => c.Course).Include(c => c.AcademicYear).ToList();
-            return PartialView("_AddEditDivision", model);
-        }
-
-
-        [HttpGet]
-        public IActionResult EditDivision(int id)
-        {
-            var divisionItem = _context.Divisions.Include(d => d.Class).FirstOrDefault(d => d.Id == id);
-
-            if (divisionItem == null)
-            {
-                return NotFound();
-            }
-            ViewBag.Classes = _context.Classes.Include(c => c.Course).Include(c => c.AcademicYear).ToList();
-            return PartialView("_AddEditDivision", divisionItem);
-        }
-
-        [HttpPost]
-        public IActionResult EditDivision(Division model)
-        {
-            if (ModelState.IsValid)
-            {
-                _context.Divisions.Update(model);
-                _context.SaveChanges();
-                return Ok(); // Return a 200 OK status code
-            }
-            ViewBag.Classes = _context.Classes.Include(c => c.Course).Include(c => c.AcademicYear).ToList();
-            return PartialView("_AddEditDivision", model);
-        }
-
-        [HttpPost]
-        public IActionResult DeleteDivision(int id)
-        {
-            var divisionItem = _context.Divisions.Find(id);
-            if (divisionItem == null)
-            {
-                return NotFound();
-            }
-
-            try
-            {
-                _context.Divisions.Remove(divisionItem);
-                _context.SaveChanges();
-                return PartialView("_AlertPartial", "Division deleted successfully");
-            }
-            catch (DbUpdateException ex)
-            {
-                return BadRequest(ex.InnerException?.Message ?? ex.Message);
-            }
-        }
+                
     }
 }
