@@ -17,6 +17,7 @@ function showInPopup(url, title) {
 // Submit form using AJAX
 function submitForm(form) {
     var formData = new FormData(form);
+
     $.ajax({
         type: "POST",
         url: form.action,
@@ -24,7 +25,7 @@ function submitForm(form) {
         contentType: false,
         processData: false,
         success: function (res) {
-            console.log('Server response:', res); // Check the response in the console
+            console.log("Request successful! Response:", res); // Log success
             if (res && res.success === true) { // Check if 'success' property is true
                 showAlert("Data saved successfully", "success");
                 $("#form-modal").modal('hide');
@@ -37,13 +38,13 @@ function submitForm(form) {
             }
         },
         error: function (err) {
-            console.error('Error:', err);
+            console.error("Request failed!", err); // Log failure
             showAlert("An error occurred while saving data", "danger");
         }
     });
+
     return false;
 }
-
 
 
 
