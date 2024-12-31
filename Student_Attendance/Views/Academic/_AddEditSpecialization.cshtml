@@ -1,0 +1,20 @@
+﻿@model Student_Attendance.ViewModels.SpecializationViewModel
+
+<form asp-action="CreateSpecialization" asp-controller="Academic" onsubmit="return submitForm(this);" autocomplete="off">
+    <div class="form-group">
+        <input type="hidden" asp-for="Id" />
+        <label asp-for="Name">Specialization Name</label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="CourseId">Course</label>
+        <select asp-for="CourseId" class="form-control" asp-items="@Model.Courses">
+            <option value="">Select Course</option>
+        </select>
+        <span asp-validation-for="CourseId" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <input type="submit" value="Submit" class="btn btn-primary" />
+    </div>
+</form>
