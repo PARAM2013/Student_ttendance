@@ -1,0 +1,53 @@
+﻿@model Student_Attendance.ViewModels.SubjectViewModel
+
+<form asp-action="@(Model.Id > 0 ? "EditSubject" : "CreateSubject")"
+      asp-controller="Academic"
+      onsubmit="return submitForm(this);"
+      autocomplete="off">
+    <div class="form-group">
+        <input type="hidden" asp-for="Id" />
+        <label asp-for="Name">Subject Name</label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="Code">Subject Code</label>
+        <input asp-for="Code" class="form-control" />
+        <span asp-validation-for="Code" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="CourseId">Course</label>
+        <select asp-for="CourseId" class="form-control" asp-items="Model.Courses">
+            <option value="">Select Course</option>
+        </select>
+        <span asp-validation-for="CourseId" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="AcademicYearId">Academic Year</label>
+        <select asp-for="AcademicYearId" class="form-control" asp-items="Model.AcademicYears">
+            <option value="">Select Academic Year</option>
+        </select>
+        <span asp-validation-for="AcademicYearId" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="Semester">Semester</label>
+        <input asp-for="Semester" class="form-control" type="number" min="1" max="8" />
+        <span asp-validation-for="Semester" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="SpecializationId">Specialization (Optional)</label>
+        <select asp-for="SpecializationId" class="form-control" asp-items="Model.Specializations">
+            <option value="">Select Specialization</option>
+        </select>
+        <span asp-validation-for="SpecializationId" class="text-danger"></span>
+    </div>
+    <div class="form-group mt-3">
+        <input type="submit" value="@(Model.Id > 0 ? "Update" : "Create")" class="btn btn-primary" />
+    </div>
+</form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

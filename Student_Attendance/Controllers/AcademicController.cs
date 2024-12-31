@@ -629,6 +629,189 @@ namespace Student_Attendance.Controllers
             }).ToList();
         }
 
+        // Add Subjects code
+
+        // Add these actions to your AcademicController class
+
+        public IActionResult Subjects()
+        {
+            var subjects = _context.Subjects
+                .Include(s => s.Course)
+                .Include(s => s.AcademicYear)
+                .Include(s => s.Specialization)
+                .ToList();
+            return View(subjects);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CreateSubject()
+        {
+            SubjectViewModel model = new SubjectViewModel();
+            await LoadSubjectDropDowns(model);
+            return PartialView("_AddEditSubject", model);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> EditSubject(int id)
+        {
+            var subject = await _context.Subjects.FindAsync(id);
+            if (subject == null)
+            {
+                return NotFound();
+            }
+
+            var model = new SubjectViewModel
+            {
+                Id = subject.Id,
+                Name = subject.Name,
+                Code = subject.Code,
+                SpecializationId = subject.SpecializationId,
+                Semester = subject.Semester,
+                CourseId = subject.CourseId,
+                AcademicYearId = subject.AcademicYearId
+            };
+
+            await LoadSubjectDropDowns(model);
+            return PartialView("_AddEditSubject", model);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateSubject(SubjectViewModel model)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    await LoadSubjectDropDowns(model);
+                    var errors = string.Join(", ", ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage));
+                    return Json(new { success = false, message = errors });
+                }
+
+                var subject = new Subject
+                {
+                    Name = model.Name,
+                    Code = model.Code,
+                    SpecializationId = model.SpecializationId,
+                    Semester = model.Semester,
+                    CourseId = model.CourseId,
+                    AcademicYearId = model.AcademicYearId
+                };
+
+                await _context.Subjects.AddAsync(subject);
+                var result = await _context.SaveChangesAsync();
+
+                if (result > 0)
+                {
+                    return Json(new { success = true, message = "Subject created successfully" });
+                }
+                return Json(new { success = false, message = "Failed to save subject" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error: {ex.Message}" });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> EditSubject(SubjectViewModel model)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    await LoadSubjectDropDowns(model);
+                    var errors = string.Join(", ", ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage));
+                    return Json(new { success = false, message = errors });
+                }
+
+                var subject = await _context.Subjects.FindAsync(model.Id);
+                if (subject == null)
+                {
+                    return Json(new { success = false, message = "Subject not found" });
+                }
+
+                subject.Name = model.Name;
+                subject.Code = model.Code;
+                subject.SpecializationId = model.SpecializationId;
+                subject.Semester = model.Semester;
+                subject.CourseId = model.CourseId;
+                subject.AcademicYearId = model.AcademicYearId;
+
+                _context.Subjects.Update(subject);
+                var result = await _context.SaveChangesAsync();
+
+                if (result > 0)
+                {
+                    return Json(new { success = true, message = "Subject updated successfully" });
+                }
+                return Json(new { success = false, message = "Failed to update subject" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error: {ex.Message}" });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteSubject(int id)
+        {
+            try
+            {
+                var subject = await _context.Subjects.FindAsync(id);
+                if (subject == null)
+                {
+                    return Json(new { success = false, message = "Subject not found" });
+                }
+
+                _context.Subjects.Remove(subject);
+                var result = await _context.SaveChangesAsync();
+
+                if (result > 0)
+                {
+                    return Json(new { success = true, message = "Subject deleted successfully" });
+                }
+                return Json(new { success = false, message = "Failed to delete subject" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error: {ex.Message}" });
+            }
+        }
+
+        private async Task LoadSubjectDropDowns(SubjectViewModel model)
+        {
+            if (model.Courses == null) model.Courses = new List<SelectListItem>();
+            if (model.AcademicYears == null) model.AcademicYears = new List<SelectListItem>();
+            if (model.Specializations == null) model.Specializations = new List<SelectListItem>();
+
+            var courses = await _context.Courses.ToListAsync();
+            var academicYears = await _context.AcademicYears.ToListAsync();
+            var specializations = await _context.Specializations.ToListAsync();
+
+            model.Courses = courses.Select(c => new SelectListItem
+            {
+                Value = c.Id.ToString(),
+                Text = c.Name
+            }).ToList();
+
+            model.AcademicYears = academicYears.Select(ay => new SelectListItem
+            {
+                Value = ay.Id.ToString(),
+                Text = ay.Name
+            }).ToList();
+
+            // Add an empty option for Specialization since it's optional
+            var specializationItems = specializations.Select(s => new SelectListItem
+            {
+                Value = s.Id.ToString(),
+                Text = s.Name
+            }).ToList();
+            model.Specializations = specializationItems;
+        }
 
     }
 }
