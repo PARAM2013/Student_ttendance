@@ -17,7 +17,6 @@ function showInPopup(url, title) {
 // Submit form using AJAX
 function submitForm(form) {
     var formData = new FormData(form);
-
     $.ajax({
         type: "POST",
         url: form.action,
@@ -25,12 +24,13 @@ function submitForm(form) {
         contentType: false,
         processData: false,
         success: function (res) {
-            console.log('Server response:', res);
-            if (res && res.success === true) {  // Check explicitly for true
+            console.log('Server response:', res); // Check the response in the console
+            if (res && res.success === true) { // Check if 'success' property is true
                 showAlert("Data saved successfully", "success");
                 $("#form-modal").modal('hide');
+                // Reload the page or update the relevant section after a delay
                 setTimeout(function () {
-                    location.reload();
+                    location.reload(); // Or update specific HTML elements
                 }, 1000);
             } else {
                 showAlert(res.message || "Failed to save data", "danger");
@@ -46,6 +46,7 @@ function submitForm(form) {
 
 
 
+
 // Delete item
 function deleteItem(url) {
     if (confirm('Are you sure you want to delete this item?')) {
@@ -53,15 +54,19 @@ function deleteItem(url) {
             type: "POST",
             url: url,
             success: function (res) {
-                location.reload();
+                showAlert("Item deleted successfully", 'success');
+                setTimeout(function () {
+                    location.reload(); // Or update specific HTML elements
+                }, 1000);
             },
             error: function (err) {
                 console.log(err);
-                alert('An error occurred while deleting.');
+                showAlert('An error occurred while deleting.', 'danger');
             }
         });
     }
 }
+
 
 // Alert msg
 

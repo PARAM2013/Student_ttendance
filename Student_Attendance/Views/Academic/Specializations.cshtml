@@ -1,0 +1,50 @@
+﻿@model IEnumerable<Student_Attendance.Models.Specialization>
+
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Specializations</h3>
+            <div class="card-tools">
+                <button type="button" class="btn btn-primary" onclick="showInPopup('@Url.Action("CreateSpecialization","Academic",null,Context.Request.Scheme)','Add New Specialization')">
+                    Add New
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <table class="table table-bordered table-hover" id="tblData">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Course</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.Name</td>
+                            <td>@item.Course.Name</td>
+                            <td>
+                                <button type="button" class="btn btn-info btn-sm" onclick="showInPopup('@Url.Action("EditSpecialization","Academic",new {id=item.Id},Context.Request.Scheme)','Edit Specialization')">
+                                    Edit
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm" onclick="deleteItem('@Url.Action("DeleteSpecialization","Academic",new {id=item.Id},Context.Request.Scheme)')">
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#tblData').DataTable();
+        });
+    </script>
+}

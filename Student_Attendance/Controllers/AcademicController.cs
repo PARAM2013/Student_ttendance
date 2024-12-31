@@ -234,7 +234,6 @@ namespace Student_Attendance.Controllers
         }
 
 
-
         private async Task LoadClassDropDowns(ClassViewModel model)
         {
             var courses = await _context.Courses.ToListAsync();
@@ -486,6 +485,149 @@ namespace Student_Attendance.Controllers
             }
         }
 
+        // Specializations part code
+
+        public IActionResult Specializations()
+        {
+            var specializations = _context.Specializations.Include(s => s.Course).ToList();
+            return View(specializations);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CreateSpecialization()
+        {
+            SpecializationViewModel model = new SpecializationViewModel();
+            await LoadSpecializationDropDowns(model);
+            return PartialView("_AddEditSpecialization", model);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> EditSpecialization(int id)
+        {
+            var specialization = await _context.Specializations.FindAsync(id);
+            if (specialization == null)
+            {
+                return NotFound();
+            }
+
+            SpecializationViewModel model = new SpecializationViewModel
+            {
+                Id = specialization.Id,
+                Name = specialization.Name,
+                CourseId = specialization.CourseId
+            };
+            await LoadSpecializationDropDowns(model);
+            return PartialView("_AddEditSpecialization", model);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateSpecialization(SpecializationViewModel model)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    await LoadSpecializationDropDowns(model);
+                    var errors = string.Join(", ", ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage));
+                    return Json(new { success = false, message = errors });
+                }
+
+                Specialization specialization = new Specialization
+                {
+                    Name = model.Name,
+                    CourseId = model.CourseId
+                };
+
+                await _context.Specializations.AddAsync(specialization);
+                var result = await _context.SaveChangesAsync();
+
+                if (result > 0)
+                {
+                    return Json(new { success = true, message = "Specialization created successfully" });
+                }
+                return Json(new { success = false, message = "Failed to save specialization" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error: {ex.Message}" });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> EditSpecialization(SpecializationViewModel model)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    await LoadSpecializationDropDowns(model);
+                    var errors = string.Join(", ", ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage));
+                    return Json(new { success = false, message = errors });
+                }
+
+                var specialization = await _context.Specializations.FindAsync(model.Id);
+                if (specialization == null)
+                {
+                    return Json(new { success = false, message = "Specialization not found" });
+                }
+
+                specialization.Name = model.Name;
+                specialization.CourseId = model.CourseId;
+
+                _context.Specializations.Update(specialization);
+                var result = await _context.SaveChangesAsync();
+
+                if (result > 0)
+                {
+                    return Json(new { success = true, message = "Specialization updated successfully" });
+                }
+                return Json(new { success = false, message = "Failed to update specialization" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error: {ex.Message}" });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteSpecialization(int id)
+        {
+            try
+            {
+                var specialization = await _context.Specializations.FindAsync(id);
+                if (specialization == null)
+                {
+                    return Json(new { success = false, message = "Specialization not found" });
+                }
+
+                _context.Specializations.Remove(specialization);
+                var result = await _context.SaveChangesAsync();
+
+                if (result > 0)
+                {
+                    return Json(new { success = true, message = "Specialization deleted successfully" });
+                }
+                return Json(new { success = false, message = "Failed to delete specialization" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error: {ex.Message}" });
+            }
+        }
+
+        private async Task LoadSpecializationDropDowns(SpecializationViewModel model)
+        {
+            var courses = await _context.Courses.ToListAsync();
+            model.Courses = courses.Select(c => new SelectListItem
+            {
+                Value = c.Id.ToString(),
+                Text = c.Name
+            }).ToList();
+        }
 
 
     }
