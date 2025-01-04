@@ -19,42 +19,65 @@ namespace Student_Attendance.Controllers
             _logger = logger;
         }
 
-        // GET: Students
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            var students = _context.Students
-                .Include(s => s.Course)
-                .Include(s => s.AcademicYear)
-                .Include(s => s.Division)
-                .Select(s => new StudentViewModel
-                {
-                    Id = s.Id,
-                    EnrollmentNo = s.EnrollmentNo,                   
-                    Course = s.Course,
-                    AcademicYear = s.AcademicYear,
-                    Division = s.Division
-                })
-                .ToList();
+            try
+            {
+                _logger.LogInformation("Fetching all students");
+                var students = await _context.Students
+                    .Include(s => s.Course)
+                    .Include(s => s.AcademicYear)
+                    .Include(s => s.Division)
+                    .Select(s => new StudentViewModel
+                    {
+                        Id = s.Id,
+                        EnrollmentNo = s.EnrollmentNo,
+                        Name = s.Name,
+                        Course = s.Course,
+                        AcademicYear = s.AcademicYear,
+                        Division = s.Division,
+                        Cast = s.Cast,
+                        Email = s.Email,
+                        Mobile = s.Mobile,
+                        Semester = s.Semester,
+                        IsActive = s.IsActive
+                    })
+                    .ToListAsync();
 
-            return View(students);
+                _logger.LogInformation("Successfully retrieved {Count} students", students.Count);
+                return View(students);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while fetching students");
+                return Problem("Error retrieving students");
+            }
         }
 
-
-        // GET: Students/Create
         public async Task<IActionResult> Create()
         {
-            StudentViewModel model = new StudentViewModel();
-            await LoadStudentDropDowns(model);
-            return View(model);
+            try
+            {
+                _logger.LogInformation("Loading Create Student form");
+                StudentViewModel model = new StudentViewModel();
+                await LoadStudentDropDowns(model);
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while loading Create form");
+                return Problem("Error loading create form");
+            }
         }
 
-        // POST: Students/Create      
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(StudentViewModel model)
         {
             try
             {
+                _logger.LogInformation("Attempting to create student: {@StudentModel}", model);
+
                 if (ModelState.IsValid)
                 {
                     var student = new Student
@@ -73,168 +96,38 @@ namespace Student_Attendance.Controllers
 
                     _context.Students.Add(student);
                     await _context.SaveChangesAsync();
-
-                    return Json(new { success = true, message = "Student created successfully!" });
+                    _logger.LogInformation("Successfully created student with ID: {StudentId}", student.Id);
+                    return RedirectToAction(nameof(Index));
                 }
 
-                var errors = ModelState.Values
-                    .SelectMany(v => v.Errors)
-                    .Select(e => e.ErrorMessage);
-
-                _logger.LogWarning($"Student creation failed: {string.Join(", ", errors)}");
-                return Json(new { success = false, message = "Validation failed", errors = errors });
+                _logger.LogWarning("Invalid model state for student creation: {@ModelStateErrors}", 
+                    ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                
+                await LoadStudentDropDowns(model);
+                return View(model);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while creating a student.");
-                return Json(new { success = false, message = "An error occurred while creating the student" });
+                _logger.LogError(ex, "Error occurred while creating student: {@StudentModel}", model);
+                ModelState.AddModelError("", "Unable to create student. Please try again.");
+                await LoadStudentDropDowns(model);
+                return View(model);
             }
-        }
-
-        // GET: Students/Edit/5
-        public async Task<IActionResult> Edit(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var student = await _context.Students.FindAsync(id);
-            if (student == null)
-            {
-                return NotFound();
-            }
-
-            var model = new StudentViewModel
-            {
-                Id = student.Id,
-                EnrollmentNo = student.EnrollmentNo,
-                Name = student.Name,
-                Cast = student.Cast,
-                Email = student.Email,
-                Mobile = student.Mobile,
-                CourseId = student.CourseId,
-                Semester = student.Semester,
-                IsActive = student.IsActive,
-                AcademicYearId = student.AcademicYearId,
-                DivisionId = student.DivisionId
-            };
-            await LoadStudentDropDowns(model);
-            return View(model);
-        }
-
-        // POST: Students/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, StudentViewModel model)
-        {
-            if (id != model.Id)
-            {
-                return NotFound();
-            }
-
-            if (ModelState.IsValid)
-            {
-                try
-                {
-                    var student = await _context.Students.FindAsync(model.Id);
-                    if (student == null)
-                    {
-                        return NotFound();
-                    }
-
-                    student.EnrollmentNo = model.EnrollmentNo;
-                    student.Name = model.Name;
-                    student.Cast = model.Cast;
-                    student.Email = model.Email;
-                    student.Mobile = model.Mobile;
-                    student.CourseId = model.CourseId;
-                    student.Semester = model.Semester;
-                    student.IsActive = model.IsActive;
-                    student.AcademicYearId = model.AcademicYearId;
-                    student.DivisionId = model.DivisionId;
-
-                    _context.Update(student);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!StudentExists(model.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
-            }
-            await LoadStudentDropDowns(model);
-            return View(model);
-        }
-
-        // GET: Students/Delete/5
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var student = await _context.Students
-                .Include(s => s.Course)
-                .Include(s => s.AcademicYear)
-                .Include(s => s.Division)
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (student == null)
-            {
-                return NotFound();
-            }
-
-            return View(student);
-        }
-
-        // POST: Students/Delete/5
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
-        {
-            var student = await _context.Students.FindAsync(id);
-            if (student == null)
-            {
-                return NotFound();
-            }
-
-            _context.Students.Remove(student);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
-
-        private bool StudentExists(int id)
-        {
-            return _context.Students.Any(e => e.Id == id);
         }
 
         private async Task LoadStudentDropDowns(StudentViewModel model)
         {
-            model.Courses = await _context.Courses.Select(c => new SelectListItem
+            try
             {
-                Value = c.Id.ToString(),
-                Text = c.Name
-            }).ToListAsync();
-
-            model.AcademicYears = await _context.AcademicYears.Select(ay => new SelectListItem
+                ViewBag.Courses = new SelectList(await _context.Courses.ToListAsync(), "Id", "Name");
+                ViewBag.AcademicYears = new SelectList(await _context.AcademicYears.ToListAsync(), "Id", "Name");
+                ViewBag.Divisions = new SelectList(await _context.Divisions.ToListAsync(), "Id", "Name");
+            }
+            catch (Exception ex)
             {
-                Value = ay.Id.ToString(),
-                Text = ay.Name
-            }).ToListAsync();
-
-            model.Divisions = await _context.Divisions.Select(d => new SelectListItem
-            {
-                Value = d.Id.ToString(),
-                Text = d.Name
-            }).ToListAsync();
+                _logger.LogError(ex, "Error loading dropdown data");
+                throw;
+            }
         }
     }
 }

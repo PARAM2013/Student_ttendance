@@ -7,9 +7,11 @@ using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Logging.AddConsole();
-builder.Logging.AddDebug();
-builder.Logging.ClearProviders();
+// Change your logging configuration to this:
+builder.Logging.ClearProviders(); // Clear first
+builder.Logging.AddConsole()     // Then add providers
+    .AddDebug()
+    .SetMinimumLevel(LogLevel.Debug); // Set minimum level to see more details
 
 
 // Add services to the container.
