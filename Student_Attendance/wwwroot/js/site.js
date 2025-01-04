@@ -71,19 +71,19 @@ function deleteItem(url) {
 // Alert msg
 
 function showAlert(message, type) {
-    // Remove any existing alerts
+    // Remove existing alerts
     $('.alert').remove();
 
-    // Create new alert
-    var alertHtml = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
+    // Create alert HTML
+    const alertHtml = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
         ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>`;
 
-    // Insert alert before the table
-    $('.card-body').prepend(alertHtml);
+    // Insert alert before a suitable container (e.g., before the form)
+    $('form').before(alertHtml);
 
-    // Auto dismiss after 5 seconds
+    // Optional: Auto-dismiss after a few seconds
     setTimeout(function () {
         $('.alert').fadeOut('slow', function () {
             $(this).remove();

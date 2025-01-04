@@ -2,11 +2,15 @@ using Microsoft.EntityFrameworkCore;
 using Student_Attendance.Data;
 using Student_Attendance.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
+builder.Logging.ClearProviders();
+
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
