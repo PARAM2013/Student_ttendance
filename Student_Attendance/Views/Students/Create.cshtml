@@ -11,8 +11,8 @@
         </div>
         <div class="card-body">
             <div id="alert-container"></div>
-            <form id="createStudentForm" onsubmit="return submitForm(this)" asp-action="Create">
-                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <form id="createStudentForm" asp-action="Create">
+                <div asp-validation-summary="All" class="text-danger"></div>
                 <div class="row">
                     <div class="col-md-6">
                         <div class="mb-3">
@@ -88,35 +88,46 @@
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
     <script>
-        // Enhanced form submission function
+        $(document).ready(function () {
+            $('#createStudentForm').on('submit', function (e) {
+                e.preventDefault();
+                if ($(this).valid()) {
+                    submitForm(this);
+                }
+            });
+        });
+
         function submitForm(form) {
-            event.preventDefault();
+            var formData = $(form).serializeArray();
+            console.log('Form data:', formData);
 
             $.ajax({
                 type: "POST",
                 url: form.action,
-                data: new FormData(form),
-                processData: false,
-                contentType: false,
+                data: formData,
                 success: function (response) {
+                    console.log('Response:', response);
                     if (response.success) {
-                        showAlert("Student created successfully!", "success");
+                        showAlert(response.message, "success");
                         setTimeout(function() {
                             window.location.href = '@Url.Action("Index", "Students")';
                         }, 1500);
                     } else {
-                        showAlert(response.message || "Failed to create student", "danger");
+                        showAlert(response.message, "danger");
+                        if (response.errors && response.errors.length > 0) {
+                            response.errors.forEach(function(error) {
+                                showAlert(error, "danger");
+                            });
+                        }
                     }
                 },
-                error: function (error) {
+                error: function (xhr, status, error) {
+                    console.error('Error:', xhr.responseText);
                     showAlert("An error occurred while creating the student", "danger");
-                    console.error('Error:', error);
                 }
             });
-            return false;
         }
 
-        // Enhanced alert function
         function showAlert(message, type) {
             const alertHtml = `
                 <div class="alert alert-${type} alert-dismissible fade show" role="alert">
