@@ -1,0 +1,53 @@
+@model Student_Attendance.Models.Institute
+
+@{
+    ViewData["Title"] = "Institute Details";
+}
+
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Institute Details</h3>
+        </div>
+        <div class="card-body">
+            @if (Model == null)
+            {
+                <p>No institute information found.</p>
+                <a asp-action="Create" class="btn btn-primary">Add Institute</a>
+            }
+            else
+            {
+                <div class="row">
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <dt class="col-sm-4">Name:</dt>
+                            <dd class="col-sm-8">@Model.Name</dd>
+
+                            <dt class="col-sm-4">Short Name:</dt>
+                            <dd class="col-sm-8">@Model.ShortName</dd>
+
+                            <dt class="col-sm-4">Address:</dt>
+                            <dd class="col-sm-8">@Model.Address</dd>
+
+                            <dt class="col-sm-4">Website:</dt>
+                            <dd class="col-sm-8">@(Model.Website ?? "N/A")</dd>
+
+                            <dt class="col-sm-4">Email:</dt>
+                            <dd class="col-sm-8">@Model.Email</dd>
+
+                            <dt class="col-sm-4">Contact No:</dt>
+                            <dd class="col-sm-8">@Model.ContactNo</dd>
+                        </dl>
+                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit</a>
+                    </div>
+                    @if (!string.IsNullOrEmpty(Model.Logo))
+                    {
+                        <div class="col-md-6">
+                            <img src="@Model.Logo" alt="Institute Logo" class="img-fluid" />
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
