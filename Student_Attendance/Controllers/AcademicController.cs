@@ -133,16 +133,31 @@ namespace Student_Attendance.Controllers
 
 
         [HttpPost]
-        public IActionResult CreateCourse(Course model)
+        public async Task<IActionResult> CreateCourse(Course model)
         {
-            if (ModelState.IsValid)
+            try
             {
-                _context.Courses.Add(model);
-                _context.SaveChanges();
-                return Ok(); // Return a 200 OK status code
-            }
+                if (ModelState.IsValid)
+                {
+                    await _context.Courses.AddAsync(model);
+                    var result = await _context.SaveChangesAsync();
+                    
+                    if (result > 0)
+                    {
+                        return Json(new { success = true, message = "Course created successfully" });
+                    }
+                    return Json(new { success = false, message = "Failed to save course" });
+                }
 
-            return PartialView("_AddEditCourse", model);
+                var errors = string.Join(", ", ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage));
+                return Json(new { success = false, message = errors });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error: {ex.Message}" });
+            }
         }
 
 
@@ -164,9 +179,21 @@ namespace Student_Attendance.Controllers
             {
                 if (ModelState.IsValid)
                 {
-                    _context.Courses.Update(model);
-                    await _context.SaveChangesAsync();
-                    return Json(new { success = true, message = "Course updated successfully" });
+                    var course = await _context.Courses.FindAsync(model.Id);
+                    if (course == null)
+                    {
+                        return Json(new { success = false, message = "Course not found" });
+                    }
+
+                    course.Name = model.Name;
+                    _context.Courses.Update(course);
+                    var result = await _context.SaveChangesAsync();
+
+                    if (result > 0)
+                    {
+                        return Json(new { success = true, message = "Course updated successfully" });
+                    }
+                    return Json(new { success = false, message = "Failed to update course" });
                 }
 
                 var errors = string.Join(", ", ModelState.Values

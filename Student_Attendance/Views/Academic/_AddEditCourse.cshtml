@@ -1,6 +1,9 @@
 ﻿@model Student_Attendance.Models.Course
 
-<form method="post" asp-action="@(Model.Id == 0 ? "CreateCourse" : "EditCourse")">
+<form asp-action="@(Model.Id == 0 ? "CreateCourse" : "EditCourse")"
+      asp-controller="Academic"
+      onsubmit="return submitForm(this);"
+      autocomplete="off">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
     @if (Model.Id != 0)
     {
@@ -8,13 +11,15 @@
     }
 
     <div class="mb-3">
-        <label asp-for="Name" class="form-label">Name</label>
+        <label asp-for="Name" class="form-label">Course Name</label>
         <input asp-for="Name" class="form-control" />
         <span asp-validation-for="Name" class="text-danger"></span>
     </div>
 
-    <button type="submit" class="btn btn-primary">@(Model.Id == 0 ? "Create" : "Update")</button>
-    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <div class="form-group mt-3">
+        <input type="submit" value="@(Model.Id == 0 ? "Create" : "Update")" class="btn btn-primary" />
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    </div>
 </form>
 
 @section Scripts {
