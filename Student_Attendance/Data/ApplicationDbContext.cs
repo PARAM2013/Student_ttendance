@@ -19,6 +19,7 @@ namespace Student_Attendance.Data
         public DbSet<Division> Divisions { get; set; }
         public DbSet<StudentSubject> StudentSubjects { get; set; }
         public DbSet<TeacherSubject> TeacherSubjects { get; set; }
+        public DbSet<Institute> Institutes { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
