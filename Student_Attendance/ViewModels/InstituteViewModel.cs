@@ -14,7 +14,10 @@ namespace Student_Attendance.ViewModels
         [StringLength(50)]
         public string ShortName { get; set; }
 
-        public string? Logo { get; set; }
+        [Display(Name = "Logo")]
+        public IFormFile LogoFile { get; set; }  // For file upload
+
+        public string Logo { get; set; }  // For storing file path
 
         [Required(ErrorMessage = "Address is required")]
         [StringLength(500)]

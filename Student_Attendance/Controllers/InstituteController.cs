@@ -10,11 +10,13 @@ namespace Student_Attendance.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<InstituteController> _logger;
+        private readonly IWebHostEnvironment _webHostEnvironment;
 
-        public InstituteController(ApplicationDbContext context, ILogger<InstituteController> logger)
+        public InstituteController(ApplicationDbContext context, ILogger<InstituteController> logger, IWebHostEnvironment webHostEnvironment)
         {
             _context = context;
             _logger = logger;
+            _webHostEnvironment = webHostEnvironment;
         }
 
         // GET: Institute
@@ -44,25 +46,59 @@ namespace Student_Attendance.Controllers
             {
                 try
                 {
+                    if (model.LogoFile != null)
+                    {
+                        // Validate file type
+                        string[] allowedExtensions = { ".jpg", ".jpeg", ".png" };
+                        string fileExtension = Path.GetExtension(model.LogoFile.FileName).ToLowerInvariant();
+                        if (!allowedExtensions.Contains(fileExtension))
+                        {
+                            ModelState.AddModelError("LogoFile", "Only .jpg, .jpeg and .png files are allowed");
+                            return View(model);
+                        }
+
+                        // Validate file size (max 2MB)
+                        if (model.LogoFile.Length > 2 * 1024 * 1024)
+                        {
+                            ModelState.AddModelError("LogoFile", "File size cannot exceed 2MB");
+                            return View(model);
+                        }
+
+                        // Save the file
+                        string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images", "logos");
+                        Directory.CreateDirectory(uploadsFolder);
+                        string uniqueFileName = $"{Guid.NewGuid()}{fileExtension}";
+                        string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                        
+                        using (var fileStream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await model.LogoFile.CopyToAsync(fileStream);
+                        }
+
+                        model.Logo = $"/images/logos/{uniqueFileName}";
+                    }
+
                     var institute = new Institute
                     {
-                        Name = model.Name,
-                        ShortName = model.ShortName,
+                        Name = model.Name.Trim(),
+                        ShortName = model.ShortName.Trim(),
                         Logo = model.Logo,
-                        Address = model.Address,
-                        Website = model.Website,
-                        Email = model.Email,
-                        ContactNo = model.ContactNo
+                        Address = model.Address.Trim(),
+                        Website = model.Website?.Trim(),
+                        Email = model.Email.Trim(),
+                        ContactNo = model.ContactNo.Trim()
                     };
 
                     _context.Add(institute);
                     await _context.SaveChangesAsync();
+                    
+                    TempData["Success"] = "Institute created successfully";
                     return RedirectToAction(nameof(Index));
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error creating institute");
-                    ModelState.AddModelError("", "Unable to save changes. Try again.");
+                    _logger.LogError(ex, "Error creating institute with name {Name}", model.Name);
+                    ModelState.AddModelError("", "Unable to save changes. Please try again.");
                 }
             }
             return View(model);
@@ -117,9 +153,32 @@ namespace Student_Attendance.Controllers
                         return NotFound();
                     }
 
+                    if (model.LogoFile != null)
+                    {
+                        // Delete old logo if exists
+                        if (!string.IsNullOrEmpty(institute.Logo))
+                        {
+                            var oldFilePath = Path.Combine(_webHostEnvironment.WebRootPath, institute.Logo.TrimStart('/'));
+                            if (System.IO.File.Exists(oldFilePath))
+                            {
+                                System.IO.File.Delete(oldFilePath);
+                            }
+                        }
+
+                        // Save new logo
+                        string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images", "logos");
+                        Directory.CreateDirectory(uploadsFolder);
+                        string uniqueFileName = Guid.NewGuid().ToString() + "_" + model.LogoFile.FileName;
+                        string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                        using (var fileStream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await model.LogoFile.CopyToAsync(fileStream);
+                        }
+                        institute.Logo = "/images/logos/" + uniqueFileName;
+                    }
+
                     institute.Name = model.Name;
                     institute.ShortName = model.ShortName;
-                    institute.Logo = model.Logo;
                     institute.Address = model.Address;
                     institute.Website = model.Website;
                     institute.Email = model.Email;

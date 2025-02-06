@@ -13,9 +13,13 @@
 </div>
 
 <div class="form-group mb-3">
-    <label asp-for="Logo" class="control-label"></label>
-    <input asp-for="Logo" class="form-control" />
-    <span asp-validation-for="Logo" class="text-danger"></span>
+    <label asp-for="LogoFile" class="control-label">Logo</label>
+    <input asp-for="LogoFile" class="form-control" type="file" accept=".jpg,.jpeg,.png" />
+    <span asp-validation-for="LogoFile" class="text-danger"></span>
+    @if (!string.IsNullOrEmpty(Model.Logo))
+    {
+        <img src="@Model.Logo" alt="Current Logo" class="mt-2" style="max-width: 200px" />
+    }
 </div>
 
 <div class="form-group mb-3">
