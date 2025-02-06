@@ -35,15 +35,32 @@ namespace Student_Attendance.Controllers
 
 
         [HttpPost]
-        public IActionResult CreateAcademicYear(AcademicYear model)
+        public async Task<IActionResult> CreateAcademicYear(AcademicYear model)
         {
             if (ModelState.IsValid)
             {
-                _context.AcademicYears.Add(model);
-                _context.SaveChanges();
-                return Ok(); // Return a 200 OK status code
+                try
+                {
+                    await _context.AcademicYears.AddAsync(model);
+                    var result = await _context.SaveChangesAsync();
+
+                    if (result > 0)
+                    {
+                        return Json(new { success = true, message = "Academic Year created successfully" });
+                    }
+                    return Json(new { success = false, message = "Failed to save Academic Year" });
+                }
+                catch (Exception ex)
+                {
+                    return Json(new { success = false, message = $"Error: {ex.Message}" });
+                }
             }
-            return PartialView("_AddEditAcademicYear", model);
+
+            var errors = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .ToList();
+            return Json(new { success = false, message = "Validation failed", errors = errors });
         }
 
 

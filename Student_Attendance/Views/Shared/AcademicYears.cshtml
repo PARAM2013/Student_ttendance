@@ -66,5 +66,36 @@
                 modal.find('.modal-body').load(url);
             });
         });
+
+        function submitForm(form) {
+            var formData = new FormData(form);
+            $.ajax({
+                type: "POST",
+                url: form.action,
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function (response) {
+                    if (response.success) {
+                        showAlert(response.message, "success");
+                        $('#addEditModal').modal('hide');
+                        setTimeout(function () {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        showAlert(response.message, "danger");
+                        if (response.errors && response.errors.length > 0) {
+                            response.errors.forEach(function(error) {
+                                showAlert(error, "danger");
+                            });
+                        }
+                    }
+                },
+                error: function (xhr, status, error) {
+                    showAlert("An error occurred while saving", "danger");
+                }
+            });
+            return false;
+        }
     </script>
 }
