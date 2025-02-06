@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Student_Attendance.Data;
 using Student_Attendance.Models;
 using Student_Attendance.ViewModels;
+using Microsoft.AspNetCore.Hosting;
+using System.IO;
 
 namespace Student_Attendance.Controllers
 {
@@ -12,7 +14,9 @@ namespace Student_Attendance.Controllers
         private readonly ILogger<InstituteController> _logger;
         private readonly IWebHostEnvironment _webHostEnvironment;
 
-        public InstituteController(ApplicationDbContext context, ILogger<InstituteController> logger, IWebHostEnvironment webHostEnvironment)
+        public InstituteController(ApplicationDbContext context, 
+            ILogger<InstituteController> logger, 
+            IWebHostEnvironment webHostEnvironment)
         {
             _context = context;
             _logger = logger;
@@ -91,14 +95,12 @@ namespace Student_Attendance.Controllers
 
                     _context.Add(institute);
                     await _context.SaveChangesAsync();
-                    
-                    TempData["Success"] = "Institute created successfully";
                     return RedirectToAction(nameof(Index));
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error creating institute with name {Name}", model.Name);
-                    ModelState.AddModelError("", "Unable to save changes. Please try again.");
+                    _logger.LogError(ex, "Error creating institute");
+                    ModelState.AddModelError("", "Unable to save changes.");
                 }
             }
             return View(model);

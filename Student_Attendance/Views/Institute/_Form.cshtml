@@ -13,10 +13,10 @@
 </div>
 
 <div class="form-group mb-3">
-    <label asp-for="LogoFile" class="control-label">Logo</label>
+    <label asp-for="LogoFile" class="control-label"></label>
     <input asp-for="LogoFile" class="form-control" type="file" accept=".jpg,.jpeg,.png" />
     <span asp-validation-for="LogoFile" class="text-danger"></span>
-    @if (!string.IsNullOrEmpty(Model.Logo))
+    @if (!string.IsNullOrEmpty(Model?.Logo))
     {
         <img src="@Model.Logo" alt="Current Logo" class="mt-2" style="max-width: 200px" />
     }
