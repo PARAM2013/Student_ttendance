@@ -34,16 +34,12 @@
                                 </span>
                             </td>
                             <td>
-                                <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-sm btn-info" 
-                                            onclick="showInPopup('@Url.Action("EditAcademicYear","Academic", new { id = item.Id },Context.Request.Scheme)','Edit Academic Year')">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-danger" 
-                                            onclick="confirmDelete('Academic', 'DeleteAcademicYear', @item.Id)">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
+                                <button type="button" class="btn btn-info btn-sm" onclick="showInPopup('@Url.Action("EditAcademicYear","Academic",new {id=item.Id},Context.Request.Scheme)','Edit Academic Year')">
+                                    Edit
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm" onclick="deleteItem('@Url.Action("DeleteAcademicYear","Academic",new {id=item.Id},Context.Request.Scheme)')">
+                                    Delete
+                                </button>
                             </td>
                         </tr>
                     }
@@ -55,7 +51,7 @@
 
 @section Scripts {
     <script>
-        $(document).ready(function() {
+        $(document).ready(function () {
             $('#tblData').DataTable();
         });
     </script>

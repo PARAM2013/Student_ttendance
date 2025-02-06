@@ -27,16 +27,12 @@
                         <tr>
                             <td>@item.Name</td>
                             <td>
-                                <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-sm btn-info" 
-                                            onclick="showInPopup('@Url.Action("EditCourse","Academic", new { id = item.Id },Context.Request.Scheme)','Edit Course')">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-danger" 
-                                            onclick="confirmDelete('Academic', 'DeleteCourse', @item.Id)">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
+                                <button type="button" class="btn btn-info btn-sm" onclick="showInPopup('@Url.Action("EditCourse","Academic",new {id=item.Id},Context.Request.Scheme)','Edit Course')">
+                                    Edit
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm" onclick="deleteItem('@Url.Action("DeleteCourse","Academic",new {id=item.Id},Context.Request.Scheme)')">
+                                    Delete
+                                </button>
                             </td>
                         </tr>
                     }

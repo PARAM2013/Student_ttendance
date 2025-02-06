@@ -70,45 +70,55 @@ namespace Student_Attendance.Controllers
             var academicYear = _context.AcademicYears.Find(id);
             if (academicYear == null)
             {
-                return NotFound();
+                return Json(new { success = false, message = "Academic Year not found" });
             }
             return PartialView("_AddEditAcademicYear", academicYear);
         }
 
         [HttpPost]
-        public IActionResult EditAcademicYear(AcademicYear model)
+        public async Task<IActionResult> EditAcademicYear(AcademicYear model)
         {
-            if (ModelState.IsValid)
+            try
             {
-                _context.AcademicYears.Update(model);
-                _context.SaveChanges();
-                return Ok(); // Return a 200 OK status code
+                if (ModelState.IsValid)
+                {
+                    _context.AcademicYears.Update(model);
+                    await _context.SaveChangesAsync();
+                    return Json(new { success = true, message = "Academic Year updated successfully" });
+                }
+
+                var errors = string.Join(", ", ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage));
+                return Json(new { success = false, message = errors });
             }
-            return PartialView("_AddEditAcademicYear", model);
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error: {ex.Message}" });
+            }
         }
 
         [HttpPost]
-        public IActionResult DeleteAcademicYear(int id)
+        public async Task<IActionResult> DeleteAcademicYear(int id)
         {
-            var academicYear = _context.AcademicYears.Find(id);
-            if (academicYear == null)
-            {
-                return NotFound();
-            }
-
             try
             {
+                var academicYear = await _context.AcademicYears.FindAsync(id);
+                if (academicYear == null)
+                {
+                    return Json(new { success = false, message = "Academic Year not found" });
+                }
+
                 _context.AcademicYears.Remove(academicYear);
-                _context.SaveChanges();
-                return Ok();
+                await _context.SaveChangesAsync();
+                return Json(new { success = true, message = "Academic Year deleted successfully" });
             }
-            catch (DbUpdateException ex)
+            catch (Exception ex)
             {
-                return BadRequest(ex.InnerException?.Message ?? ex.Message);
-
+                return Json(new { success = false, message = $"Error: {ex.Message}" });
             }
-
         }
+
         public IActionResult Courses()
         {
             var courses = _context.Courses.ToList();
@@ -142,41 +152,52 @@ namespace Student_Attendance.Controllers
             var course = _context.Courses.Find(id);
             if (course == null)
             {
-                return NotFound();
+                return Json(new { success = false, message = "Course not found" });
             }
             return PartialView("_AddEditCourse", course);
         }
 
         [HttpPost]
-        public IActionResult EditCourse(Course model)
+        public async Task<IActionResult> EditCourse(Course model)
         {
-            if (ModelState.IsValid)
+            try
             {
-                _context.Courses.Update(model);
-                _context.SaveChanges();
-                return Ok(); // Return a 200 OK status code
+                if (ModelState.IsValid)
+                {
+                    _context.Courses.Update(model);
+                    await _context.SaveChangesAsync();
+                    return Json(new { success = true, message = "Course updated successfully" });
+                }
+
+                var errors = string.Join(", ", ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage));
+                return Json(new { success = false, message = errors });
             }
-            return PartialView("_AddEditCourse", model);
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error: {ex.Message}" });
+            }
         }
 
         [HttpPost]
-        public IActionResult DeleteCourse(int id)
+        public async Task<IActionResult> DeleteCourse(int id)
         {
-            var course = _context.Courses.Find(id);
-            if (course == null)
-            {
-                return NotFound();
-            }
             try
             {
-                _context.Courses.Remove(course);
-                _context.SaveChanges();
-                return Ok();
-            }
-            catch (DbUpdateException ex)
-            {
-                return BadRequest(ex.InnerException?.Message ?? ex.Message);
+                var course = await _context.Courses.FindAsync(id);
+                if (course == null)
+                {
+                    return Json(new { success = false, message = "Course not found" });
+                }
 
+                _context.Courses.Remove(course);
+                await _context.SaveChangesAsync();
+                return Json(new { success = true, message = "Course deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error: {ex.Message}" });
             }
         }
 
