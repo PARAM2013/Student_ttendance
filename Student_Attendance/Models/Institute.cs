@@ -1,34 +1,37 @@
 using System.ComponentModel.DataAnnotations;
 
-public class InstituteViewModel
+namespace Student_Attendance.Models
 {
-    public int Id { get; set; }
+    public class Institute
+    {
+        [Key]
+        public int Id { get; set; }
 
-    [Required(ErrorMessage = "Institute Name is required")]
-    [StringLength(200)]
-    public string Name { get; set; }
+        [Required]
+        [StringLength(200)]
+        public string Name { get; set; }
 
-    [Required(ErrorMessage = "Short Name is required")]
-    [StringLength(50)]
-    public string ShortName { get; set; }
+        [Required]
+        [StringLength(50)]
+        public string ShortName { get; set; }
 
-    [Display(Name = "Logo")]
-    public IFormFile? LogoFile { get; set; }
+        [StringLength(500)]
+        public string? Logo { get; set; }
 
-    public string? Logo { get; set; }
+        [Required]
+        [StringLength(500)]
+        public string Address { get; set; }
 
-    public const string DefaultLogoPath = "/Images/logos/Defult_logo.jpg";
+        [StringLength(200)]
+        public string? Website { get; set; }
 
-    [StringLength(500)]
-    public string? Address { get; set; }
+        [Required]
+        [EmailAddress]
+        [StringLength(100)]
+        public string Email { get; set; }
 
-    [StringLength(200)]
-    public string? Website { get; set; }
-
-    [EmailAddress]
-    [StringLength(100)]
-    public string? Email { get; set; }
-
-    [StringLength(20)]
-    public string? ContactNo { get; set; }
+        [Required]
+        [StringLength(20)]
+        public string ContactNo { get; set; }
+    }
 }

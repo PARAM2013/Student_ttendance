@@ -16,7 +16,6 @@ builder.Logging.AddConsole()     // Then add providers
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-builder.Services.AddRazorPages();
 
 builder.Services.AddDbContext<Student_Attendance.Data.ApplicationDbContext>(options =>
 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
