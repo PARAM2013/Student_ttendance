@@ -1,3 +1,4 @@
+@using Student_Attendance.ViewModels
 @model Student_Attendance.Models.Institute
 
 @{
@@ -43,7 +44,8 @@
                     @if (!string.IsNullOrEmpty(Model.Logo))
                     {
                         <div class="col-md-6">
-                            <img src="@Model.Logo" alt="Institute Logo" class="img-fluid" />
+                            <img src="@Model.Logo" alt="Institute Logo" class="img-fluid" 
+                                 onerror="this.src='@InstituteViewModel.DefaultLogoPath'" />
                         </div>
                     }
                 </div>

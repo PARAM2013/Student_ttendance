@@ -13,13 +13,11 @@
 </div>
 
 <div class="form-group mb-3">
-    <label asp-for="LogoFile" class="control-label"></label>
-    <input asp-for="LogoFile" class="form-control" type="file" accept=".jpg,.jpeg,.png" />
+    <label asp-for="LogoFile" class="control-label">Logo</label>
+    <input asp-for="LogoFile" class="form-control" type="file" accept=".jpg,.jpeg,.png" 
+           onchange="validateFile(this)" />
     <span asp-validation-for="LogoFile" class="text-danger"></span>
-    @if (!string.IsNullOrEmpty(Model?.Logo))
-    {
-        <img src="@Model.Logo" alt="Current Logo" class="mt-2" style="max-width: 200px" />
-    }
+    <div id="fileValidationMessage" class="text-danger"></div>
 </div>
 
 <div class="form-group mb-3">
@@ -45,3 +43,32 @@
     <input asp-for="ContactNo" class="form-control" />
     <span asp-validation-for="ContactNo" class="text-danger"></span>
 </div>
+
+@section Scripts {
+    <script>
+        function validateFile(input) {
+            const file = input.files[0];
+            const fileValidationMessage = document.getElementById('fileValidationMessage');
+            
+            if (file) {
+                // Check file size (2MB = 2 * 1024 * 1024 bytes)
+                if (file.size > 2 * 1024 * 1024) {
+                    fileValidationMessage.textContent = 'File size cannot exceed 2MB';
+                    input.value = '';
+                    return;
+                }
+
+                // Check file type
+                const allowedTypes = ['.jpg', '.jpeg', '.png'];
+                const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+                if (!allowedTypes.includes(fileExtension)) {
+                    fileValidationMessage.textContent = 'Only .jpg, .jpeg and .png files are allowed';
+                    input.value = '';
+                    return;
+                }
+
+                fileValidationMessage.textContent = '';
+            }
+        }
+    </script>
+}

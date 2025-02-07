@@ -20,6 +20,9 @@ namespace Student_Attendance.ViewModels
 
         public string Logo { get; set; }  // For storing file path
 
+        // Add a constant for default logo path
+        public const string DefaultLogoPath = "/Images/logos/Defult_logo.jpg";
+
         [Required(ErrorMessage = "Address is required")]
         [StringLength(500)]
         public string Address { get; set; }
