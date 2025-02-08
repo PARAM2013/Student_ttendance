@@ -1,0 +1,52 @@
+@model IEnumerable<Student_Attendance.Models.User>
+
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Users</h3>
+            <div class="card-tools">
+                <button type="button" class="btn btn-primary" onclick="showInPopup('@Url.Action("CreateUser","Admin",null,Context.Request.Scheme)','Add New User')">
+                    Add New
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <table class="table table-bordered table-hover" id="tblData">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.UserName</td>
+                            <td>@item.Email</td>
+                            <td>@item.Role</td>
+                            <td>
+                                <button type="button" class="btn btn-info btn-sm" onclick="showInPopup('@Url.Action("EditUser","Admin",new {id=item.Id},Context.Request.Scheme)','Edit User')">
+                                    Edit
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm" onclick="deleteItem('@Url.Action("DeleteUser","Admin",new {id=item.Id},Context.Request.Scheme)')">
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#tblData').DataTable();
+        });
+    </script>
+}
