@@ -18,7 +18,7 @@
     @await RenderSectionAsync("Styles", required: false)
 </head>
 
-<body>
+<body class="@(!User.Identity.IsAuthenticated ? "login-page" : "")">
     <div class="wrapper">
         @if (User.Identity.IsAuthenticated)
         {
@@ -161,24 +161,21 @@
         }
 
         <!-- Page Content -->
-        <div id="content" class="@(!User.Identity.IsAuthenticated ? "w-100" : "")">
-            <!-- Navbar -->
-            <nav class="navbar navbar-expand-lg">
-                <div class="container-fluid px-4">
-                    @if (User.Identity.IsAuthenticated)
-                    {
+        <div id="content" class="@(!User.Identity.IsAuthenticated ? "w-100 p-0" : "")">
+            @if (User.Identity.IsAuthenticated)
+            {
+                <!-- Navbar -->
+                <nav class="navbar navbar-expand-lg">
+                    <div class="container-fluid px-4">
                         <button type="button" id="sidebarCollapse" class="btn btn-toggle d-none d-md-block">
                             <i class="fas fa-bars"></i>
                         </button>
                         <button type="button" id="mobileSidebarShow" class="btn btn-toggle d-md-none">
                             <i class="fas fa-bars"></i>
                         </button>
-                    }
 
-                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                        <ul class="navbar-nav ms-auto">
-                            @if (User.Identity.IsAuthenticated)
-                            {
+                        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                            <ul class="navbar-nav ms-auto">
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                                         data-bs-toggle="dropdown" aria-expanded="false">
@@ -196,11 +193,11 @@
                                         </li>
                                     </ul>
                                 </li>
-                            }
-                        </ul>
+                            </ul>
+                        </div>
                     </div>
-                </div>
-            </nav>
+                </nav>
+            }
 
             <div class="content-body">
                 <main role="main" class="p-4">
@@ -236,11 +233,14 @@
         </div>
     </div>
 
-    <footer class="footer">
-        <div class="container">
-            &copy; 2025 - Student Attendance - <a asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
+    @if (User.Identity.IsAuthenticated)
+    {
+        <footer class="footer">
+            <div class="container">
+                &copy; 2025 - Student Attendance - <a asp-controller="Home" asp-action="Privacy">Privacy</a>
+            </div>
+        </footer>
+    }
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
