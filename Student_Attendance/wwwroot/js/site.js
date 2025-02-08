@@ -1,72 +1,97 @@
 ﻿// Show modal popup
 function showInPopup(url, title) {
-    $.ajax({
-        type: "GET",
-        url: url,
-        success: function (res) {
-            $("#form-modal .modal-body").html(res);
-            $("#form-modal .modal-title").html(title);
-            $("#form-modal").modal('show');
-        },
-        error: function (err) {
-            console.log(err);
-        }
+    $.get(url, function (res) {
+        $("#form-modal .modal-body").html(res);
+        $("#form-modal .modal-title").html(title);
+        $("#form-modal").modal('show');
     });
 }
 
 // Submit form using AJAX
 function submitForm(form) {
-    var formData = new FormData(form);
-    $.ajax({
-        type: "POST",
-        url: form.action,
-        data: formData,
-        contentType: false,
-        processData: false,
-        success: function (res) {
-            console.log('Server response:', res); // Check the response in the console
-            if (res && res.success === true) { // Check if 'success' property is true
-                showAlert("Data saved successfully", "success");
-                $("#form-modal").modal('hide');
-                // Reload the page or update the relevant section after a delay
-                setTimeout(function () {
-                    location.reload(); // Or update specific HTML elements
-                }, 1000);
-            } else {
-                showAlert(res.message || "Failed to save data", "danger");
-            }
-        },
-        error: function (err) {
-            console.error('Error:', err);
-            showAlert("An error occurred while saving data", "danger");
-        }
-    });
-    return false;
-}
-
-
-
-
-// Delete item
-function deleteItem(url) {
-    if (confirm('Are you sure you want to delete this item?')) {
+    try {
         $.ajax({
-            type: "POST",
-            url: url,
+            type: 'POST',
+            url: form.action,
+            data: new FormData(form),
+            contentType: false,
+            processData: false,
             success: function (res) {
-                showAlert("Item deleted successfully", 'success');
-                setTimeout(function () {
-                    location.reload(); // Or update specific HTML elements
-                }, 1000);
+                if (res.success) {
+                    $("#form-modal").modal('hide');
+                    Swal.fire({
+                        title: 'Success!',
+                        text: res.message,
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            location.reload();
+                        }
+                    });
+                }
+                else {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: res.message,
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                }
             },
             error: function (err) {
                 console.log(err);
-                showAlert('An error occurred while deleting.', 'danger');
             }
         });
     }
+    catch (e) {
+        console.log(e);
+    }
+    return false;
 }
 
+// Delete item
+function deleteItem(url) {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                type: 'POST',
+                url: url,
+                success: function (res) {
+                    if (res.success) {
+                        Swal.fire(
+                            'Deleted!',
+                            res.message,
+                            'success'
+                        ).then((result) => {
+                            if (result.isConfirmed) {
+                                location.reload();
+                            }
+                        });
+                    }
+                    else {
+                        Swal.fire(
+                            'Error!',
+                            res.message,
+                            'error'
+                        );
+                    }
+                },
+                error: function (err) {
+                    console.log(err);
+                }
+            });
+        }
+    });
+}
 
 // Alert msg
 
@@ -89,25 +114,6 @@ function showAlert(message, type) {
             $(this).remove();
         });
     }, 5000);
-}
-
-function deleteItem(url) {
-    if (confirm('Are you sure you want to delete this item?')) {
-        $.ajax({
-            type: "POST",
-            url: url,
-            success: function (res) {
-                showAlert("Item deleted successfully", 'success');
-                setTimeout(function () {
-                    location.reload();
-                }, 1000);
-            },
-            error: function (err) {
-                console.log(err);
-                showAlert('An error occurred while deleting.', 'danger');
-            }
-        });
-    }
 }
 
 
