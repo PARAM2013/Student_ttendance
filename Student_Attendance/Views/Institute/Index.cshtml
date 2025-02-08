@@ -43,7 +43,14 @@
                     @if (!string.IsNullOrEmpty(Model.Logo))
                     {
                         <div class="col-md-6">
-                            <img src="@Model.Logo" alt="Institute Logo" class="img-fluid" />
+                            <img src="@Model.Logo" alt="Institute Logo" class="img-fluid"
+                                 onerror="this.src='/Images/logos/Defult_logo.jpg'" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="col-md-6">
+                            <img src="/Images/logos/Defult_logo.jpg" alt="Default Institute Logo" class="img-fluid" />
                         </div>
                     }
                 </div>

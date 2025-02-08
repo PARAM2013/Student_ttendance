@@ -155,30 +155,26 @@ namespace Student_Attendance.Controllers
                         return NotFound();
                     }
 
+                    // Handle logo file if uploaded
                     if (model.LogoFile != null)
                     {
-                        // Delete old logo if exists
-                        if (!string.IsNullOrEmpty(institute.Logo))
-                        {
-                            var oldFilePath = Path.Combine(_webHostEnvironment.WebRootPath, institute.Logo.TrimStart('/'));
-                            if (System.IO.File.Exists(oldFilePath))
-                            {
-                                System.IO.File.Delete(oldFilePath);
-                            }
-                        }
-
-                        // Save new logo
-                        string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images", "logos");
-                        Directory.CreateDirectory(uploadsFolder);
+                        string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "Images", "logos");
                         string uniqueFileName = Guid.NewGuid().ToString() + "_" + model.LogoFile.FileName;
                         string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
                         using (var fileStream = new FileStream(filePath, FileMode.Create))
                         {
                             await model.LogoFile.CopyToAsync(fileStream);
                         }
-                        institute.Logo = "/images/logos/" + uniqueFileName;
+                        institute.Logo = "/Images/logos/" + uniqueFileName;
+                    }
+                    else
+                    {
+                        // Keep existing logo or use default
+                        institute.Logo = string.IsNullOrEmpty(model.Logo) ? "/Images/logos/Defult_logo.jpg" : model.Logo;
                     }
 
+                    // Update other properties
                     institute.Name = model.Name;
                     institute.ShortName = model.ShortName;
                     institute.Address = model.Address;
@@ -190,21 +186,14 @@ namespace Student_Attendance.Controllers
                     await _context.SaveChangesAsync();
                     return RedirectToAction(nameof(Index));
                 }
-                catch (DbUpdateConcurrencyException)
+                catch (Exception ex)
                 {
-                    if (!InstituteExists(model.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    _logger.LogError(ex, "Error updating institute");
+                    ModelState.AddModelError("", "Error updating institute. Please try again.");
                 }
             }
             return View(model);
         }
-
         private bool InstituteExists(int id)
         {
             return _context.Institutes.Any(e => e.Id == id);

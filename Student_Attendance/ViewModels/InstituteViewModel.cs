@@ -16,9 +16,9 @@ namespace Student_Attendance.ViewModels
         public string ShortName { get; set; }
 
         [Display(Name = "Logo")]
-        public IFormFile LogoFile { get; set; }  // For file upload
+        public IFormFile? LogoFile { get; set; }  // Make nullable
 
-        public string Logo { get; set; }  // For storing file path
+        public string Logo { get; set; } = "/Images/logos/Defult_logo.jpg";  // Set default logo
 
         [Required(ErrorMessage = "Address is required")]
         [StringLength(500)]

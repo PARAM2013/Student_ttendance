@@ -16,7 +16,7 @@ namespace Student_Attendance.Models
         public string ShortName { get; set; }
 
         [StringLength(500)]
-        public string? Logo { get; set; }
+        public string? Logo { get; set; } = "/Images/logos/Defult_logo.jpg";  // Set default logo
 
         [Required]
         [StringLength(500)]
