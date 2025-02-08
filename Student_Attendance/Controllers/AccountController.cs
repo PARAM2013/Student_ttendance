@@ -75,7 +75,7 @@ namespace Student_Attendance.Controllers
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             _logger.LogInformation("User logged out.");
-            return RedirectToAction("Index", "Home");
+            return RedirectToAction("Login", "Account");  // Redirect to login page instead of home
         }
 
         public IActionResult AccessDenied()
