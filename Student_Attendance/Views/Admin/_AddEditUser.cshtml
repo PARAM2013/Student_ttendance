@@ -19,9 +19,12 @@
         <span asp-validation-for="Email" class="text-danger"></span>
     </div>
 
+    @{
+        var isRequired = Model.Id == 0 ? "required" : "";
+    }
     <div class="form-group mb-3">
         <label asp-for="Password">@(Model.Id > 0 ? "Password (leave blank to keep current)" : "Password")</label>
-        <input asp-for="Password" class="form-control" type="password" @(Model.Id == 0 ? "required" : "") />
+        <input asp-for="Password" class="form-control" type="password" required="@isRequired" />
         <span asp-validation-for="Password" class="text-danger"></span>
     </div>
 

@@ -3,9 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using Student_Attendance.Models;
 using Student_Attendance.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Student_Attendance.Controllers
 {
+    [Authorize]  // Add this to require authentication for all actions
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
