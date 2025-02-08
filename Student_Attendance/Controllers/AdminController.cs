@@ -1,9 +1,10 @@
-using Microsoft.AspNetCore.Authorization;  // Add this using statement
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Student_Attendance.Data;
 using Student_Attendance.Models;
 using Student_Attendance.ViewModels;
+using BCrypt.Net; // Add this
 
 namespace Student_Attendance.Controllers
 {

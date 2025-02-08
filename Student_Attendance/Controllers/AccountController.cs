@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore; // Add this
 using Student_Attendance.Data;
+using Student_Attendance.Models;
 using Student_Attendance.ViewModels;
 using System.Security.Claims;
+using BCrypt.Net; // Add this
 
 namespace Student_Attendance.Controllers
 {
@@ -19,7 +22,7 @@ namespace Student_Attendance.Controllers
         }
 
         [HttpGet]
-        public IActionResult Login(string returnUrl = null)
+        public IActionResult Login(string? returnUrl = null)  // Add ? after string
         {
             ViewData["ReturnUrl"] = returnUrl;
             return View();
@@ -27,7 +30,7 @@ namespace Student_Attendance.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginViewModel model, string returnUrl = null)
+        public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)  // Add ? after string
         {
             ViewData["ReturnUrl"] = returnUrl;
             if (ModelState.IsValid)
