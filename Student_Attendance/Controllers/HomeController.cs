@@ -1,21 +1,42 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Student_Attendance.Models;
+using Student_Attendance.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Student_Attendance.Controllers
 {
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
+        private readonly ApplicationDbContext _context;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(ILogger<HomeController> logger, ApplicationDbContext context)
         {
             _logger = logger;
+            _context = context;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            return View();
+            var institute = await _context.Institutes.FirstOrDefaultAsync();
+            
+            // Get current date
+            var today = DateTime.Today;
+
+            // Calculate statistics
+            ViewBag.TotalStudents = await _context.Students.CountAsync();
+            ViewBag.TotalCourses = await _context.Courses.CountAsync();
+            
+            // Get today's attendance
+            var todayAttendance = await _context.AttendanceRecords
+                .Where(a => a.Date.Date == today)
+                .ToListAsync();
+            
+            ViewBag.PresentToday = todayAttendance.Count(a => a.IsPresent);
+            ViewBag.AbsentToday = todayAttendance.Count(a => !a.IsPresent);
+
+            return View(institute);
         }
 
         public IActionResult Privacy()
