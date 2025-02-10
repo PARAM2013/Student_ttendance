@@ -5,6 +5,9 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Threading.Tasks;
+using Student_Attendance.Data;
+using Student_Attendance.ViewModels;
+using Student_Attendance.Models;
 
 namespace Student_Attendance.Controllers
 {
