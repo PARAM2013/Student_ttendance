@@ -1,0 +1,61 @@
+@using Student_Attendance.ViewModels
+@model AttendanceViewModel
+@{
+    ViewData["Title"] = "Mark Attendance";
+}
+
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-check-square me-2"></i>Mark Attendance
+            </h3>
+        </div>
+        <div class="card-body">
+            <form id="attendanceForm" method="post">
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <label asp-for="SubjectId" class="form-label">Subject</label>
+                        <select asp-for="SubjectId" asp-items="Model.Subjects" class="form-select" required>
+                            <option value="">Select Subject</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="DivisionId" class="form-label">Division</label>
+                        <select id="DivisionId" asp-items="Model.Divisions" class="form-select" required>
+                            <option value="">Select Division</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="Date" class="form-label">Date</label>
+                        <input asp-for="Date" type="date" class="form-control" required />
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="button" class="btn btn-primary" onclick="loadStudents()">
+                            <i class="fas fa-search me-2"></i>Load Students
+                        </button>
+                    </div>
+                </div>
+
+                <div id="studentList" class="table-responsive mt-4">
+                    <!-- Students will be loaded here dynamically -->
+                </div>
+
+                <div class="text-end mt-4">
+                    <button type="submit" class="btn btn-success" id="saveAttendance" style="display:none">
+                        <i class="fas fa-save me-2"></i>Save Attendance
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize date picker with today's date
+            $('#Date').val(new Date().toISOString().split('T')[0]);
+        });
+    </script>
+}

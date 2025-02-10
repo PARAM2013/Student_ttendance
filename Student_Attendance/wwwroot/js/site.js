@@ -116,4 +116,75 @@ function showAlert(message, type) {
     }, 5000);
 }
 
+function loadStudents() {
+    const divisionId = $('#DivisionId').val();
+    const date = $('#Date').val();
+    const subjectId = $('#SubjectId').val();
+
+    if (!divisionId || !date || !subjectId) {
+        showAlert('Warning', 'Please select all required fields', 'warning');
+        return;
+    }
+
+    $.get('/Attendance/GetStudentsByDivision', {
+        divisionId: divisionId,
+        date: date,
+        subjectId: subjectId
+    })
+    .done(function(data) {
+        $('#studentList').html(data);
+        $('#saveAttendance').show();
+        initializeAttendanceHandlers();
+    })
+    .fail(function() {
+        showAlert('Error', 'Failed to load students', 'error');
+    });
+}
+
+function initializeAttendanceHandlers() {
+    $('.attendance-check').on('change', function() {
+        const reasonInput = $(this).closest('tr').find('.absence-reason');
+        reasonInput.prop('disabled', $(this).is(':checked'));
+        if ($(this).is(':checked')) {
+            reasonInput.val('');
+        }
+    });
+}
+
+function showAlert(title, message, icon) {
+    Swal.fire({
+        title: title,
+        text: message,
+        icon: icon,
+        confirmButtonText: 'OK'
+    });
+}
+
+function markAttendance(form) {
+    const data = {
+        SubjectId: $('#SubjectId').val(),
+        Date: $('#Date').val(),
+        Students: []
+    };
+
+    $('.student-row').each(function() {
+        const row = $(this);
+        data.Students.push({
+            StudentId: row.data('student-id'),
+            IsPresent: row.find('.attendance-check').is(':checked'),
+            AbsenceReason: row.find('.absence-reason').val()
+        });
+    });
+
+    $.post('/Attendance/MarkAttendance', data, function(response) {
+        if (response.success) {
+            showAlert('Success', response.message, 'success');
+        } else {
+            showAlert('Error', response.message, 'error');
+        }
+    });
+
+    return false;
+}
+
 
