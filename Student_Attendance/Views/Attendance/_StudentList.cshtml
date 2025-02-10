@@ -1,4 +1,4 @@
-@model List<Student_Attendance.ViewModels.StudentAttendanceViewModel>
+@model List<StudentAttendanceViewModel>
 
 @if (!Model.Any())
 {
@@ -13,8 +13,7 @@ else
             <tr>
                 <th>Roll No</th>
                 <th>Student Name</th>
-                <th class="text-center">Present</th>
-                <th>Absence Reason</th>
+                <th class="text-center">Attendance</th>
             </tr>
         </thead>
         <tbody>
@@ -24,16 +23,21 @@ else
                     <td>@student.EnrollmentNo</td>
                     <td>@student.StudentName</td>
                     <td class="text-center">
-                        <div class="form-check d-inline-block">
-                            <input type="checkbox" class="form-check-input attendance-check" 
-                                   checked="@student.IsPresent" />
+                        <div class="btn-group" role="group">
+                            <input type="radio" class="btn-check attendance-radio" 
+                                   name="attendance_@student.StudentId" 
+                                   id="present_@student.StudentId" 
+                                   value="true" 
+                                   @(student.IsPresent ? "checked" : "")>
+                            <label class="btn btn-outline-success" for="present_@student.StudentId">Present</label>
+
+                            <input type="radio" class="btn-check attendance-radio" 
+                                   name="attendance_@student.StudentId" 
+                                   id="absent_@student.StudentId" 
+                                   value="false" 
+                                   @(!student.IsPresent ? "checked" : "")>
+                            <label class="btn btn-outline-danger" for="absent_@student.StudentId">Absent</label>
                         </div>
-                    </td>
-                    <td>
-                        <input type="text" class="form-control form-control-sm absence-reason" 
-                               value="@student.AbsenceReason"
-                               placeholder="Reason for absence" 
-                               disabled="@student.IsPresent" />
                     </td>
                 </tr>
             }

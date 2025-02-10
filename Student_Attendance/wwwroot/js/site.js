@@ -254,4 +254,40 @@ function showAlert(title, message, icon) {
     });
 }
 
+function saveAttendance(form) {
+    const data = {
+        SubjectId: $('#SubjectId').val(),
+        Date: $('#Date').val(),
+        Students: []
+    };
+
+    $('.student-row').each(function() {
+        const row = $(this);
+        const studentId = row.data('student-id');
+        data.Students.push({
+            StudentId: studentId,
+            IsPresent: $(`input[name="attendance_${studentId}"]:checked`).val() === 'true'
+        });
+    });
+
+    $.ajax({
+        url: '/Attendance/MarkAttendance',
+        type: 'POST',
+        data: JSON.stringify(data),
+        contentType: 'application/json',
+        success: function(response) {
+            if (response.success) {
+                showAlert('Success', 'Attendance marked successfully', 'success');
+            } else {
+                showAlert('Error', response.message, 'error');
+            }
+        },
+        error: function() {
+            showAlert('Error', 'Failed to mark attendance', 'error');
+        }
+    });
+
+    return false;
+}
+
 

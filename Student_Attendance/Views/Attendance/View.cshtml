@@ -1,32 +1,77 @@
-@using Student_Attendance.ViewModels
-@model List<StudentAttendanceViewModel>
+@model AttendanceViewModel
+@{
+    ViewData["Title"] = "View Attendance";
+}
 
-<table class="table table-striped table-hover">
-    <thead>
-        <tr>
-            <th>Roll No</th>
-            <th>Student Name</th>
-            <th class="text-center">Present</th>
-            <th>Absence Reason</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var student in Model)
-        {
-            <tr class="student-row" data-student-id="@student.StudentId">
-                <td>@student.EnrollmentNo</td>
-                <td>@student.StudentName</td>
-                <td class="text-center">
-                    <div class="form-check d-inline-block">
-                        <input type="checkbox" class="form-check-input attendance-check" 
-                               checked="checked" value="true" />
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-list-alt me-2"></i>View Attendance
+            </h3>
+        </div>
+        <div class="card-body">
+            <form id="viewForm" class="mb-4">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Subject</label>
+                        <select asp-for="SubjectId" asp-items="Model.Subjects" class="form-select" required>
+                            <option value="">Select Subject</option>
+                        </select>
                     </div>
-                </td>
-                <td>
-                    <input type="text" class="form-control form-control-sm absence-reason" 
-                           placeholder="Reason for absence" disabled />
-                </td>
-            </tr>
+                    <div class="col-md-4">
+                        <label class="form-label">Division</label>
+                        <select asp-for="DivisionId" asp-items="Model.Divisions" class="form-select" required>
+                            <option value="">Select Division</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Date</label>
+                        <input type="date" asp-for="Date" class="form-control" required />
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <button type="button" class="btn btn-primary" onclick="loadAttendance()">
+                            <i class="fas fa-search me-2"></i>View Attendance
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <div id="attendanceContent" class="mt-4">
+                <!-- Attendance data will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function loadAttendance() {
+            const subjectId = $('#SubjectId').val();
+            const divisionId = $('#DivisionId').val();
+            const date = $('#Date').val();
+
+            if (!subjectId || !divisionId || !date) {
+                showAlert('Warning', 'Please select all fields', 'warning');
+                return;
+            }
+
+            $('#attendanceContent').html('<div class="text-center"><i class="fas fa-spinner fa-spin me-2"></i>Loading attendance...</div>');
+
+            $.get('/Attendance/GetAttendanceByDate', {
+                subjectId: subjectId,
+                divisionId: divisionId,
+                date: date
+            })
+            .done(function(response) {
+                $('#attendanceContent').html(response);
+            })
+            .fail(function() {
+                showAlert('Error', 'Failed to load attendance', 'error');
+                $('#attendanceContent').html('');
+            });
         }
-    </tbody>
-</table>
+    </script>
+}

@@ -1,0 +1,36 @@
+@model List<StudentAttendanceViewModel>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        No students found for the selected criteria.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Roll No</th>
+                    <th>Student Name</th>
+                    <th class="text-center">Attendance Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var student in Model)
+                {
+                    <tr>
+                        <td>@student.EnrollmentNo</td>
+                        <td>@student.StudentName</td>
+                        <td class="text-center">
+                            <span class="badge @(student.IsPresent ? "bg-success" : "bg-danger")">
+                                @(student.IsPresent ? "Present" : "Absent")
+                            </span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

@@ -24,10 +24,7 @@ namespace Student_Attendance.Models
         [Required]
         public bool IsPresent { get; set; }
 
-        // Add new fields for better tracking
         public DateTime TimeStamp { get; set; }
-        public string? MarkedById { get; set; } // Teacher who marked attendance
-        [StringLength(200)]
-        public string? AbsenceReason { get; set; }
+        public string? MarkedById { get; set; }
     }
 }

@@ -143,20 +143,27 @@ namespace Student_Attendance.Controllers
     {
         try
         {
+            // Get all students in the division
             var students = await _context.Students
                 .Where(s => s.DivisionId == divisionId && s.IsActive)
                 .Select(s => new { s.Id, s.EnrollmentNo, s.Name })
                 .ToListAsync();
 
+            if (!students.Any())
+            {
+                return Json(new { success = false, message = "No students found in this division" });
+            }
+
+            // Get attendance records for the date range
             var attendanceData = await _context.AttendanceRecords
-                .Where(a => a.SubjectId == subjectId && 
-                           a.Date.Date >= startDate.Date && 
+                .Where(a => a.SubjectId == subjectId &&
+                           a.Date.Date >= startDate.Date &&
                            a.Date.Date <= endDate.Date &&
-                           a.Student.DivisionId == divisionId)
-                .GroupBy(a => new { a.StudentId })
+                           students.Select(s => s.Id).Contains(a.StudentId))
+                .GroupBy(a => a.StudentId)
                 .Select(g => new
                 {
-                    StudentId = g.Key.StudentId,
+                    StudentId = g.Key,
                     TotalClasses = g.Count(),
                     Present = g.Count(a => a.IsPresent),
                     Absent = g.Count(a => !a.IsPresent)
@@ -186,6 +193,57 @@ namespace Student_Attendance.Controllers
         {
             _logger.LogError(ex, "Error generating attendance report");
             return Json(new { success = false, message = "Error generating report" });
+        }
+    }
+
+    public async Task<IActionResult> View()
+    {
+        var model = new AttendanceViewModel
+        {
+            Date = DateTime.Today,
+            Subjects = new SelectList(await _context.Subjects.ToListAsync(), "Id", "Name"),
+            Divisions = new SelectList(await _context.Divisions.ToListAsync(), "Id", "Name")
+        };
+        return View(model);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAttendanceByDate(int subjectId, int divisionId, DateTime date)
+    {
+        try
+        {
+            var students = await _context.Students
+                .Where(s => s.DivisionId == divisionId && s.IsActive)
+                .Select(s => new StudentAttendanceViewModel
+                {
+                    StudentId = s.Id,
+                    EnrollmentNo = s.EnrollmentNo,
+                    StudentName = s.Name,
+                    IsPresent = true
+                })
+                .ToListAsync();
+
+            var attendanceRecords = await _context.AttendanceRecords
+                .Where(a => a.SubjectId == subjectId && 
+                           a.Date.Date == date.Date)
+                .ToListAsync();
+
+            foreach (var student in students)
+            {
+                var record = attendanceRecords.FirstOrDefault(a => a.StudentId == student.StudentId);
+                if (record != null)
+                {
+                    student.IsPresent = record.IsPresent;
+                    student.AbsenceReason = record.AbsenceReason;
+                }
+            }
+
+            return PartialView("_AttendanceView", students);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading attendance");
+            return Json(new { success = false, message = "Error loading attendance data" });
         }
     }
 }
