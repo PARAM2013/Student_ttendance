@@ -291,5 +291,83 @@ namespace Student_Attendance.Controllers
                 Text = d.Name
             }).ToListAsync();
         }
+
+        [HttpGet]
+        public async Task<IActionResult> GetSubjectMapping(int id)
+        {
+            try
+            {
+                // Get student's course
+                var student = await _context.Students
+                    .Include(s => s.Course)
+                    .FirstOrDefaultAsync(s => s.Id == id);
+
+                if (student == null)
+                    return Json(new { success = false, message = "Student not found" });
+
+                // Get available subjects for student's course
+                var availableSubjects = await _context.Subjects
+                    .Where(s => s.CourseId == student.CourseId && 
+                               s.Semester == student.Semester)
+                    .Select(s => new
+                    {
+                        s.Id,
+                        s.Name,
+                        s.Code,
+                        s.Semester
+                    })
+                    .ToListAsync();
+
+                // Get currently mapped subjects
+                var mappedSubjectIds = await _context.StudentSubjects
+                    .Where(ss => ss.StudentId == id)
+                    .Select(ss => ss.SubjectId)
+                    .ToListAsync();
+
+                ViewBag.AvailableSubjects = availableSubjects;
+                ViewBag.MappedSubjects = mappedSubjectIds;
+
+                return PartialView("_SubjectMapping", id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading subject mapping for student {StudentId}", id);
+                return Json(new { success = false, message = "Error loading subjects" });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> SaveSubjectMapping(int studentId, List<int> subjectIds)
+        {
+            try
+            {
+                // Remove existing mappings
+                var existingMappings = await _context.StudentSubjects
+                    .Where(ss => ss.StudentId == studentId)
+                    .ToListAsync();
+                
+                _context.StudentSubjects.RemoveRange(existingMappings);
+
+                // Add new mappings
+                if (subjectIds != null && subjectIds.Any())
+                {
+                    var newMappings = subjectIds.Select(subjectId => new StudentSubject
+                    {
+                        StudentId = studentId,
+                        SubjectId = subjectId
+                    });
+
+                    await _context.StudentSubjects.AddRangeAsync(newMappings);
+                }
+
+                await _context.SaveChangesAsync();
+                return Json(new { success = true, message = "Subject mapping updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving subject mapping for student {StudentId}", studentId);
+                return Json(new { success = false, message = "Error saving subject mapping" });
+            }
+        }
     }
 }

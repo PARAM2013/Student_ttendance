@@ -1,0 +1,48 @@
+@model List<Student_Attendance.ViewModels.StudentAttendanceViewModel>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        No students found for the selected criteria.
+    </div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Roll No</th>
+                <th>Student Name</th>
+                <th class="text-center">Present</th>
+                <th>Absence Reason</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var student in Model)
+            {
+                <tr class="student-row" data-student-id="@student.StudentId">
+                    <td>@student.EnrollmentNo</td>
+                    <td>@student.StudentName</td>
+                    <td class="text-center">
+                        <div class="form-check d-inline-block">
+                            <input type="checkbox" class="form-check-input attendance-check" 
+                                   checked="@student.IsPresent" />
+                        </div>
+                    </td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm absence-reason" 
+                               value="@student.AbsenceReason"
+                               placeholder="Reason for absence" 
+                               disabled="@student.IsPresent" />
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="text-end mt-3">
+        <button type="submit" class="btn btn-success" id="saveAttendance">
+            <i class="fas fa-save me-2"></i>Save Attendance
+        </button>
+    </div>
+}

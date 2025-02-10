@@ -126,23 +126,31 @@ function loadStudents() {
         return;
     }
 
+    $('#studentList').html('<div class="text-center"><i class="fas fa-spinner fa-spin me-2"></i> Loading students...</div>');
+    
     $.get('/Attendance/GetStudentsByDivision', {
         divisionId: divisionId,
         date: date,
         subjectId: subjectId
     })
-    .done(function(data) {
-        $('#studentList').html(data);
-        $('#saveAttendance').show();
-        initializeAttendanceHandlers();
+    .done(function(response) {
+        if (typeof response === 'object' && response.success === false) {
+            showAlert('Warning', response.message, 'warning');
+            $('#studentList').html('');
+        } else {
+            $('#studentList').html(response);
+            initializeAttendanceHandlers();
+        }
     })
-    .fail(function() {
-        showAlert('Error', 'Failed to load students', 'error');
+    .fail(function(xhr) {
+        console.error('Error:', xhr);
+        showAlert('Error', 'Failed to load students. Please try again.', 'error');
+        $('#studentList').html('');
     });
 }
 
 function initializeAttendanceHandlers() {
-    $('.attendance-check').on('change', function() {
+    $('.attendance-check').off('change').on('change', function() {
         const reasonInput = $(this).closest('tr').find('.absence-reason');
         reasonInput.prop('disabled', $(this).is(':checked'));
         if ($(this).is(':checked')) {
@@ -176,15 +184,74 @@ function markAttendance(form) {
         });
     });
 
-    $.post('/Attendance/MarkAttendance', data, function(response) {
-        if (response.success) {
-            showAlert('Success', response.message, 'success');
-        } else {
-            showAlert('Error', response.message, 'error');
+    $.ajax({
+        url: '/Attendance/MarkAttendance',
+        type: 'POST',
+        data: JSON.stringify(data),
+        contentType: 'application/json',
+        success: function(response) {
+            if (response.success) {
+                Swal.fire('Success', response.message, 'success');
+            } else {
+                Swal.fire('Error', response.message, 'error');
+            }
+        },
+        error: function() {
+            Swal.fire('Error', 'Failed to mark attendance', 'error');
         }
     });
 
     return false;
+}
+
+function showSubjectMapping(studentId) {
+    $.get('/Students/GetSubjectMapping', { id: studentId })
+        .done(function(data) {
+            $('#form-modal .modal-content').html(data);
+            $('#form-modal').modal('show');
+        })
+        .fail(function(error) {
+            showAlert('Error', 'Failed to load subject mapping', 'error');
+            console.error(error);
+        });
+}
+
+function saveSubjectMapping(form) {
+    var studentId = $(form).find('input[name="studentId"]').val();
+    var subjectIds = [];
+    $(form).find('input[name="subjectIds"]:checked').each(function() {
+        subjectIds.push($(this).val());
+    });
+
+    $.ajax({
+        url: '/Students/SaveSubjectMapping',
+        type: 'POST',
+        data: {
+            studentId: studentId,
+            subjectIds: subjectIds
+        },
+        success: function(response) {
+            if (response.success) {
+                $('#form-modal').modal('hide');
+                showAlert('Success', 'Subject mapping updated successfully', 'success');
+            } else {
+                showAlert('Error', response.message, 'error');
+            }
+        },
+        error: function() {
+            showAlert('Error', 'Failed to save subject mapping', 'error');
+        }
+    });
+    return false;
+}
+
+function showAlert(title, message, icon) {
+    Swal.fire({
+        title: title,
+        text: message,
+        icon: icon,
+        confirmButtonText: 'OK'
+    });
 }
 
 
