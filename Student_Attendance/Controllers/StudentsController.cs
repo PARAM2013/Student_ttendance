@@ -369,5 +369,46 @@ namespace Student_Attendance.Controllers
                 return Json(new { success = false, message = "Error saving subject mapping" });
             }
         }
+
+        [HttpGet]
+        public IActionResult Import()
+        {
+            return View(new StudentImportViewModel());
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Import(StudentImportViewModel model)
+        {
+            if (model.File == null || model.File.Length == 0)
+            {
+                ModelState.AddModelError("File", "Please select a file to import");
+                return View(model);
+            }
+
+            if (!Path.GetExtension(model.File.FileName).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
+            {
+                ModelState.AddModelError("File", "Please select an Excel file (.xlsx)");
+                return View(model);
+            }
+
+            try
+            {
+                using var stream = model.File.OpenReadStream();
+                // You'll need to add a NuGet package for Excel handling, e.g., EPPlus or ExcelDataReader
+                // Here's pseudocode for processing:
+                // 1. Read Excel file
+                // 2. Validate each row
+                // 3. Import valid records
+                // 4. Track success/errors
+                // 5. Return results
+
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                model.ImportErrors.Add($"Error processing file: {ex.Message}");
+                return View(model);
+            }
+        }
     }
 }
