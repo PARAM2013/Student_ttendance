@@ -1,0 +1,101 @@
+@model StudentImportViewModel
+@{
+    ViewData["Title"] = "Import Students";
+}
+
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-file-import me-2"></i>Import Students
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-info-circle me-2"></i>Instructions:</h5>
+                        <ol>
+                            <li>Download the template file below</li>
+                            <li>Fill in the student details as per the format</li>
+                            <li>Save the file and upload it here</li>
+                            <li>Required fields are marked with *</li>
+                        </ol>
+                        <div class="mt-3">
+                            <strong>Required Fields:</strong>
+                            <ul>
+                                <li>Enrollment No* (Unique identifier)</li>
+                                <li>Student Name*</li>
+                                <li>Course*</li>
+                                <li>Academic Year*</li>
+                                <li>Division*</li>
+                                <li>Semester* (1-8)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <a href="/templates/student_import_template.xlsx" class="btn btn-outline-primary">
+                        <i class="fas fa-download me-2"></i>Download Template
+                    </a>
+                </div>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" asp-action="Import">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Excel File</label>
+                            <input type="file" asp-for="File" class="form-control" accept=".xlsx,.xls" required />
+                            <span asp-validation-for="File" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-upload me-2"></i>Upload and Import
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to List
+                        </a>
+                    </div>
+                </div>
+            </form>
+
+            @if (Model != null && (Model.SuccessCount > 0 || Model.ErrorCount > 0))
+            {
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <div class="alert @(Model.ErrorCount == 0 ? "alert-success" : "alert-warning")">
+                            <h5>Import Results:</h5>
+                            <p>Successfully imported: @Model.SuccessCount records</p>
+                            <p>Failed to import: @Model.ErrorCount records</p>
+                        </div>
+
+                        @if (Model.ImportErrors.Any())
+                        {
+                            <div class="alert alert-danger">
+                                <h5>Import Errors:</h5>
+                                <ul>
+                                    @foreach (var error in Model.ImportErrors)
+                                    {
+                                        <li>@error</li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

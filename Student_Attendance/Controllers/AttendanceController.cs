@@ -184,7 +184,7 @@ public async Task<IActionResult> MarkAttendance(AttendanceViewModel model)
 
     public async Task<IActionResult> View()
     {
-        var model = new AttendanceViewModel
+         var model = new AttendanceViewModel
         {
             Date = DateTime.Today,
             Subjects = new SelectList(await _context.Subjects.ToListAsync(), "Id", "Name"),
@@ -231,5 +231,6 @@ public async Task<IActionResult> GetAttendanceByDate(int subjectId, int division
         return Json(new { success = false, message = "Error loading attendance data" });
     }
 }
+
 }
 }
