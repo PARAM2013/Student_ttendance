@@ -9,6 +9,7 @@ using Student_Attendance.Models;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using OfficeOpenXml; // Add this at the top
 
 namespace Student_Attendance.Controllers
 {
@@ -397,13 +398,79 @@ namespace Student_Attendance.Controllers
             try
             {
                 using var stream = model.File.OpenReadStream();
-                // You'll need to add a NuGet package for Excel handling, e.g., EPPlus or ExcelDataReader
-                // Here's pseudocode for processing:
-                // 1. Read Excel file
-                // 2. Validate each row
-                // 3. Import valid records
-                // 4. Track success/errors
-                // 5. Return results
+                using var package = new ExcelPackage(stream);
+                var worksheet = package.Workbook.Worksheets[0];
+                var rowCount = worksheet.Dimension.Rows;
+
+                for (int row = 2; row <= rowCount; row++) // Start from row 2 to skip header
+                {
+                    try
+                    {
+                        string enrollmentNo = worksheet.Cells[row, 1].Value?.ToString();
+                        string studentName = worksheet.Cells[row, 2].Value?.ToString();
+                        string division = worksheet.Cells[row, 3].Value?.ToString();
+                        string course = worksheet.Cells[row, 4].Value?.ToString();
+                        string semester = worksheet.Cells[row, 5].Value?.ToString();
+                        string email = worksheet.Cells[row, 6].Value?.ToString();
+                        string mobile = worksheet.Cells[row, 7].Value?.ToString();
+                        string cast = worksheet.Cells[row, 8].Value?.ToString();
+                        string academicYear = worksheet.Cells[row, 9].Value?.ToString();
+
+                        // Validate required fields
+                        if (string.IsNullOrEmpty(enrollmentNo) || string.IsNullOrEmpty(studentName) ||
+                            string.IsNullOrEmpty(division) || string.IsNullOrEmpty(course) ||
+                            string.IsNullOrEmpty(semester) || string.IsNullOrEmpty(academicYear))
+                        {
+                            model.ImportErrors.Add($"Row {row}: Missing required fields");
+                            model.ErrorCount++;
+                            continue;
+                        }
+
+                        // Get references
+                        var courseEntity = await _context.Courses.FirstOrDefaultAsync(c => c.Name == course);
+                        var divisionEntity = await _context.Divisions.FirstOrDefaultAsync(d => d.Name == division);
+                        var academicYearEntity = await _context.AcademicYears.FirstOrDefaultAsync(ay => ay.Name == academicYear);
+
+                        if (courseEntity == null || divisionEntity == null || academicYearEntity == null)
+                        {
+                            model.ImportErrors.Add($"Row {row}: Invalid Course, Division or Academic Year");
+                            model.ErrorCount++;
+                            continue;
+                        }
+
+                        // Check if enrollment number already exists
+                        if (await _context.Students.AnyAsync(s => s.EnrollmentNo == enrollmentNo))
+                        {
+                            model.ImportErrors.Add($"Row {row}: Enrollment number {enrollmentNo} already exists");
+                            model.ErrorCount++;
+                            continue;
+                        }
+
+                        // Create new student
+                        var student = new Student
+                        {
+                            EnrollmentNo = enrollmentNo,
+                            Name = studentName,
+                            DivisionId = divisionEntity.Id,
+                            CourseId = courseEntity.Id,
+                            Semester = int.Parse(semester),
+                            Email = email,
+                            Mobile = mobile,
+                            Cast = cast,
+                            AcademicYearId = academicYearEntity.Id,
+                            IsActive = true
+                        };
+
+                        _context.Students.Add(student);
+                        await _context.SaveChangesAsync();
+                        model.SuccessCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        model.ImportErrors.Add($"Row {row}: {ex.Message}");
+                        model.ErrorCount++;
+                    }
+                }
 
                 return View(model);
             }

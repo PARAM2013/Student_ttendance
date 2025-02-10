@@ -4,6 +4,7 @@ using Student_Attendance.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using OfficeOpenXml; // Add this line
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -104,5 +105,7 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, "An error occurred while seeding the database.");
     }
 }
+
+ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
 app.Run();
