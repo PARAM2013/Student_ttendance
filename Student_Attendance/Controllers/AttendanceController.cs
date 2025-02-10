@@ -124,5 +124,69 @@ namespace Student_Attendance.Controllers
             return Json(new { success = false, message = "Error marking attendance" });
         }
     }
+
+    [HttpGet]
+    public async Task<IActionResult> Reports()
+    {
+        var model = new AttendanceReportViewModel
+        {
+            StartDate = DateTime.Today.AddDays(-30),
+            EndDate = DateTime.Today,
+            Subjects = new SelectList(await _context.Subjects.ToListAsync(), "Id", "Name"),
+            Divisions = new SelectList(await _context.Divisions.ToListAsync(), "Id", "Name")
+        };
+        return View(model);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAttendanceReport(int subjectId, int divisionId, DateTime startDate, DateTime endDate)
+    {
+        try
+        {
+            var students = await _context.Students
+                .Where(s => s.DivisionId == divisionId && s.IsActive)
+                .Select(s => new { s.Id, s.EnrollmentNo, s.Name })
+                .ToListAsync();
+
+            var attendanceData = await _context.AttendanceRecords
+                .Where(a => a.SubjectId == subjectId && 
+                           a.Date.Date >= startDate.Date && 
+                           a.Date.Date <= endDate.Date &&
+                           a.Student.DivisionId == divisionId)
+                .GroupBy(a => new { a.StudentId })
+                .Select(g => new
+                {
+                    StudentId = g.Key.StudentId,
+                    TotalClasses = g.Count(),
+                    Present = g.Count(a => a.IsPresent),
+                    Absent = g.Count(a => !a.IsPresent)
+                })
+                .ToListAsync();
+
+            var report = students.Select(s =>
+            {
+                var data = attendanceData.FirstOrDefault(a => a.StudentId == s.Id);
+                return new AttendanceReportItemViewModel
+                {
+                    StudentId = s.Id,
+                    EnrollmentNo = s.EnrollmentNo,
+                    StudentName = s.Name,
+                    TotalClasses = data?.TotalClasses ?? 0,
+                    Present = data?.Present ?? 0,
+                    Absent = data?.Absent ?? 0,
+                    AttendancePercentage = data?.TotalClasses > 0 
+                        ? (decimal)data.Present / data.TotalClasses * 100 
+                        : 0
+                };
+            }).ToList();
+
+            return PartialView("_AttendanceReport", report);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating attendance report");
+            return Json(new { success = false, message = "Error generating report" });
+        }
+    }
 }
 }

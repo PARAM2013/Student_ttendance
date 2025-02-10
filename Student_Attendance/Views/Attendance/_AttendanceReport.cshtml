@@ -1,0 +1,52 @@
+@model List<AttendanceReportItemViewModel>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        No attendance records found for the selected criteria.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>Roll No</th>
+                    <th>Student Name</th>
+                    <th class="text-center">Total Classes</th>
+                    <th class="text-center">Present</th>
+                    <th class="text-center">Absent</th>
+                    <th class="text-center">Attendance %</th>
+                    <th class="text-center">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.EnrollmentNo</td>
+                        <td>@item.StudentName</td>
+                        <td class="text-center">@item.TotalClasses</td>
+                        <td class="text-center">@item.Present</td>
+                        <td class="text-center">@item.Absent</td>
+                        <td class="text-center">@item.AttendancePercentage.ToString("0.00")%</td>
+                        <td class="text-center">
+                            @{
+                                var statusClass = item.AttendancePercentage switch
+                                {
+                                    >= 75 => "text-success",
+                                    >= 60 => "text-warning",
+                                    _ => "text-danger"
+                                };
+                            }
+                            <span class="@statusClass">
+                                <i class="fas @(item.AttendancePercentage >= 75 ? "fa-check-circle" : "fa-exclamation-circle")"></i>
+                            </span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
