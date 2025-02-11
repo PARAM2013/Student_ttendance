@@ -71,24 +71,51 @@
             {
                 <div class="row mt-4">
                     <div class="col-md-12">
-                        <div class="alert @(Model.ErrorCount == 0 ? "alert-success" : "alert-warning")">
-                            <h5>Import Results:</h5>
-                            <p>Successfully imported: @Model.SuccessCount records</p>
-                            <p>Failed to import: @Model.ErrorCount records</p>
-                        </div>
-
-                        @if (Model.ImportErrors.Any())
-                        {
-                            <div class="alert alert-danger">
-                                <h5>Import Errors:</h5>
-                                <ul>
-                                    @foreach (var error in Model.ImportErrors)
-                                    {
-                                        <li>@error</li>
-                                    }
-                                </ul>
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">Import Results</h5>
                             </div>
-                        }
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="alert alert-success">
+                                            <h6><i class="fas fa-check-circle me-2"></i>Successfully Imported</h6>
+                                            <p class="mb-0">Number of students: @Model.SuccessCount</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="alert alert-danger">
+                                            <h6><i class="fas fa-exclamation-circle me-2"></i>Failed to Import</h6>
+                                            <p class="mb-0">Number of students: @Model.ErrorCount</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                @if (Model.ImportErrors.Any())
+                                {
+                                    <div class="mt-4">
+                                        <h6><i class="fas fa-list me-2"></i>Failed Import Details:</h6>
+                                        <div class="table-responsive">
+                                            <table class="table table-striped table-bordered">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Error Details</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var error in Model.ImportErrors)
+                                                    {
+                                                        <tr>
+                                                            <td>@error</td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
                     </div>
                 </div>
             }
