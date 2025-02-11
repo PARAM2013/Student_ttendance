@@ -254,40 +254,44 @@ function showAlert(title, message, icon) {
     });
 }
 
+// Updated saveAttendance function
 function saveAttendance(form) {
-    const data = {
-        SubjectId: $('#SubjectId').val(),
-        Date: $('#Date').val(),
-        Students: []
-    };
-
-    $('.student-row').each(function() {
-        const row = $(this);
-        const studentId = row.data('student-id');
-        data.Students.push({
-            StudentId: studentId,
-            IsPresent: $(`input[name="attendance_${studentId}"]:checked`).val() === 'true'
-        });
-    });
-
     $.ajax({
-        url: '/Attendance/MarkAttendance',
-        type: 'POST',
-        data: JSON.stringify(data),
-        contentType: 'application/json',
+        url: form.action,
+        type: form.method,
+        data: $(form).serialize(),
         success: function(response) {
-            if (response.success) {
-                showAlert('Success', 'Attendance marked successfully', 'success');
+            if(response.success) {
+                Swal.fire({
+                   title: 'Success!',
+                   text: response.message,
+                   icon: 'success',
+                   timer: 2000,
+                   showConfirmButton: false
+                });
             } else {
-                showAlert('Error', response.message, 'error');
+                Swal.fire({
+                   title: 'Error!',
+                   text: response.message,
+                   icon: 'error'
+                });
             }
         },
         error: function() {
-            showAlert('Error', 'Failed to mark attendance', 'error');
+           Swal.fire({
+               title: 'Error!',
+               text: 'An error occurred while saving attendance.',
+               icon: 'error'
+           });
         }
     });
-
     return false;
 }
+
+// Attach attendance form submission handler
+$(document).on('submit', '#attendanceForm', function(e) {
+    e.preventDefault();
+    saveAttendance(this);
+});
 
 

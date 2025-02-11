@@ -1,4 +1,7 @@
 @model List<StudentAttendanceViewModel>
+@{
+    int index = 0;
+}
 
 @if (!Model.Any())
 {
@@ -20,19 +23,22 @@ else
             @foreach (var student in Model)
             {
                 <tr class="student-row" data-student-id="@student.StudentId">
-                    <td>@student.EnrollmentNo</td>
+                    <td>
+                        <input type="hidden" name="Students[@index].StudentId" value="@student.StudentId" />
+                        @student.EnrollmentNo
+                    </td>
                     <td>@student.StudentName</td>
                     <td class="text-center">
                         <div class="btn-group" role="group">
                             <input type="radio" class="btn-check attendance-radio" 
-                                   name="attendance_@student.StudentId" 
+                                   name="Students[@index].IsPresent" 
                                    id="present_@student.StudentId" 
                                    value="true" 
                                    @(student.IsPresent ? "checked" : "")>
                             <label class="btn btn-outline-success" for="present_@student.StudentId">Present</label>
 
                             <input type="radio" class="btn-check attendance-radio" 
-                                   name="attendance_@student.StudentId" 
+                                   name="Students[@index].IsPresent" 
                                    id="absent_@student.StudentId" 
                                    value="false" 
                                    @(!student.IsPresent ? "checked" : "")>
@@ -40,6 +46,7 @@ else
                         </div>
                     </td>
                 </tr>
+                index++;
             }
         </tbody>
     </table>
