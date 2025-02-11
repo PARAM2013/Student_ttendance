@@ -108,25 +108,46 @@ namespace Student_Attendance.Controllers
         {
             if (ModelState.IsValid)
             {
-                var student = new Student
-                {
-                    EnrollmentNo = model.EnrollmentNo,
-                    Name = model.Name,
-                    Cast = model.Cast,
-                    Email = model.Email,
-                    Mobile = model.Mobile,
-                    CourseId = model.CourseId,
-                    Semester = model.Semester,
-                    IsActive = model.IsActive,
-                    AcademicYearId = model.AcademicYearId,
-                    DivisionId = model.DivisionId
-                };
-
                 try
                 {
+                    var student = new Student
+                    {
+                        EnrollmentNo = model.EnrollmentNo,
+                        Name = model.Name,
+                        Cast = model.Cast,
+                        Email = model.Email,
+                        Mobile = model.Mobile,
+                        CourseId = model.CourseId,
+                        Semester = model.Semester,
+                        IsActive = model.IsActive,
+                        AcademicYearId = model.AcademicYearId,
+                        DivisionId = model.DivisionId,
+                        ClassId = model.ClassId
+                    };
+
                     _context.Add(student);
                     await _context.SaveChangesAsync();
-                    return Json(new { success = true, message = "Student created successfully!" });
+
+                    // After saving the student, get all subjects for the selected class and semester
+                    var subjects = await _context.Subjects
+                        .Where(s => s.ClassId == model.ClassId && 
+                                   s.Semester == model.Semester)
+                        .ToListAsync();
+
+                    // Create subject mappings for the student
+                    if (subjects.Any())
+                    {
+                        var studentSubjects = subjects.Select(subject => new StudentSubject
+                        {
+                            StudentId = student.Id,
+                            SubjectId = subject.Id
+                        });
+
+                        await _context.StudentSubjects.AddRangeAsync(studentSubjects);
+                        await _context.SaveChangesAsync();
+                    }
+
+                    return Json(new { success = true, message = "Student created successfully with subject mappings!" });
                 }
                 catch (Exception ex)
                 {
@@ -504,6 +525,18 @@ namespace Student_Attendance.Controllers
                 model.ImportErrors.Add($"Error processing file: {ex.Message}");
                 return View(model);
             }
+        }
+
+        // Add this new method to get subjects for a class and semester
+        [HttpGet]
+        public async Task<IActionResult> GetSubjectsForClass(int classId, int semester)
+        {
+            var subjects = await _context.Subjects
+                .Where(s => s.ClassId == classId && s.Semester == semester)
+                .Select(s => new { s.Id, s.Name, s.Code })
+                .ToListAsync();
+
+            return Json(new { success = true, subjects = subjects });
         }
     }
 }

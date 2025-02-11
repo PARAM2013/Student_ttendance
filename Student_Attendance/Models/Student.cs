@@ -43,7 +43,9 @@ namespace Student_Attendance.Models
         [ForeignKey("DivisionId")]
         public Division Division { get; set; }       
 
-         // Add this to existing Student class
+        public int ClassId { get; set; }
+        public Class Class { get; set; }
+
         public virtual ICollection<StudentSubject> StudentSubjects { get; set; }
     }
 }

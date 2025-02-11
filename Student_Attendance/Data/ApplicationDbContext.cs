@@ -51,6 +51,11 @@ namespace Student_Attendance.Data
         .WithMany()
         .HasForeignKey(s => s.DivisionId)
         .OnDelete(DeleteBehavior.NoAction);
+      modelBuilder.Entity<Student>()
+        .HasOne(s => s.Class)
+        .WithMany()
+        .HasForeignKey(s => s.ClassId)
+        .OnDelete(DeleteBehavior.NoAction);
       modelBuilder.Entity<Specialization>()
          .HasOne(s => s.Course)
         .WithMany()

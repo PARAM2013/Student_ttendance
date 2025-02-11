@@ -81,6 +81,7 @@
                         </div>
                     </div>
                 </div>
+                <div id="subjectsList" class="mt-3"></div>
                 <div class="mt-3">
                     <button type="submit" class="btn btn-primary">Create Student</button>
                     <a asp-action="Index" class="btn btn-secondary">Back to List</a>
@@ -124,6 +125,43 @@
                     });
                     divisionDropdown.prop('disabled', false);
                 });
+            });
+
+            // Function to load subjects when class or semester changes
+            function loadSubjects() {
+                var classId = $('#ClassId').val();
+                var semester = $('#Semester').val();
+                
+                if (classId && semester) {
+                    $.get('@Url.Action("GetSubjectsForClass")', { classId: classId, semester: semester }, 
+                        function(response) {
+                            if (response.success && response.subjects.length > 0) {
+                                var subjectList = response.subjects.map(function(subject) {
+                                    return `<li class="list-group-item">
+                                        ${subject.name} (${subject.code})
+                                    </li>`;
+                                }).join('');
+                                
+                                $('#subjectsList').html(`
+                                    <div class="alert alert-info">
+                                        <h6>Subjects that will be mapped:</h6>
+                                        <ul class="list-group">
+                                            ${subjectList}
+                                        </ul>
+                                    </div>`);
+                            } else {
+                                $('#subjectsList').html(`
+                                    <div class="alert alert-warning">
+                                        No subjects found for this class and semester
+                                    </div>`);
+                            }
+                        });
+                }
+            }
+
+            // Call loadSubjects when class or semester changes
+            $('#ClassId, #Semester').change(function() {
+                loadSubjects();
             });
         });
 
