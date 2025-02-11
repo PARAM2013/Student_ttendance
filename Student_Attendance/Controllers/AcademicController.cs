@@ -254,7 +254,7 @@ namespace Student_Attendance.Controllers
                 if (!ModelState.IsValid)
                 {
                     await LoadClassDropDowns(model);
-                    var errors = string.Join(", ", ModelState.Values
+                    var errors = String.Join(", ", ModelState.Values
                         .SelectMany(v => v.Errors)
                         .Select(e => e.ErrorMessage));
                     return Json(new { success = false, message = errors });
@@ -347,7 +347,7 @@ namespace Student_Attendance.Controllers
                     var errors = ModelState.Values
                         .SelectMany(v => v.Errors)
                         .Select(e => e.ErrorMessage);
-                    return Json(new { success = false, message = string.Join(", ", errors) });
+                    return Json(new { success = false, message = String.Join(", ", errors) });
                 }
 
                 var existingClass = await _context.Classes.FindAsync(model.Id);
@@ -704,6 +704,7 @@ namespace Student_Attendance.Controllers
                 .Include(s => s.Course)
                 .Include(s => s.AcademicYear)
                 .Include(s => s.Specialization)
+                .Include(s => s.Class) // added Class include
                 .ToList();
             return View(subjects);
         }

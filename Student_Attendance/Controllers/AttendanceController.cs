@@ -184,13 +184,13 @@ public async Task<IActionResult> MarkAttendance(AttendanceViewModel model)
 
     public async Task<IActionResult> View()
     {
-         var model = new AttendanceViewModel
+        var model = new AttendanceViewModel
         {
             Date = DateTime.Today,
             Subjects = new SelectList(await _context.Subjects.ToListAsync(), "Id", "Name"),
             Divisions = new SelectList(await _context.Divisions.ToListAsync(), "Id", "Name")
         };
-        return View(model);
+        return base.View(model);
     }
 
     [HttpGet]
