@@ -27,6 +27,9 @@ namespace Student_Attendance.ViewModels
         [Required(ErrorMessage = "Academic Year is required.")]
         public int AcademicYearId { get; set; }
 
+        public int ClassId { get; set; }
+        public List<SelectListItem> Classes { get; set; } = new List<SelectListItem>();
+
         public List<SelectListItem> Specializations { get; set; } = new List<SelectListItem>();
         public List<SelectListItem> Courses { get; set; } = new List<SelectListItem>();
         public List<SelectListItem> AcademicYears { get; set; } = new List<SelectListItem>();

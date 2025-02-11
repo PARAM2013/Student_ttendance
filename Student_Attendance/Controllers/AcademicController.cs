@@ -733,7 +733,8 @@ namespace Student_Attendance.Controllers
                 SpecializationId = subject.SpecializationId,
                 Semester = subject.Semester,
                 CourseId = subject.CourseId,
-                AcademicYearId = subject.AcademicYearId
+                AcademicYearId = subject.AcademicYearId,
+                ClassId = subject.ClassId
             };
 
             await LoadSubjectDropDowns(model);
@@ -761,7 +762,8 @@ namespace Student_Attendance.Controllers
                     SpecializationId = model.SpecializationId,
                     Semester = model.Semester,
                     CourseId = model.CourseId,
-                    AcademicYearId = model.AcademicYearId
+                    AcademicYearId = model.AcademicYearId,
+                    ClassId = model.ClassId
                 };
 
                 await _context.Subjects.AddAsync(subject);
@@ -805,6 +807,7 @@ namespace Student_Attendance.Controllers
                 subject.Semester = model.Semester;
                 subject.CourseId = model.CourseId;
                 subject.AcademicYearId = model.AcademicYearId;
+                subject.ClassId = model.ClassId;
 
                 _context.Subjects.Update(subject);
                 var result = await _context.SaveChangesAsync();
@@ -852,10 +855,12 @@ namespace Student_Attendance.Controllers
             if (model.Courses == null) model.Courses = new List<SelectListItem>();
             if (model.AcademicYears == null) model.AcademicYears = new List<SelectListItem>();
             if (model.Specializations == null) model.Specializations = new List<SelectListItem>();
+            if (model.Classes == null) model.Classes = new List<SelectListItem>();
 
             var courses = await _context.Courses.ToListAsync();
             var academicYears = await _context.AcademicYears.ToListAsync();
             var specializations = await _context.Specializations.ToListAsync();
+            var classes = await _context.Classes.ToListAsync();
 
             model.Courses = courses.Select(c => new SelectListItem
             {
@@ -876,6 +881,12 @@ namespace Student_Attendance.Controllers
                 Text = s.Name
             }).ToList();
             model.Specializations = specializationItems;
+
+            model.Classes = classes.Select(c => new SelectListItem
+            {
+                Value = c.Id.ToString(),
+                Text = c.Name
+            }).ToList();
         }
 
     }

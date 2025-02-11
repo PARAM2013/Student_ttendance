@@ -18,6 +18,7 @@
                         <th>Code</th>
                         <th>Course</th>
                         <th>Academic Year</th>
+                        <th>Class</th> <!-- new header -->
                         <th>Specialization</th>
                         <th>Semester</th>
                         <th>Actions</th>
@@ -31,6 +32,7 @@
                             <td>@item.Code</td>
                             <td>@item.Course.Name</td>
                             <td>@item.AcademicYear.Name</td>
+                            <td>@(item.Class?.Name ?? "N/A")</td> <!-- new column -->
                             <td>@(item.Specialization?.Name ?? "N/A")</td>
                             <td>@item.Semester</td>
                             <td>
