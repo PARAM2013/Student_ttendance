@@ -34,6 +34,10 @@ namespace Student_Attendance.ViewModels
         [Range(1, 12, ErrorMessage = "Semester must be between 1 and 12")]
         public int Semester { get; set; }
 
+        [Required(ErrorMessage = "Class is Required")]
+        [Range(1, int.MaxValue, ErrorMessage = "Please select a Class")]
+        public int ClassId { get; set; }
+
         public bool IsActive { get; set; } = true;
 
         [Required(ErrorMessage = "Academic Year is Required")]
@@ -48,10 +52,12 @@ namespace Student_Attendance.ViewModels
         public Course? Course { get; set; }
         public AcademicYear? AcademicYear { get; set; }
         public Division? Division { get; set; }
+        public Class? Class { get; set; }
 
         // Dropdowns
         public List<SelectListItem> Courses { get; set; } = new List<SelectListItem>();
         public List<SelectListItem> AcademicYears { get; set; } = new List<SelectListItem>();
         public List<SelectListItem> Divisions { get; set; } = new List<SelectListItem>();
+        public List<SelectListItem> Classes { get; set; } = new List<SelectListItem>();
     }
 }

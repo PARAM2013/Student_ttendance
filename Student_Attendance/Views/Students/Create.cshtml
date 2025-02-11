@@ -62,9 +62,16 @@
                             <span asp-validation-for="AcademicYearId" class="text-danger"></span>
                         </div>
                         <div class="mb-3">
-                            <label asp-for="DivisionId" class="form-label"></label>
-                            <select asp-for="DivisionId" class="form-select" asp-items="@Model.Divisions">
-                                <option value="">Select Division</option>
+                            <label asp-for="ClassId" class="form-label">Class</label>
+                            <select asp-for="ClassId" class="form-select" asp-items="@Model.Classes">
+                                <option value="">Select Class</option>
+                            </select>
+                            <span asp-validation-for="ClassId" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="DivisionId" class="form-label">Division</label>
+                            <select asp-for="DivisionId" class="form-select" disabled>
+                                <option value="">Select Class First</option>
                             </select>
                             <span asp-validation-for="DivisionId" class="text-danger"></span>
                         </div>
@@ -94,6 +101,29 @@
                 if ($(this).valid()) {
                     submitForm(this);
                 }
+            });
+
+            // Handle Class change to populate Divisions
+            $('#ClassId').change(function() {
+                var classId = $(this).val();
+                var divisionDropdown = $('#DivisionId');
+                
+                // Reset and disable Division dropdown if no class is selected
+                if (!classId) {
+                    divisionDropdown.html('<option value="">Select Class First</option>');
+                    divisionDropdown.prop('disabled', true);
+                    return;
+                }
+
+                // Get divisions for selected class
+                $.get('@Url.Action("GetDivisionsByClass")', { classId: classId }, function(data) {
+                    divisionDropdown.empty();
+                    divisionDropdown.append('<option value="">Select Division</option>');
+                    $.each(data, function(i, item) {
+                        divisionDropdown.append($('<option>').val(item.value).text(item.text));
+                    });
+                    divisionDropdown.prop('disabled', false);
+                });
             });
         });
 

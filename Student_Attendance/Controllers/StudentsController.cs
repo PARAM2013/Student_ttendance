@@ -294,6 +294,31 @@ namespace Student_Attendance.Controllers
                 Value = d.Id.ToString(),
                 Text = d.Name
             }).ToListAsync();
+
+            model.Classes = await _context.Classes
+                .Select(c => new SelectListItem
+                {
+                    Value = c.Id.ToString(),
+                    Text = $"{c.Name} ({c.Course.Name})"
+                }).ToListAsync();
+
+            // Reset Divisions dropdown when loading initially
+            model.Divisions = new List<SelectListItem>();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetDivisionsByClass(int classId)
+        {
+            var divisions = await _context.Divisions
+                .Where(d => d.ClassId == classId)
+                .Select(d => new SelectListItem
+                {
+                    Value = d.Id.ToString(),
+                    Text = d.Name
+                })
+                .ToListAsync();
+
+            return Json(divisions);
         }
 
         [HttpGet]
