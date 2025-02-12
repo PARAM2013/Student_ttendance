@@ -71,7 +71,7 @@ using (var scope = app.Services.CreateScope())
             {
                 UserName = "admin",
                 Email = "admin@example.com",
-                Password = BCrypt.Net.BCrypt.HashPassword("admin"), // Default password: Admin@123
+                Password = BCrypt.Net.BCrypt.HashPassword("Admin@123"), // Default password: Admin@123
                 Role = "Admin"
             };
             context.Users.Add(adminUser);
@@ -81,7 +81,7 @@ using (var scope = app.Services.CreateScope())
             {
                 UserName = "teacher",
                 Email = "teacher@example.com",
-                Password = BCrypt.Net.BCrypt.HashPassword("teacher"), // Default password: Teacher@123
+                Password = BCrypt.Net.BCrypt.HashPassword("Teacher@123"), // Default password: Teacher@123
                 Role = "Teacher"
             };
             context.Users.Add(teacherUser);
@@ -91,7 +91,7 @@ using (var scope = app.Services.CreateScope())
             {
                 UserName = "student",
                 Email = "student@example.com",
-                Password = BCrypt.Net.BCrypt.HashPassword("student"), // Default password: Student@123
+                Password = BCrypt.Net.BCrypt.HashPassword("Student@123"), // Default password: Student@123
                 Role = "Student"
             };
             context.Users.Add(studentUser);
