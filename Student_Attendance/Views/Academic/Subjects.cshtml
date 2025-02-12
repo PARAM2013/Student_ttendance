@@ -17,8 +17,8 @@
                         <th>Name</th>
                         <th>Code</th>
                         <th>Course</th>
-                        <th>Academic Year</th>
-                        <th>Class</th> <!-- new header -->
+                        <!-- Removed Academic Year header -->
+                        <th>Class</th>
                         <th>Specialization</th>
                         <th>Semester</th>
                         <th>Actions</th>
@@ -31,8 +31,8 @@
                             <td>@item.Name</td>
                             <td>@item.Code</td>
                             <td>@item.Course.Name</td>
-                            <td>@item.AcademicYear.Name</td>
-                            <td>@(item.Class?.Name ?? "N/A")</td> <!-- new column -->
+                            <!-- Removed Academic Year cell -->
+                            <td>@(item.Class?.Name ?? "N/A")</td>
                             <td>@(item.Specialization?.Name ?? "N/A")</td>
                             <td>@item.Semester</td>
                             <td>

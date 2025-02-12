@@ -23,14 +23,13 @@ namespace Student_Attendance.Models
         public int CourseId { get; set; }
         [ForeignKey("CourseId")]
         public Course Course { get; set; }
-        [Required]
-        public int AcademicYearId { get; set; }
-        [ForeignKey("AcademicYearId")]
-        public AcademicYear AcademicYear { get; set; }
+        // Removed AcademicYearId and AcademicYear Navigation
+        // [Required]
+        // public int AcademicYearId { get; set; }
+        // [ForeignKey("AcademicYearId")]
+        // public AcademicYear AcademicYear { get; set; }
 
-        // Added property for class relationship
         public int ClassId { get; set; }
-        // Optionally add navigation property if needed
         public Class Class { get; set; }
     }
 }

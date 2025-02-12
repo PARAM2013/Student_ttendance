@@ -62,11 +62,12 @@ namespace Student_Attendance.Data
         .HasForeignKey(s => s.CourseId)
         .OnDelete(DeleteBehavior.NoAction);
 
-      modelBuilder.Entity<Subject>()
-       .HasOne(s => s.AcademicYear)
-       .WithMany()
-       .HasForeignKey(s => s.AcademicYearId)
-        .OnDelete(DeleteBehavior.NoAction);
+      // Remove outdated configuration for Subject.AcademicYear since property was removed
+      // modelBuilder.Entity<Subject>()
+      //     .HasOne(s => s.AcademicYear)
+      //     .WithMany(ay => ay.Subjects)
+      //     .HasForeignKey(s => s.AcademicYearId);
+
       modelBuilder.Entity<Subject>()
         .HasOne(s => s.Course)
        .WithMany()
