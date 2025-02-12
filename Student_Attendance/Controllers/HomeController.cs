@@ -41,6 +41,17 @@ namespace Student_Attendance.Controllers
             return View(institute);
         }
 
+        [AllowAnonymous] // Add this attribute to allow access without authentication
+        public IActionResult Search_Attendance()
+        {
+            // If user is already authenticated, redirect to Index
+            if (User.Identity.IsAuthenticated)
+            {
+                return RedirectToAction("Index");
+            }
+            return View();
+        }
+
         public IActionResult Privacy()
         {
             return View();

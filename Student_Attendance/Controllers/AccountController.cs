@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+
 using Microsoft.EntityFrameworkCore; // Add this
 using Student_Attendance.Data;
 using Student_Attendance.Models;
@@ -21,9 +23,15 @@ namespace Student_Attendance.Controllers
             _logger = logger;
         }
 
-        [HttpGet]
+[HttpGet]
+[AllowAnonymous] // Ensure this attribute is recognized
+
         public IActionResult Login(string? returnUrl = null)  // Add ? after string
         {
+            if (User.Identity.IsAuthenticated)
+            {
+                return RedirectToAction("Index", "Home");
+            }
             ViewData["ReturnUrl"] = returnUrl;
             return View();
         }
@@ -83,7 +91,8 @@ namespace Student_Attendance.Controllers
             return View();
         }
 
-        private IActionResult RedirectToLocal(string returnUrl)
+private IActionResult RedirectToLocal(string? returnUrl) // Add ? to handle null
+
         {
             if (Url.IsLocalUrl(returnUrl))
             {
