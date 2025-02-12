@@ -2,11 +2,14 @@
 
 <div class="container-fluid">
     <div class="card">
-        <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
             <h3 class="card-title">Subjects</h3>
             <div class="card-tools">
+                <button type="button" class="btn btn-success me-2" onclick="showBulkAddModal()">
+                    <i class="fas fa-upload me-1"></i> Bulk Add
+                </button>
                 <button type="button" class="btn btn-primary" onclick="showInPopup('@Url.Action("CreateSubject","Academic",null,Context.Request.Scheme)','Add New Subject')">
-                    Add New
+                    <i class="fas fa-plus me-1"></i> Add New
                 </button>
             </div>
         </div>
@@ -56,5 +59,9 @@
         $(document).ready(function () {
             $('#tblData').DataTable();
         });
+
+        function showBulkAddModal() {
+            showInPopup('@Url.Action("BulkAddSubjects","Academic",null,Context.Request.Scheme)', 'Bulk Add Subjects');
+        }
     </script>
 }

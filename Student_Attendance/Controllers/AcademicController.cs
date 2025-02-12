@@ -877,5 +877,48 @@ namespace Student_Attendance.Controllers
             }).ToList();
         }
 
+        [HttpGet]
+        public async Task<IActionResult> BulkAddSubjects()
+        {
+            var model = new SubjectViewModel();
+            await LoadSubjectDropDowns(model);
+            return PartialView("_BulkAddSubjects", model);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> BulkAddSubjects([FromBody] BulkSubjectViewModel model)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return Json(new { success = false, message = "Invalid data provided" });
+
+                var subjects = model.Subjects.Select(s => new Subject
+                {
+                    Name = s.Name,
+                    Code = s.Code,
+                    CourseId = model.CourseId,
+                    ClassId = model.ClassId,
+                    Semester = model.Semester,
+                    SpecializationId = model.SpecializationId
+                }).ToList();
+
+                await _context.Subjects.AddRangeAsync(subjects);
+                await _context.SaveChangesAsync();
+
+                return Json(new { 
+                    success = true, 
+                    message = $"Successfully created {subjects.Count} subjects" 
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during bulk subject creation");
+                return Json(new { 
+                    success = false, 
+                    message = "An error occurred while creating subjects" 
+                });
+            }
+        }
     }
 }

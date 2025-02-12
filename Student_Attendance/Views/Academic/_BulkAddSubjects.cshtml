@@ -1,0 +1,114 @@
+@model Student_Attendance.ViewModels.SubjectViewModel
+
+<form id="bulkAddForm" onsubmit="return submitBulkAdd(this)" class="needs-validation" novalidate>
+    <div class="mb-4">
+        <label class="form-label">Subject Entries</label>
+        <div class="form-text mb-2">
+            Enter each subject in the format: Subject Name, Subject Code
+            <br />Example: Production and Operations Management, 45262142
+            <br />One subject per line
+        </div>
+        <textarea class="form-control" id="subjectEntries" rows="6" required 
+                  placeholder="Production and Operations Management, 45262142&#10;Financial Management, 45262143"></textarea>
+        <div class="invalid-feedback">Please enter at least one subject</div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label asp-for="CourseId" class="form-label">Course</label>
+            <select asp-for="CourseId" class="form-select" asp-items="@Model.Courses" required>
+                <option value="">Select Course</option>
+            </select>
+            <div class="invalid-feedback">Please select a course</div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label asp-for="ClassId" class="form-label">Class</label>
+            <select asp-for="ClassId" class="form-select" asp-items="@Model.Classes" required>
+                <option value="">Select Class</option>
+            </select>
+            <div class="invalid-feedback">Please select a class</div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label asp-for="Semester" class="form-label">Semester</label>
+            <input asp-for="Semester" class="form-control" type="number" min="1" max="8" required />
+            <div class="invalid-feedback">Please enter a valid semester (1-8)</div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label asp-for="SpecializationId" class="form-label">Specialization (Optional)</label>
+            <select asp-for="SpecializationId" class="form-select" asp-items="@Model.Specializations">
+                <option value="">Select Specialization</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="text-end mt-4">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create Subjects</button>
+    </div>
+</form>
+
+<script>
+    function submitBulkAdd(form) {
+        var subjectEntries = $('#subjectEntries').val().split('\n').filter(line => line.trim());
+        
+        if (subjectEntries.length === 0) {
+            Swal.fire('Error', 'Please enter at least one subject', 'error');
+            return false;
+        }
+
+        var subjects = [];
+        var hasError = false;
+
+        subjectEntries.forEach((entry, index) => {
+            var parts = entry.split(',').map(p => p.trim());
+            if (parts.length !== 2) {
+                Swal.fire('Error', `Invalid format at line ${index + 1}. Use: Subject Name, Subject Code`, 'error');
+                hasError = true;
+                return;
+            }
+            subjects.push({
+                name: parts[0],
+                code: parts[1]
+            });
+        });
+
+        if (hasError) return false;
+
+        var data = {
+            subjects: subjects,
+            courseId: $('#CourseId').val(),
+            classId: $('#ClassId').val(),
+            semester: $('#Semester').val(),
+            specializationId: $('#SpecializationId').val() || null
+        };
+
+        $.ajax({
+            url: '@Url.Action("BulkAddSubjects", "Academic")',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function (response) {
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: response.message,
+                    }).then(() => {
+                        $('#form-modal').modal('hide');
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', response.message, 'error');
+                }
+            },
+            error: function () {
+                Swal.fire('Error', 'Failed to create subjects', 'error');
+            }
+        });
+
+        return false;
+    }
+</script>
