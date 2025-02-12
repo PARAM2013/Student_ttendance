@@ -194,6 +194,12 @@ namespace Student_Attendance.Controllers
             };
 
             await LoadStudentDropDowns(viewModel);
+            
+            // Populate Divisions dropdown
+            viewModel.Divisions = _context.Divisions
+                .Select(d => new SelectListItem { Value = d.Id.ToString(), Text = d.Name })
+                .ToList();
+
             return View(viewModel);
         }
 
