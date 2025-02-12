@@ -702,6 +702,7 @@ namespace Student_Attendance.Controllers
         {
             var subjects = _context.Subjects
                 .Include(s => s.Course)
+                .Include(s => s.AcademicYear)
                 .Include(s => s.Specialization)
                 .Include(s => s.Class) // added Class include
                 .ToList();
@@ -733,6 +734,7 @@ namespace Student_Attendance.Controllers
                 SpecializationId = subject.SpecializationId,
                 Semester = subject.Semester,
                 CourseId = subject.CourseId,
+                AcademicYearId = subject.AcademicYearId,
                 ClassId = subject.ClassId
             };
 
@@ -761,6 +763,7 @@ namespace Student_Attendance.Controllers
                     SpecializationId = model.SpecializationId,
                     Semester = model.Semester,
                     CourseId = model.CourseId,
+                    AcademicYearId = model.AcademicYearId,
                     ClassId = model.ClassId
                 };
 
@@ -804,6 +807,7 @@ namespace Student_Attendance.Controllers
                 subject.SpecializationId = model.SpecializationId;
                 subject.Semester = model.Semester;
                 subject.CourseId = model.CourseId;
+                subject.AcademicYearId = model.AcademicYearId;
                 subject.ClassId = model.ClassId;
 
                 _context.Subjects.Update(subject);
@@ -850,10 +854,12 @@ namespace Student_Attendance.Controllers
         private async Task LoadSubjectDropDowns(SubjectViewModel model)
         {
             if (model.Courses == null) model.Courses = new List<SelectListItem>();
+            if (model.AcademicYears == null) model.AcademicYears = new List<SelectListItem>();
             if (model.Specializations == null) model.Specializations = new List<SelectListItem>();
             if (model.Classes == null) model.Classes = new List<SelectListItem>();
 
             var courses = await _context.Courses.ToListAsync();
+            var academicYears = await _context.AcademicYears.ToListAsync();
             var specializations = await _context.Specializations.ToListAsync();
             var classes = await _context.Classes.ToListAsync();
 
@@ -863,6 +869,13 @@ namespace Student_Attendance.Controllers
                 Text = c.Name
             }).ToList();
 
+            model.AcademicYears = academicYears.Select(ay => new SelectListItem
+            {
+                Value = ay.Id.ToString(),
+                Text = ay.Name
+            }).ToList();
+
+            // Add an empty option for Specialization since it's optional
             var specializationItems = specializations.Select(s => new SelectListItem
             {
                 Value = s.Id.ToString(),
