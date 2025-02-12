@@ -28,25 +28,25 @@ namespace Student_Attendance.ViewModels
 
         [Required(ErrorMessage = "Course is Required")]
         [Range(1, int.MaxValue, ErrorMessage = "Please select a Course")]
-        public int CourseId { get; set; }
+        public int? CourseId { get; set; }
 
         [Required(ErrorMessage = "Semester is Required")]
         [Range(1, 12, ErrorMessage = "Semester must be between 1 and 12")]
-        public int Semester { get; set; }
+        public int? Semester { get; set; }
 
         [Required(ErrorMessage = "Class is Required")]
         [Range(1, int.MaxValue, ErrorMessage = "Please select a Class")]
-        public int ClassId { get; set; }
+        public int? ClassId { get; set; }
 
         public bool IsActive { get; set; } = true;
 
         [Required(ErrorMessage = "Academic Year is Required")]
         [Range(1, int.MaxValue, ErrorMessage = "Please select an Academic Year")]
-        public int AcademicYearId { get; set; }
+        public int? AcademicYearId { get; set; }
 
         [Required(ErrorMessage = "Division is Required")]
         [Range(1, int.MaxValue, ErrorMessage = "Please select a Division")]
-        public int DivisionId { get; set; }
+        public int? DivisionId { get; set; }
 
         // Navigation properties
         public Course? Course { get; set; }

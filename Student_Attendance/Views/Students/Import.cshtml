@@ -38,9 +38,14 @@
 
             <div class="row mb-4">
                 <div class="col-md-12">
-                    <a href="/templates/student_import_template.xlsx" class="btn btn-outline-primary">
-                        <i class="fas fa-download me-2"></i>Download Template
-                    </a>
+                    <div class="btn-group">
+                        <a asp-action="DownloadTemplate" class="btn btn-outline-primary">
+                            <i class="fas fa-download me-2"></i>Download Empty Template
+                        </a>
+                        <a asp-action="DownloadData" class="btn btn-outline-secondary">
+                            <i class="fas fa-file-excel me-2"></i>Download Current Data
+                        </a>
+                    </div>
                 </div>
             </div>
 

@@ -117,12 +117,12 @@ namespace Student_Attendance.Controllers
                         Cast = model.Cast,
                         Email = model.Email,
                         Mobile = model.Mobile,
-                        CourseId = model.CourseId,
-                        Semester = model.Semester,
+                        CourseId = model.CourseId ?? 0,  // Add null check
+                        Semester = model.Semester ?? 0,   // Add null check
                         IsActive = model.IsActive,
-                        AcademicYearId = model.AcademicYearId,
-                        DivisionId = model.DivisionId,
-                        ClassId = model.ClassId
+                        AcademicYearId = model.AcademicYearId ?? 0,  // Add null check
+                        DivisionId = model.DivisionId ?? 0,          // Add null check
+                        ClassId = model.ClassId ?? 0                 // Add null check
                     };
 
                     _context.Add(student);
@@ -228,11 +228,11 @@ namespace Student_Attendance.Controllers
                     student.Cast = model.Cast;
                     student.Email = model.Email;
                     student.Mobile = model.Mobile;
-                    student.CourseId = model.CourseId;
-                    student.Semester = model.Semester;
+                    student.CourseId = model.CourseId ?? 0;  // Add null check
+                    student.Semester = model.Semester ?? 0;   // Add null check
                     student.IsActive = model.IsActive;
-                    student.AcademicYearId = model.AcademicYearId;
-                    student.DivisionId = model.DivisionId;
+                    student.AcademicYearId = model.AcademicYearId ?? 0;  // Add null check
+                    student.DivisionId = model.DivisionId ?? 0;          // Add null check
 
                     _context.Update(student);
                     await _context.SaveChangesAsync();
@@ -441,80 +441,94 @@ namespace Student_Attendance.Controllers
                 return View(model);
             }
 
-            if (!Path.GetExtension(model.File.FileName).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
-            {
-                ModelState.AddModelError("File", "Please select an Excel file (.xlsx)");
-                return View(model);
-            }
-
             try
             {
                 using var stream = model.File.OpenReadStream();
                 using var package = new ExcelPackage(stream);
                 var worksheet = package.Workbook.Worksheets[0];
-                var rowCount = worksheet.Dimension.Rows;
+                var rowCount = worksheet.Dimension?.Rows ?? 0;
 
-                for (int row = 2; row <= rowCount; row++) // Start from row 2 to skip header
+                for (int row = 2; row <= rowCount; row++)
                 {
                     try
                     {
-                        string enrollmentNo = worksheet.Cells[row, 1].Value?.ToString();
-                        string studentName = worksheet.Cells[row, 2].Value?.ToString();
-                        string division = worksheet.Cells[row, 3].Value?.ToString();
-                        string course = worksheet.Cells[row, 4].Value?.ToString();
-                        string semester = worksheet.Cells[row, 5].Value?.ToString();
-                        string email = worksheet.Cells[row, 6].Value?.ToString();
-                        string mobile = worksheet.Cells[row, 7].Value?.ToString();
-                        string cast = worksheet.Cells[row, 8].Value?.ToString();
-                        string academicYear = worksheet.Cells[row, 9].Value?.ToString();
+                        var enrollmentNo = worksheet.Cells[row, 1].Value?.ToString();
+                        if (string.IsNullOrEmpty(enrollmentNo)) continue;
 
-                        // Validate required fields
-                        if (string.IsNullOrEmpty(enrollmentNo) || string.IsNullOrEmpty(studentName) ||
-                            string.IsNullOrEmpty(division) || string.IsNullOrEmpty(course) ||
-                            string.IsNullOrEmpty(semester) || string.IsNullOrEmpty(academicYear))
+                        var student = await _context.Students
+                            .FirstOrDefaultAsync(s => s.EnrollmentNo == enrollmentNo);
+                        
+                        bool isNewStudent = student == null;
+                        if (isNewStudent)
                         {
-                            model.ImportErrors.Add($"Row {row}: Missing required fields");
-                            model.ErrorCount++;
-                            continue;
+                            student = new Student();
                         }
 
-                        // Get references
-                        var courseEntity = await _context.Courses.FirstOrDefaultAsync(c => c.Name == course);
-                        var divisionEntity = await _context.Divisions.FirstOrDefaultAsync(d => d.Name == division);
-                        var academicYearEntity = await _context.AcademicYears.FirstOrDefaultAsync(ay => ay.Name == academicYear);
+                        // Update student properties
+                        student.EnrollmentNo = enrollmentNo;
+                        student.Name = worksheet.Cells[row, 2].Value?.ToString();
+                        student.Email = worksheet.Cells[row, 3].Value?.ToString();
+                        student.Mobile = worksheet.Cells[row, 4].Value?.ToString();
+                        student.Cast = worksheet.Cells[row, 5].Value?.ToString();
 
-                        if (courseEntity == null || divisionEntity == null || academicYearEntity == null)
+                        // Get or create related entities
+                        var courseName = worksheet.Cells[row, 6].Value?.ToString();
+                        var className = worksheet.Cells[row, 7].Value?.ToString();
+                        var divisionName = worksheet.Cells[row, 8].Value?.ToString();
+                        var semester = Convert.ToInt32(worksheet.Cells[row, 9].Value);
+                        var academicYearName = worksheet.Cells[row, 10].Value?.ToString();
+
+                        var course = await _context.Courses.FirstOrDefaultAsync(c => c.Name == courseName);
+                        var division = await _context.Divisions.FirstOrDefaultAsync(d => d.Name == divisionName);
+                        var academicYear = await _context.AcademicYears.FirstOrDefaultAsync(a => a.Name == academicYearName);
+                        var class_ = !string.IsNullOrEmpty(className) ? 
+                            await _context.Classes.FirstOrDefaultAsync(c => c.Name == className) : null;
+
+                        if (course == null || division == null || academicYear == null)
                         {
-                            model.ImportErrors.Add($"Row {row}: Invalid Course, Division or Academic Year");
-                            model.ErrorCount++;
-                            continue;
+                            throw new Exception("Invalid Course, Division or Academic Year");
                         }
 
-                        // Check if enrollment number already exists
-                        if (await _context.Students.AnyAsync(s => s.EnrollmentNo == enrollmentNo))
+                        student.CourseId = course.Id;
+                        student.DivisionId = division.Id;
+                        student.AcademicYearId = academicYear.Id;
+                        student.ClassId = class_?.Id ?? 0;
+                        student.Semester = semester;
+                        student.IsActive = true;
+
+                        if (isNewStudent)
                         {
-                            model.ImportErrors.Add($"Row {row}: Enrollment number {enrollmentNo} already exists");
-                            model.ErrorCount++;
-                            continue;
+                            await _context.Students.AddAsync(student);
+                        }
+                        else
+                        {
+                            _context.Students.Update(student);
                         }
 
-                        // Create new student
-                        var student = new Student
-                        {
-                            EnrollmentNo = enrollmentNo,
-                            Name = studentName,
-                            DivisionId = divisionEntity.Id,
-                            CourseId = courseEntity.Id,
-                            Semester = int.Parse(semester),
-                            Email = email,
-                            Mobile = mobile,
-                            Cast = cast,
-                            AcademicYearId = academicYearEntity.Id,
-                            IsActive = true
-                        };
-
-                        _context.Students.Add(student);
                         await _context.SaveChangesAsync();
+
+                        // Map subjects if class is specified
+                        if (class_ != null)
+                        {
+                            var subjects = await _context.Subjects
+                                .Where(s => s.ClassId == class_.Id && s.Semester == semester)
+                                .ToListAsync();
+
+                            foreach (var subject in subjects)
+                            {
+                                if (!await _context.StudentSubjects.AnyAsync(ss => 
+                                    ss.StudentId == student.Id && ss.SubjectId == subject.Id))
+                                {
+                                    await _context.StudentSubjects.AddAsync(new StudentSubject
+                                    {
+                                        StudentId = student.Id,
+                                        SubjectId = subject.Id
+                                    });
+                                }
+                            }
+                            await _context.SaveChangesAsync();
+                        }
+
                         model.SuccessCount++;
                     }
                     catch (Exception ex)
@@ -543,6 +557,115 @@ namespace Student_Attendance.Controllers
                 .ToListAsync();
 
             return Json(new { success = true, subjects = subjects });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> DownloadTemplate()
+        {
+            using (var package = new ExcelPackage())
+            {
+                var worksheet = package.Workbook.Worksheets.Add("Students");
+                
+                // Add headers
+                var headers = new[] { 
+                    "EnrollmentNo*", "Name*", "Email", "Mobile", "Cast", 
+                    "Course*", "Class", "Division*", "Semester*", "AcademicYear*" 
+                };
+                
+                for (int i = 0; i < headers.Length; i++)
+                {
+                    worksheet.Cells[1, i + 1].Value = headers[i];
+                    worksheet.Cells[1, i + 1].Style.Font.Bold = true;
+                    worksheet.Cells[1, i + 1].Style.Fill.SetBackground(System.Drawing.Color.LightGray);
+                }
+
+                // Add validation lists
+                var courses = await _context.Courses.Select(c => c.Name).ToListAsync();
+                var classes = await _context.Classes.Select(c => c.Name).ToListAsync();
+                var divisions = await _context.Divisions.Select(d => d.Name).ToListAsync();
+                var academicYears = await _context.AcademicYears.Select(a => a.Name).ToListAsync();
+
+                var coursesSheet = package.Workbook.Worksheets.Add("ValidLists");
+                coursesSheet.Hidden = eWorkSheetHidden.VeryHidden;
+                
+                // Add validation data to hidden sheet
+                for (int i = 0; i < courses.Count; i++)
+                    coursesSheet.Cells[i + 1, 1].Value = courses[i];
+                for (int i = 0; i < classes.Count; i++)
+                    coursesSheet.Cells[i + 1, 2].Value = classes[i];
+                for (int i = 0; i < divisions.Count; i++)
+                    coursesSheet.Cells[i + 1, 3].Value = divisions[i];
+                for (int i = 0; i < academicYears.Count; i++)
+                    coursesSheet.Cells[i + 1, 4].Value = academicYears[i];
+
+                // Add data validation to main sheet
+                var courseRange = worksheet.DataValidations.AddListValidation("F2:F1000");
+                courseRange.Formula.ExcelFormula = $"=ValidLists!$A$1:$A${courses.Count}";
+
+                var classRange = worksheet.DataValidations.AddListValidation("G2:G1000");
+                classRange.Formula.ExcelFormula = $"=ValidLists!$B$1:$B${classes.Count}";
+
+                var divisionRange = worksheet.DataValidations.AddListValidation("H2:H1000");
+                divisionRange.Formula.ExcelFormula = $"=ValidLists!$C$1:$C${divisions.Count}";
+
+                var academicYearRange = worksheet.DataValidations.AddListValidation("J2:J1000");
+                academicYearRange.Formula.ExcelFormula = $"=ValidLists!$D$1:$D${academicYears.Count}";
+
+                worksheet.Cells.AutoFitColumns();
+
+                var content = package.GetAsByteArray();
+                return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "StudentTemplate.xlsx");
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> DownloadData()
+        {
+            using (var package = new ExcelPackage())
+            {
+                var worksheet = package.Workbook.Worksheets.Add("Students");
+
+                // Add headers
+                var headers = new[] { 
+                    "EnrollmentNo", "Name", "Email", "Mobile", "Cast", 
+                    "Course", "Class", "Division", "Semester", "AcademicYear" 
+                };
+                
+                for (int i = 0; i < headers.Length; i++)
+                {
+                    worksheet.Cells[1, i + 1].Value = headers[i];
+                    worksheet.Cells[1, i + 1].Style.Font.Bold = true;
+                }
+
+                var students = await _context.Students
+                    .Include(s => s.Course)
+                    .Include(s => s.Class)
+                    .Include(s => s.Division)
+                    .Include(s => s.AcademicYear)
+                    .ToListAsync();
+
+                int row = 2;
+                foreach (var student in students)
+                {
+                    worksheet.Cells[row, 1].Value = student.EnrollmentNo;
+                    worksheet.Cells[row, 2].Value = student.Name;
+                    worksheet.Cells[row, 3].Value = student.Email;
+                    worksheet.Cells[row, 4].Value = student.Mobile;
+                    worksheet.Cells[row, 5].Value = student.Cast;
+                    worksheet.Cells[row, 6].Value = student.Course?.Name;
+                    worksheet.Cells[row, 7].Value = student.Class?.Name;
+                    worksheet.Cells[row, 8].Value = student.Division?.Name;
+                    worksheet.Cells[row, 9].Value = student.Semester;
+                    worksheet.Cells[row, 10].Value = student.AcademicYear?.Name;
+                    row++;
+                }
+
+                worksheet.Cells.AutoFitColumns();
+
+                var content = package.GetAsByteArray();
+                return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
+                    $"Students_{DateTime.Now:yyyyMMdd}.xlsx");
+            }
         }
     }
 }
