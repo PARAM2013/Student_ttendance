@@ -10,123 +10,172 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Attendance Search</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --sidebar-width: 0px !important;
+        }
+
+        #content {
+            margin-left: 0 !important;
         }
 
         body {
-            font-family: 'Product Sans', sans-serif;
-            text-align: center;
-            background-color: #f8f9fa;
-            margin: 0 !important;
-            padding: 0 !important;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            position: relative;
-            overflow-x: hidden;
-        }
-
-        .container-fluid {
-            padding: 0 !important;
-            margin: 0 !important;
-            width: 100% !important;
-        }
-
-        .google-logo {
-            font-size: 48px;
-            font-weight: bold;
-            margin: 30px 0;
-        }
-        .google-logo span:nth-child(1) { color: #4285F4; }
-        .google-logo span:nth-child(2) { color: #EA4335; }
-        .google-logo span:nth-child(3) { color: #FBBC05; }
-        .google-logo span:nth-child(4) { color: #4285F4; }
-        .google-logo span:nth-child(5) { color: #34A853; }
-        .google-logo span:nth-child(6) { color: #EA4335; }
-
-        .search-box {
-            width: 90%;
-            max-width: 600px;
-            margin: 20px auto;
-            padding: 12px 20px;
-            border-radius: 25px;
-            border: 1px solid #dfe1e5;
-            box-shadow: 0px 2px 5px rgba(0,0,0,0.2);
-            font-size: 16px;
-            transition: all 0.3s ease-in-out;
-        }
-
-        .search-box:focus {
-            outline: none;
-            box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
-        }
-
-        .search-btn {
-            margin-top: 10px;
-            background-color: #4285F4;
-            color: white;
-            border: none;
-            padding: 6px 16px; /* Reduced padding */
-            font-size: 14px;
-            border-radius: 5px;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            width: auto;
-        }
-
-        .search-btn:hover {
-            background-color: #357ae8;
-            transform: translateY(-1px);
+            background-color: #fff;
         }
 
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px 20px;
+            padding: 15px 30px;
             background: white;
-            box-shadow: 0px 2px 5px rgba(0,0,0,0.1);
+            border-bottom: 1px solid #dfe1e5;
+        }
+
+            .header h3 {
+                color: #5f6368;
+                font-size: 22px;
+                margin: 0;
+                font-weight: 400;
+            }
+
+        .login-btn {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 9px 24px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.25px;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+            .login-btn:hover {
+                background-color: #1557b0;
+                color: white;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+            }
+
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 120px;
+        }
+
+        .search-logo {
+            font-size: 92px;
+            font-weight: 400;
+            letter-spacing: -3px;
+            margin-bottom: 40px;
+            font-family: Arial, sans-serif;
+        }
+
+            .search-logo span:nth-child(1) {
+                color: #4285F4;
+            }
+
+            .search-logo span:nth-child(2) {
+                color: #EA4335;
+            }
+
+            .search-logo span:nth-child(3) {
+                color: #FBBC05;
+            }
+
+            .search-logo span:nth-child(4) {
+                color: #4285F4;
+            }
+
+            .search-logo span:nth-child(5) {
+                color: #34A853;
+            }
+
+            .search-logo span:nth-child(6) {
+                color: #EA4335;
+            }
+
+        .search-container {
             width: 100%;
-            left: 0;
-            top: 0;
+            max-width: 584px;
+            margin: 0 auto;
             position: relative;
         }
 
-        .login-btn {
-            background-color: #EA4335;
-            color: white;
-            border: none;
-            padding: 8px 20px;
-            border-radius: 5px;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            font-size: 14px;
-        }
-
-        .login-btn:hover {
-            background-color: #c1351d;
-            color: white;
-            text-decoration: none;
-        }
-
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: 20px 0;
-            margin: 0;
+        .search-box {
             width: 100%;
+            height: 46px;
+            padding: 12px 50px;
+            border: 1px solid #dfe1e5;
+            border-radius: 24px;
+            font-size: 16px;
+            background: #fff;
+            transition: all 0.3s;
+            padding-left: 50px;
         }
+
+            .search-box:hover {
+                box-shadow: 0 1px 6px rgba(32,33,36,.28);
+                border-color: rgba(223,225,229,0);
+            }
+
+            .search-box:focus {
+                outline: none;
+                box-shadow: 0 1px 6px rgba(32,33,36,.28);
+                border-color: rgba(223,225,229,0);
+            }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9aa0a6;
+            font-size: 20px;
+        }
+
+        .buttons-container {
+            margin-top: 30px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .search-btn {
+            background-color: #f8f9fa;
+            border: 1px solid #f8f9fa;
+            border-radius: 4px;
+            color: #3c4043;
+            font-size: 14px;
+            padding: 0 16px;
+            height: 36px;
+            min-width: 120px;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+            transition: all 0.2s;
+        }
+
+            .search-btn:hover {
+                box-shadow: 0 1px 1px rgba(0,0,0,.1);
+                background-color: #f8f9fa;
+                border: 1px solid #dadce0;
+                color: #202124;
+            }
+
 
         .footer {
-            background: linear-gradient(to right, #4285F4, #34A853);
-            padding: 2px 0;
+            background: radial-gradient(circle, rgba(63,94,251,1) 0%, rgba(252,70,107,1) 100%);
+            padding: 5px 0;
             color: white;
             width: 100%;
             position: fixed;
@@ -142,63 +191,72 @@
             gap: 10px;
         }
 
-        .footer-content img {
-            width: 24px;
-            height: 24px;
-        }
+            .footer-content img {
+                width: 24px;
+                height: 24px;
+            }
 
         .footer-text {
-            font-size: 12px;
-            font-weight: 200;
+            font-size: 14px;
+            font-weight: 500;
             letter-spacing: 0.5px;
-            text-transform: uppercase;
+            
         }
 
         @@media (max-width: 768px) {
-            .google-logo {
-                font-size: 36px;
+            .main-content {
+                padding-top: 80px;
             }
-            .header h3 {
-                font-size: 18px;
+
+            .search-logo {
+                font-size: 72px;
             }
-            .search-box {
-                width: 95%;
-                font-size: 14px;
+
+            .search-container {
+                max-width: 90%;
             }
-            .search-btn {
-                font-size: 13px;
-                padding: 6px 16px;
+
+            .header {
+                padding: 15px 20px;
             }
-            .footer-text {
-                font-size: 12px;
-            }
+
+                .header h3 {
+                    font-size: 18px;
+                }
         }
-    </style>
+    </style>    
 </head>
 <body>
-    <div class="container-fluid">
-        <div class="header">
-            <h3>Student Attendance</h3>
-            <a asp-controller="Account" asp-action="Login" class="login-btn">Login</a>
+    <div class="header">
+        <h3>Student Attendance</h3>
+        <a asp-controller="Account" asp-action="Login" class="login-btn">
+            <i class="fas fa-sign-in-alt"></i>
+            Login
+        </a>
+    </div>
+
+    <div class="main-content">
+        <div class="search-logo">
+            <span>S</span><span>e</span><span>a</span><span>r</span><span>c</span><span>h</span>
         </div>
-        
-        <div class="main-content">
-            <div class="google-logo">
-                <span>S</span><span>E</span><span>A</span><span>R</span><span>C</span><span>H</span>
-            </div>
+        <div class="search-container">
+            <i class="fas fa-search search-icon"></i>
             <input type="text" class="search-box" placeholder="Search Students Attendance">
-            <br>
-            <button class="search-btn">Search Student</button>
+        </div>
+        <div class="buttons-container">
+            <button class="search-btn">Search Student</button>            
         </div>
         
-        <footer class="footer">
-            <div class="footer-content">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                </svg>
-                <span class="footer-text">This app is made by OHA Infotech</span>
-            </div>
-        </footer>
+    </div>
+
+    <div class="footer">
+        <div class="text-center">
+            <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m7.171 12.906-2.153 6.411 2.672-.89 1.568 2.34 1.825-5.183m5.73-2.678 2.154 6.411-2.673-.89-1.568 2.34-1.825-5.183M9.165 4.3c.58.068 1.153-.17 1.515-.628a1.681 1.681 0 0 1 2.64 0 1.68 1.68 0 0 0 1.515.628 1.681 1.681 0 0 1 1.866 1.866c-.068.58.17 1.154.628 1.516a1.681 1.681 0 0 1 0 2.639 1.682 1.682 0 0 0-.628 1.515 1.681 1.681 0 0 1-1.866 1.866 1.681 1.681 0 0 0-1.516.628 1.681 1.681 0 0 1-2.639 0 1.681 1.681 0 0 0-1.515-.628 1.681 1.681 0 0 1-1.867-1.866 1.681 1.681 0 0 0-.627-1.515 1.681 1.681 0 0 1 0-2.64c.458-.361.696-.935.627-1.515A1.681 1.681 0 0 1 9.165 4.3ZM14 9a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z" />
+            </svg>
+
+            This app is made by AMRISH PATEL 
+        </div>
     </div>
 </body>
 </html>
