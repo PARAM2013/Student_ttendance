@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <style>
+        /* Previous styles remain unchanged */
         :root {
             --sidebar-width: 0px !important;
         }
@@ -151,27 +152,56 @@
             gap: 12px;
         }
 
+        /* New squishy button styles */
         .search-btn {
-            background-color: #f8f9fa;
-            border: 1px solid #f8f9fa;
-            border-radius: 4px;
-            color: #3c4043;
-            font-size: 14px;
-            padding: 0 16px;
-            height: 36px;
-            min-width: 120px;
+            position: relative;
+            font: inherit;
+            background-color: #f0f0f0;
+            border: 0;
+            color: #242424;
+            border-radius: 0.5em;
+            font-size: 1.2rem;
+            padding: 0.375em 1em;
+            font-weight: 600;
+            text-shadow: 0 0.0625em 0 #fff;
+            box-shadow: inset 0 0.0625em 0 0 #f4f4f4, 0 0.0625em 0 0 #efefef, 0 0.125em 0 0 #ececec, 0 0.25em 0 0 #e0e0e0, 0 0.3125em 0 0 #dedede, 0 0.375em 0 0 #dcdcdc, 0 0.425em 0 0 #cacaca, 0 0.425em 0.5em 0 #cecece;
+            transition: 0.25s ease;
             cursor: pointer;
-            font-family: Arial, sans-serif;
-            transition: all 0.2s;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
         }
 
+            .search-btn:active,
             .search-btn:hover {
-                box-shadow: 0 1px 1px rgba(0,0,0,.1);
-                background-color: #f8f9fa;
-                border: 1px solid #dadce0;
-                color: #202124;
+                transform: translateY(0.225em);
+                box-shadow: inset 0 0.03em 0 0 #f4f4f4, 0 0.03em 0 0 #efefef, 0 0.0625em 0 0 #ececec, 0 0.125em 0 0 #e0e0e0, 0 0.125em 0 0 #dedede, 0 0.2em 0 0 #dcdcdc, 0 0.225em 0 0 #cacaca, 0 0.225em 0.375em 0 #cecece;
             }
 
+            .search-btn:after {
+                position: absolute;
+                content: "";
+                display: block;
+                width: 100%;
+                height: calc(100% + 0.375em);
+                top: 0;
+                left: 0;
+                background-color: transparent;
+                transition: height 0.25s ease;
+            }
+
+            .search-btn:active:after,
+            .search-btn:hover:after {
+                height: calc(100% + 0.225em);
+            }
+
+        .custom-footer {
+            background: #f2f2f2;
+            border-top: 1px solid #dadce0;
+            color: #70757a;
+            padding: 15px 0;
+            font-size: 14px;
+            margin-top: auto;
+        }
 
         .footer {
             background: radial-gradient(circle, rgba(63,94,251,1) 0%, rgba(252,70,107,1) 100%);
@@ -200,31 +230,33 @@
             font-size: 14px;
             font-weight: 500;
             letter-spacing: 0.5px;
-            
         }
 
         @@media (max-width: 768px) {
-            .main-content {
-                padding-top: 80px;
-            }
+            .main-content
 
-            .search-logo {
-                font-size: 72px;
-            }
-
-            .search-container {
-                max-width: 90%;
-            }
-
-            .header {
-                padding: 15px 20px;
-            }
-
-                .header h3 {
-                    font-size: 18px;
-                }
+        {
+            padding-top: 80px;
         }
-    </style>    
+
+        .search-logo {
+            font-size: 72px;
+        }
+
+        .search-container {
+            max-width: 90%;
+        }
+
+        .header {
+            padding: 15px 20px;
+        }
+
+            .header h3 {
+                font-size: 18px;
+            }
+
+        }
+    </style>
 </head>
 <body>
     <div class="header">
@@ -244,9 +276,8 @@
             <input type="text" class="search-box" placeholder="Search Students Attendance">
         </div>
         <div class="buttons-container">
-            <button class="search-btn">Search Student</button>            
+            <button class="search-btn">Search Student</button>
         </div>
-        
     </div>
 
     <div class="footer">
@@ -255,8 +286,8 @@
                 <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m7.171 12.906-2.153 6.411 2.672-.89 1.568 2.34 1.825-5.183m5.73-2.678 2.154 6.411-2.673-.89-1.568 2.34-1.825-5.183M9.165 4.3c.58.068 1.153-.17 1.515-.628a1.681 1.681 0 0 1 2.64 0 1.68 1.68 0 0 0 1.515.628 1.681 1.681 0 0 1 1.866 1.866c-.068.58.17 1.154.628 1.516a1.681 1.681 0 0 1 0 2.639 1.682 1.682 0 0 0-.628 1.515 1.681 1.681 0 0 1-1.866 1.866 1.681 1.681 0 0 0-1.516.628 1.681 1.681 0 0 1-2.639 0 1.681 1.681 0 0 0-1.515-.628 1.681 1.681 0 0 1-1.867-1.866 1.681 1.681 0 0 0-.627-1.515 1.681 1.681 0 0 1 0-2.64c.458-.361.696-.935.627-1.515A1.681 1.681 0 0 1 9.165 4.3ZM14 9a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z" />
             </svg>
 
-            This app is made by AMRISH PATEL 
+            This app is made by AMRISH PATEL
         </div>
-    </div>
+        </div>
 </body>
 </html>
