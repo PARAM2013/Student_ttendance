@@ -115,6 +115,13 @@ namespace Student_Attendance.Data
           .WithMany()
           .HasForeignKey(ts => ts.SubjectId)
          .OnDelete(DeleteBehavior.NoAction);
+
+      modelBuilder.Entity<TeacherSubject>()
+        .HasOne(ts => ts.AcademicYear)
+        .WithMany()
+        .HasForeignKey(ts => ts.AcademicYearId)
+        .OnDelete(DeleteBehavior.NoAction);
+
       base.OnModelCreating(modelBuilder);
       modelBuilder.Entity<StudentSubject>()
   .HasOne(ss => ss.Student)

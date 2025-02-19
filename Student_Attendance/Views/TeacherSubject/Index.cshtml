@@ -1,0 +1,47 @@
+@model IEnumerable<Student_Attendance.Models.TeacherSubject>
+
+<div class="container-fluid">
+    <h2>Subject Allocations</h2>
+    <p>
+        <a asp-action="Allocate" class="btn btn-primary">Allocate New Subject</a>
+    </p>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Teacher</th>
+                <th>Subject</th>
+                <th>Academic Year</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.User.UserName</td>
+                    <td>@item.Subject.Name</td>
+                    <td>@item.AcademicYear.Name</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" onclick="deallocateSubject(@item.Id)">
+                            Deallocate
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@section Scripts {
+    <script>
+        function deallocateSubject(id) {
+            if (confirm('Are you sure you want to deallocate this subject?')) {
+                $.post('/TeacherSubject/Deallocate/' + id, function(response) {
+                    if (response.success) {
+                        location.reload();
+                    }
+                });
+            }
+        }
+    </script>
+}
