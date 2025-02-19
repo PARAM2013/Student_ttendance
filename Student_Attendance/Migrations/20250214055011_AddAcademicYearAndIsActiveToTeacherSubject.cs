@@ -1,9 +1,13 @@
 using Microsoft.EntityFrameworkCore.Migrations;
 
+#nullable disable
+
 namespace Student_Attendance.Migrations
 {
+    /// <inheritdoc />
     public partial class AddAcademicYearAndIsActiveToTeacherSubject : Migration
     {
+        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<int>(
@@ -11,7 +15,7 @@ namespace Student_Attendance.Migrations
                 table: "TeacherSubjects",
                 type: "int",
                 nullable: false,
-                defaultValue: 1);  // Set a default value appropriate for your system
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<bool>(
                 name: "IsActive",
@@ -34,6 +38,7 @@ namespace Student_Attendance.Migrations
                 onDelete: ReferentialAction.NoAction);
         }
 
+        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(

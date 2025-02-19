@@ -185,7 +185,8 @@ namespace Student_Attendance.Controllers
             }
         }
 
-        public async Task<IActionResult> View()
+        // Add 'new' keyword to resolve the warning
+        public new async Task<IActionResult> View()
         {
             var model = new AttendanceViewModel
             {
