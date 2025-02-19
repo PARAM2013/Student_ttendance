@@ -21,7 +21,6 @@ namespace Student_Attendance.Data
     public DbSet<TeacherSubject> TeacherSubjects { get; set; }
     public DbSet<Institute> Institutes { get; set; }
 
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
       modelBuilder.Entity<AttendanceRecord>()
@@ -61,12 +60,6 @@ namespace Student_Attendance.Data
         .WithMany()
         .HasForeignKey(s => s.CourseId)
         .OnDelete(DeleteBehavior.NoAction);
-
-      // Remove outdated configuration for Subject.AcademicYear since property was removed
-      // modelBuilder.Entity<Subject>()
-      //     .HasOne(s => s.AcademicYear)
-      //     .WithMany(ay => ay.Subjects)
-      //     .HasForeignKey(s => s.AcademicYearId);
 
       modelBuilder.Entity<Subject>()
         .HasOne(s => s.Course)

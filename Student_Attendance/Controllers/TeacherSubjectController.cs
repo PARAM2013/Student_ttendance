@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Student_Attendance.Data;
 using Student_Attendance.Models;
-using Student_Attendance.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Student_Attendance.Controllers
