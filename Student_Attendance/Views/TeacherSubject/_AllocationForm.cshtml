@@ -1,0 +1,38 @@
+@model TeacherSubjectViewModel
+
+<form asp-action="Allocate" method="post" class="needs-validation" novalidate>
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="mb-3">
+        <label asp-for="UserId" class="form-label"></label>
+        <select asp-for="UserId" class="form-select" asp-items="Model.Teachers">
+            <option value="">Select Teacher</option>
+        </select>
+        <span asp-validation-for="UserId" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="SubjectId" class="form-label"></label>
+        <select asp-for="SubjectId" class="form-select" asp-items="Model.Subjects">
+            <option value="">Select Subject</option>
+        </select>
+        <span asp-validation-for="SubjectId" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="AcademicYearId" class="form-label"></label>
+        <select asp-for="AcademicYearId" class="form-select" asp-items="Model.AcademicYears">
+            <option value="">Select Academic Year</option>
+        </select>
+        <span asp-validation-for="AcademicYearId" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <button type="submit" class="btn btn-primary">Allocate</button>
+        <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+    </div>
+</form>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

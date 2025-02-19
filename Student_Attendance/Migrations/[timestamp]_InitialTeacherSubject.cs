@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Student_Attendance.Migrations
 {
-    public partial class AddTeacherSubject : Migration
+    public partial class InitialTeacherSubject : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -10,12 +10,12 @@ namespace Student_Attendance.Migrations
                 name: "TeacherSubjects",
                 columns: table => new
                 {
-                    Id = table.Column<int>(nullable: false)
+                    Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    UserId = table.Column<int>(nullable: false),
-                    SubjectId = table.Column<int>(nullable: false),
-                    AcademicYearId = table.Column<int>(nullable: false),
-                    IsActive = table.Column<bool>(nullable: false, defaultValue: true)
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    SubjectId = table.Column<int>(type: "int", nullable: false),
+                    AcademicYearId = table.Column<int>(type: "int", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
                 {
@@ -24,20 +24,17 @@ namespace Student_Attendance.Migrations
                         name: "FK_TeacherSubjects_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.NoAction);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_TeacherSubjects_Subjects_SubjectId",
                         column: x => x.SubjectId,
                         principalTable: "Subjects",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.NoAction);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_TeacherSubjects_AcademicYears_AcademicYearId",
                         column: x => x.AcademicYearId,
                         principalTable: "AcademicYears",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.NoAction);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateIndex(

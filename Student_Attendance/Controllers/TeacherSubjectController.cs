@@ -3,18 +3,20 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Student_Attendance.Data;
 using Student_Attendance.Models;
+using Student_Attendance.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Student_Attendance.Controllers
 {
     [Authorize(Roles = "Admin")]
-    public class TeacherSubjectController : BaseController
+    public class TeacherSubjectController : Controller
     {
+        private readonly ApplicationDbContext _context;
         private readonly ILogger<TeacherSubjectController> _logger;
 
-        public TeacherSubjectController(ApplicationDbContext context, ILogger<TeacherSubjectController> logger) 
-            : base(context)
+        public TeacherSubjectController(ApplicationDbContext context, ILogger<TeacherSubjectController> logger)
         {
+            _context = context;
             _logger = logger;
         }
 
@@ -25,6 +27,7 @@ namespace Student_Attendance.Controllers
                 .Include(ts => ts.Subject)
                 .Include(ts => ts.AcademicYear)
                 .Where(ts => ts.IsActive)
+                .OrderBy(ts => ts.User.UserName)
                 .ToListAsync();
 
             return View(allocations);
@@ -32,69 +35,108 @@ namespace Student_Attendance.Controllers
 
         public async Task<IActionResult> Allocate()
         {
-            ViewBag.Teachers = new SelectList(await _context.Users
-                .Where(u => u.Role == "Teacher")
-                .ToListAsync(), "Id", "UserName");
-                
-            ViewBag.Subjects = new SelectList(await _context.Subjects
-                .ToListAsync(), "Id", "Name");
-                
-            ViewBag.AcademicYears = new SelectList(await _context.AcademicYears
-                .Where(ay => ay.IsActive)
-                .ToListAsync(), "Id", "Name");
-
-            return View(new TeacherSubject());
+            var model = new TeacherSubjectViewModel();
+            await LoadTeacherSubjectDropDowns(model);
+            return View(model);
         }
 
         [HttpPost]
-        public async Task<IActionResult> Allocate(TeacherSubject allocation)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Allocate(TeacherSubjectViewModel model)
         {
             if (ModelState.IsValid)
             {
-                // Check if allocation already exists
-                var exists = await _context.TeacherSubjects
-                    .AnyAsync(ts => ts.UserId == allocation.UserId && 
-                                  ts.SubjectId == allocation.SubjectId && 
-                                  ts.AcademicYearId == allocation.AcademicYearId &&
-                                  ts.IsActive);
-
-                if (exists)
+                try
                 {
-                    ModelState.AddModelError("", "This subject is already allocated to the teacher");
-                    return View(allocation);
-                }
+                    // Check if allocation already exists
+                    var exists = await _context.TeacherSubjects
+                        .AnyAsync(ts => ts.UserId == model.UserId && 
+                                      ts.SubjectId == model.SubjectId && 
+                                      ts.AcademicYearId == model.AcademicYearId &&
+                                      ts.IsActive);
 
-                allocation.IsActive = true;
-                _context.TeacherSubjects.Add(allocation);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                    if (exists)
+                    {
+                        ModelState.AddModelError("", "This subject is already allocated to the teacher");
+                        await LoadTeacherSubjectDropDowns(model);
+                        return View(model);
+                    }
+
+                    var teacherSubject = new TeacherSubject
+                    {
+                        UserId = model.UserId,
+                        SubjectId = model.SubjectId,
+                        AcademicYearId = model.AcademicYearId,
+                        IsActive = true
+                    };
+
+                    _context.TeacherSubjects.Add(teacherSubject);
+                    await _context.SaveChangesAsync();
+
+                    return RedirectToAction(nameof(Index));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error allocating subject to teacher");
+                    ModelState.AddModelError("", "Error allocating subject to teacher");
+                }
             }
-            return View(allocation);
+
+            await LoadTeacherSubjectDropDowns(model);
+            return View(model);
         }
 
         [HttpPost]
         public async Task<IActionResult> Deallocate(int id)
         {
-            var allocation = await _context.TeacherSubjects.FindAsync(id);
-            if (allocation != null)
+            try
             {
+                var allocation = await _context.TeacherSubjects.FindAsync(id);
+                if (allocation == null)
+                {
+                    return Json(new { success = false, message = "Allocation not found" });
+                }
+
                 allocation.IsActive = false;
                 await _context.SaveChangesAsync();
-                return Json(new { success = true });
+                return Json(new { success = true, message = "Subject deallocated successfully" });
             }
-            return Json(new { success = false });
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deallocating subject");
+                return Json(new { success = false, message = "Error deallocating subject" });
+            }
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetTeacherSubjects(int teacherId)
+        private async Task LoadTeacherSubjectDropDowns(TeacherSubjectViewModel model)
         {
-            var subjects = await _context.TeacherSubjects
-                .Include(ts => ts.Subject)
-                .Where(ts => ts.UserId == teacherId && ts.IsActive)
-                .Select(ts => new { id = ts.SubjectId, name = ts.Subject.Name })
+            model.Teachers = await _context.Users
+                .Where(u => u.Role == "Teacher")
+                .Select(u => new SelectListItem 
+                { 
+                    Value = u.Id.ToString(), 
+                    Text = $"{u.UserName} ({u.Email})" 
+                })
                 .ToListAsync();
 
-            return Json(subjects);
+            model.Subjects = await _context.Subjects
+                .Include(s => s.Course)
+                .Select(s => new SelectListItem 
+                { 
+                    Value = s.Id.ToString(), 
+                    Text = $"{s.Name} ({s.Code}) - {s.Course.Name}" 
+                })
+                .ToListAsync();
+
+            model.AcademicYears = await _context.AcademicYears
+                .Where(ay => ay.IsActive)
+                .OrderByDescending(ay => ay.StartDate)
+                .Select(ay => new SelectListItem 
+                { 
+                    Value = ay.Id.ToString(), 
+                    Text = ay.Name 
+                })
+                .ToListAsync();
         }
     }
 }
