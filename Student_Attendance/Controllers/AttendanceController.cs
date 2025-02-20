@@ -235,5 +235,68 @@ namespace Student_Attendance.Controllers
                 return Json(new { success = false, message = "Error loading attendance data" });
             }
         }
+
+        [HttpGet]
+        public async Task<IActionResult> GetStudentsByDivision(int subjectId, int divisionId, DateTime date)
+        {
+            try
+            {
+                // Check if teacher is authorized for this subject
+                if (!User.IsInRole("Admin"))
+                {
+                    var hasPermission = await _context.TeacherSubjects
+                        .AnyAsync(ts => ts.UserId == CurrentUser.Id && 
+                                       ts.SubjectId == subjectId && 
+                                       ts.IsActive);
+                    if (!hasPermission)
+                    {
+                        return Json(new { success = false, message = "You are not authorized to take attendance for this subject." });
+                    }
+                }
+
+                // Get students who are mapped to this subject
+                var students = await _context.Students
+                    .Include(s => s.StudentSubjects)
+                    .Where(s => s.DivisionId == divisionId && 
+                               s.IsActive &&
+                               s.StudentSubjects.Any(ss => ss.SubjectId == subjectId))
+                    .Select(s => new StudentAttendanceViewModel
+                    {
+                        StudentId = s.Id,
+                        EnrollmentNo = s.EnrollmentNo,
+                        StudentName = s.Name,
+                        IsPresent = true // Default to present
+                    })
+                    .ToListAsync();
+
+                if (!students.Any())
+                {
+                    return Json(new { success = false, message = "No students found for the selected criteria." });
+                }
+
+                // Get existing attendance records if any
+                var existingRecords = await _context.AttendanceRecords
+                    .Where(a => a.SubjectId == subjectId && 
+                               a.Date.Date == date.Date)
+                    .ToListAsync();
+
+                // Update attendance status based on existing records
+                foreach (var student in students)
+                {
+                    var record = existingRecords.FirstOrDefault(a => a.StudentId == student.StudentId);
+                    if (record != null)
+                    {
+                        student.IsPresent = record.IsPresent;
+                    }
+                }
+
+                return PartialView("_StudentList", students);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading students for attendance");
+                return Json(new { success = false, message = "An error occurred while loading students." });
+            }
+        }
     }
 }
