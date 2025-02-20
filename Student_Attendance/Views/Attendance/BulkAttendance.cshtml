@@ -24,6 +24,8 @@
                 }
                 else
                 {
+                    <!-- For Teacher login, include a hidden TeacherId -->
+                    <input type="hidden" id="TeacherId" value="@Model.SelectedTeacherId" />
                     <div class="col-md-3">
                         <label class="form-label">Teacher</label>
                         <input type="text" class="form-control" value="@User.Identity.Name" readonly />
@@ -33,7 +35,7 @@
                     <label class="form-label">Subject</label>
                     <select id="SubjectId" name="SubjectId" class="form-select">
                         <option value="">Select Subject</option>
-                        <!-- Populate teacher-wise allocated subjects via JS on TeacherId change -->
+                        <!-- Subjects will be loaded automatically for teachers -->
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -81,7 +83,7 @@
 @section Scripts {
     <script>
     $(document).ready(function(){
-        // TODO: If role is Admin, load subjects on TeacherId change
+        // If user is Admin, load subjects on TeacherId change
         $('#TeacherId').change(function(){
              var teacherId = $(this).val();
              if(teacherId){
@@ -95,7 +97,20 @@
                   });
              }
         });
-
+        
+        // Auto-load subjects when logged in as teacher
+        if($('#TeacherId').is('input[type="hidden"]')){
+            var teacherId = $('#TeacherId').val();
+            $.get('/Attendance/GetTeacherSubjects', { teacherId: teacherId })
+                .done(function(response){
+                    var options = '<option value="">Select Subject</option>';
+                    $.each(response, function(i, subj){
+                        options += '<option value="' + subj.id + '">' + subj.name + '</option>';
+                    });
+                    $('#SubjectId').html(options);
+                });
+        }
+        
         $('#generateSheet').click(function(){
             var teacherId = $('#TeacherId').val() || 0;
             var subjectId = $('#SubjectId').val();
