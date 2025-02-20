@@ -470,3 +470,70 @@ body.login-page {
         padding: 0.75rem;
     }
 }
+
+/* Bulk Attendance Styles */
+.bulk-attendance-container {
+    position: relative;
+    overflow-x: auto;
+    margin: 1rem 0;
+    max-height: 70vh;
+    border: 1px solid #dee2e6;
+}
+
+.fixed-column {
+    position: sticky;
+    left: 0;
+    background: white;
+    z-index: 2;
+    border-right: 2px solid #dee2e6;
+    min-width: 200px;
+}
+
+.sunday-column {
+    background-color: #f8f9fa !important;
+}
+
+#bulkGrid {
+    margin-bottom: 0;
+}
+
+#bulkGrid th {
+    text-align: center;
+    vertical-align: middle;
+    min-width: 60px;
+    background-color: white;
+}
+
+#bulkGrid .day-name {
+    font-size: 0.8em;
+    color: #666;
+}
+
+#bulkGrid td {
+    text-align: center;
+    vertical-align: middle;
+}
+
+#bulkGrid .fixed-column {
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Month Year Picker Styling */
+input[type="month"] {
+    height: calc(1.5em + 0.75rem + 2px);
+    padding: 0.375rem 0.75rem;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .bulk-attendance-container {
+        max-height: 60vh;
+    }
+    
+    #bulkGrid .fixed-column {
+        min-width: 150px;
+    }
+}

@@ -48,31 +48,27 @@
                         }
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label">Month</label>
-                    <select id="Month" name="Month" class="form-select">
-                        @for (int m = 1; m <= 12; m++)
-                        {
-                            <option value="@m">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(m)</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Year</label>
-                    <input type="number" id="Year" name="Year" class="form-control" value="@DateTime.Now.Year" />
+                <div class="col-md-4">
+                    <label class="form-label">Select Month & Year</label>
+                    <input type="month" id="monthYearPicker" class="form-control" 
+                           value="@DateTime.Now.ToString("yyyy-MM")" />
+                    <input type="hidden" id="Month" name="Month" />
+                    <input type="hidden" id="Year" name="Year" />
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
                     <button type="button" id="generateSheet" class="btn btn-primary w-100">
-                        Generate Attendance Sheet
+                        Generate Sheet
                     </button>
                 </div>
             </form>
             <hr />
-            <div id="attendanceGrid">
-                <!-- Attendance grid will be loaded here -->
+            <div class="attendance-grid-wrapper">
+                <div id="attendanceGrid">
+                    <!-- Attendance grid will be loaded here -->
+                </div>
             </div>
-            <div class="text-end mt-3">
-                <button type="button" id="saveAttendance" class="btn btn-success" style="display:none">
+            <div class="text-center mt-4">
+                <button type="button" id="saveAttendance" class="btn btn-success btn-lg px-5" style="display:none">
                     Save Attendance
                 </button>
             </div>
@@ -111,6 +107,13 @@
                 });
         }
         
+        // Month & Year picker handling
+        $('#monthYearPicker').change(function(){
+            var date = new Date($(this).val());
+            $('#Month').val(date.getMonth() + 1);
+            $('#Year').val(date.getFullYear());
+        }).trigger('change');
+
         $('#generateSheet').click(function(){
             var teacherId = $('#TeacherId').val() || 0;
             var subjectId = $('#SubjectId').val();

@@ -1,37 +1,41 @@
 @model BulkAttendanceGridViewModel
-<table id="bulkGrid" class="table table-bordered">
-    <thead>
-        <tr>
-            <th>Enrollment / Name</th>
-            @foreach(var date in Model.Dates)
-            {
-                <th data-date="@date.ToString("yyyy-MM-dd")">
-                    <div>@date.Day</div>
-                    <div style="font-size:0.8em">@date.ToString("ddd")</div>
-                    <div>
-                        <input type="checkbox" class="checkAll" data-date="@date.ToString("yyyy-MM-dd")" />
-                    </div>
-                </th>
-            }
-        </tr>
-    </thead>
-    <tbody>
-        @foreach(var student in Model.Students)
-        {
-            <tr data-student-id="@student.StudentId">
-                <td>@student.EnrollmentNo - @student.StudentName</td>
+<div class="table-responsive bulk-attendance-container">
+    <table id="bulkGrid" class="table table-bordered">
+        <thead>
+            <tr>
+                <th class="fixed-column">Enrollment / Name</th>
                 @foreach(var date in Model.Dates)
                 {
-                    var key = (student.StudentId, date.Date);
-                    bool isChecked = Model.ExistingAttendance.ContainsKey(key) && Model.ExistingAttendance[key];
-                    <td class="dateCol" data-date="@date.ToString("yyyy-MM-dd")">
-                        <input type="checkbox" class="attendanceChk" @(isChecked ? "checked" : "") />
-                    </td>
+                    <th data-date="@date.ToString("yyyy-MM-dd")" class="@(date.DayOfWeek == DayOfWeek.Sunday ? "sunday-column" : "")">
+                        <div>@date.Day</div>
+                        <div class="day-name">@date.ToString("ddd")</div>
+                        <div>
+                            <input type="checkbox" class="checkAll" data-date="@date.ToString("yyyy-MM-dd")" />
+                        </div>
+                    </th>
                 }
             </tr>
-        }
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            @foreach(var student in Model.Students)
+            {
+                <tr data-student-id="@student.StudentId">
+                    <td class="fixed-column">@student.EnrollmentNo - @student.StudentName</td>
+                    @foreach(var date in Model.Dates)
+                    {
+                        var key = (student.StudentId, date.Date);
+                        bool isChecked = Model.ExistingAttendance.ContainsKey(key) && Model.ExistingAttendance[key];
+                        <td class="dateCol @(date.DayOfWeek == DayOfWeek.Sunday ? "sunday-column" : "")" 
+                            data-date="@date.ToString("yyyy-MM-dd")">
+                            <input type="checkbox" class="attendanceChk" @(isChecked ? "checked" : "") />
+                        </td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
 <script>
 $(document).ready(function(){
     // Check All functionality per column
@@ -41,6 +45,12 @@ $(document).ready(function(){
         $('#bulkGrid tbody tr').each(function(){
             $(this).find('td[data-date="'+date+'"] input.attendanceChk').prop('checked', checked);
         });
+    });
+
+    // Initialize horizontal scroll sync
+    const container = document.querySelector('.bulk-attendance-container');
+    container.addEventListener('scroll', function() {
+        document.documentElement.style.setProperty('--table-offset', `${this.scrollLeft}px`);
     });
 });
 </script>
