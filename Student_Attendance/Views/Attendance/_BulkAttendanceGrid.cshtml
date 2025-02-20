@@ -1,39 +1,51 @@
 @model BulkAttendanceGridViewModel
-<div class="table-responsive bulk-attendance-container">
-    <table id="bulkGrid" class="table table-bordered">
-        <thead>
-            <tr>
-                <th class="fixed-column">Enrollment / Name</th>
-                @foreach(var date in Model.Dates)
-                {
-                    <th data-date="@date.ToString("yyyy-MM-dd")" class="@(date.DayOfWeek == DayOfWeek.Sunday ? "sunday-column" : "")">
-                        <div>@date.Day</div>
-                        <div class="day-name">@date.ToString("ddd")</div>
-                        <div>
-                            <input type="checkbox" class="checkAll" data-date="@date.ToString("yyyy-MM-dd")" />
-                        </div>
+<div class="attendance-grid-wrapper">
+    <div class="bulk-attendance-container">
+        <table id="bulkGrid" class="table">
+            <thead>
+                <tr>
+                    <th class="fixed-column">
+                        <div class="fixed-column-content">Student Information</div>
                     </th>
-                }
-            </tr>
-        </thead>
-        <tbody>
-            @foreach(var student in Model.Students)
-            {
-                <tr data-student-id="@student.StudentId">
-                    <td class="fixed-column">@student.EnrollmentNo - @student.StudentName</td>
                     @foreach(var date in Model.Dates)
                     {
-                        var key = (student.StudentId, date.Date);
-                        bool isChecked = Model.ExistingAttendance.ContainsKey(key) && Model.ExistingAttendance[key];
-                        <td class="dateCol @(date.DayOfWeek == DayOfWeek.Sunday ? "sunday-column" : "")" 
+                        <th class="date-column @(date.DayOfWeek == DayOfWeek.Sunday ? "sunday-column" : "")"
                             data-date="@date.ToString("yyyy-MM-dd")">
-                            <input type="checkbox" class="attendanceChk" @(isChecked ? "checked" : "") />
-                        </td>
+                            <div>@date.Day</div>
+                            <div class="day-name">@date.ToString("ddd")</div>
+                            <div>
+                                <input type="checkbox" class="attendance-checkbox checkAll" 
+                                       data-date="@date.ToString("yyyy-MM-dd")" />
+                            </div>
+                        </th>
                     }
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach(var student in Model.Students)
+                {
+                    <tr data-student-id="@student.StudentId">
+                        <td class="fixed-column">
+                            <div class="fixed-column-content">
+                                <strong>@student.EnrollmentNo</strong><br/>
+                                @student.StudentName
+                            </div>
+                        </td>
+                        @foreach(var date in Model.Dates)
+                        {
+                            var key = (student.StudentId, date.Date);
+                            bool isChecked = Model.ExistingAttendance.ContainsKey(key) && Model.ExistingAttendance[key];
+                            <td class="date-column @(date.DayOfWeek == DayOfWeek.Sunday ? "sunday-column" : "")" 
+                                data-date="@date.ToString("yyyy-MM-dd")">
+                                <input type="checkbox" class="attendance-checkbox attendanceChk" 
+                                       @(isChecked ? "checked" : "") />
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <script>

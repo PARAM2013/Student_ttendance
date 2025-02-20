@@ -471,54 +471,85 @@ body.login-page {
     }
 }
 
-/* Bulk Attendance Styles */
-.bulk-attendance-container {
+/* Bulk Attendance Styles - Updated */
+.attendance-grid-wrapper {
     position: relative;
-    overflow-x: auto;
     margin: 1rem 0;
-    max-height: 70vh;
     border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+.bulk-attendance-container {
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+#bulkGrid {
+    margin: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 100%;
+}
+
+#bulkGrid th,
+#bulkGrid td {
+    border: 1px solid #dee2e6;
+    padding: 12px 8px;
+    background-color: #fff;
 }
 
 .fixed-column {
     position: sticky;
     left: 0;
-    background: white;
     z-index: 2;
-    border-right: 2px solid #dee2e6;
-    min-width: 200px;
+    background-color: #fff !important;
+    border-right: 2px solid #dee2e6 !important;
+    width: 300px;
+    min-width: 300px;
+    max-width: 300px;
+}
+
+.fixed-column-content {
+    white-space: normal;
+    word-wrap: break-word;
+    line-height: 1.2;
+    max-height: 60px;
+    overflow-y: auto;
+}
+
+.date-column {
+    min-width: 60px;
+    text-align: center;
+    background-color: #fff;
+}
+
+#bulkGrid th.fixed-column {
+    background-color: #f8f9fa !important;
+    z-index: 3;
 }
 
 .sunday-column {
     background-color: #f8f9fa !important;
 }
 
-#bulkGrid {
-    margin-bottom: 0;
+/* Custom Scrollbar */
+.bulk-attendance-container::-webkit-scrollbar {
+    height: 10px;
 }
 
-#bulkGrid th {
-    text-align: center;
-    vertical-align: middle;
-    min-width: 60px;
-    background-color: white;
+.bulk-attendance-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 5px;
 }
 
-#bulkGrid .day-name {
-    font-size: 0.8em;
-    color: #666;
+.bulk-attendance-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 5px;
 }
 
-#bulkGrid td {
-    text-align: center;
-    vertical-align: middle;
-}
-
-#bulkGrid .fixed-column {
-    text-align: left;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.bulk-attendance-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
 }
 
 /* Month Year Picker Styling */
@@ -535,5 +566,11 @@ input[type="month"] {
     
     #bulkGrid .fixed-column {
         min-width: 150px;
+    }
+    
+    #bulkGrid .fixed-column-content {
+        white-space: normal;
+        word-wrap: break-word;
+        padding: 8px;
     }
 }
