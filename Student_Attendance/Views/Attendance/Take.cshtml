@@ -14,9 +14,29 @@
         <div class="card-body">
             <form asp-action="MarkAttendance" method="post" id="attendanceForm">
                 <div class="row g-3 mb-4">
+                    <!-- New Teacher Name dropdown -->
+                    <div class="col-md-3">
+                        <label for="TeacherId" class="form-label">Teacher Name</label>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <select id="TeacherId" name="TeacherId" class="form-select">
+                                <option value="">Select Teacher</option>
+                                @foreach(var teacher in ViewBag.Teachers as Microsoft.AspNetCore.Mvc.Rendering.SelectList)
+                                {
+                                    <option value="@teacher.Value">@teacher.Text</option>
+                                }
+                            </select>
+                        }
+                        else
+                        {
+                            <!-- For teacher login, display teacher name as readonly -->
+                            <input type="text" id="TeacherName" class="form-control" value="@User.Identity.Name" disabled />
+                            <input type="hidden" id="TeacherId" name="TeacherId" value="@User.FindFirst("Id")?.Value" />
+                        }
+                    </div>
                     <div class="col-md-3">
                         <label asp-for="SubjectId" class="form-label">Subject</label>
-                        <select asp-for="SubjectId" asp-items="Model.Subjects" class="form-select" required>
+                        <select id="SubjectId" asp-for="SubjectId" asp-items="Model.Subjects" class="form-select" required>
                             <option value="">Select Subject</option>
                         </select>
                     </div>
@@ -56,9 +76,31 @@
 @section Scripts {
     <script>
         $(document).ready(function() {
+            // Set today's date by default
             $('#Date').val(new Date().toISOString().split('T')[0]);
 
-            // Add change handlers for dropdowns
+            // Admin: Change handler for Teacher dropdown to update Subject dropdown
+            $('#TeacherId').change(function() {
+                var teacherId = $(this).val();
+                if (teacherId) {
+                    $.get('/Attendance/GetTeacherSubjects', { teacherId: teacherId })
+                        .done(function(response) {
+                            var options = '<option value="">Select Subject</option>';
+                            $.each(response, function(i, subj) {
+                                options += '<option value="' + subj.id + '">' + subj.name + '</option>';
+                            });
+                            $('#SubjectId').html(options);
+                        })
+                        .fail(function() {
+                            Swal.fire({ title: 'Error', text: 'Failed to load subjects', icon: 'error' });
+                        });
+                }
+                else {
+                    $('#SubjectId').html('<option value="">Select Subject</option>');
+                }
+            });
+
+            // Change handler for Subject and Division resets student list
             $('#SubjectId, #DivisionId').change(function() {
                 $('#studentList').html(`
                     <div class="text-center text-muted">
