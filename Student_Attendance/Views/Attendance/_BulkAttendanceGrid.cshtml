@@ -1,0 +1,46 @@
+@model BulkAttendanceGridViewModel
+<table id="bulkGrid" class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Enrollment / Name</th>
+            @foreach(var date in Model.Dates)
+            {
+                <th data-date="@date.ToShortDateString()">
+                    <div>@date.Day</div>
+                    <div style="font-size:0.8em">@date.ToString("ddd")</div>
+                    <div>
+                        <input type="checkbox" class="checkAll" data-date="@date.ToShortDateString()" />
+                    </div>
+                </th>
+            }
+        </tr>
+    </thead>
+    <tbody>
+        @foreach(var student in Model.Students)
+        {
+            <tr data-student-id="@student.StudentId">
+                <td>@student.EnrollmentNo - @student.StudentName</td>
+                @foreach(var date in Model.Dates)
+                {
+                    var key = (student.StudentId, date.Date);
+                    bool isChecked = Model.ExistingAttendance.ContainsKey(key) && Model.ExistingAttendance[key];
+                    <td class="dateCol" data-date="@date.ToShortDateString()">
+                        <input type="checkbox" class="attendanceChk" @(isChecked ? "checked" : "") />
+                    </td>
+                }
+            </tr>
+        }
+    </tbody>
+</table>
+<script>
+$(document).ready(function(){
+    // Check All functionality per column
+    $('.checkAll').change(function(){
+        var date = $(this).data('date');
+        var checked = $(this).is(':checked');
+        $('#bulkGrid tbody tr').each(function(){
+            $(this).find('td[data-date="'+date+'"] input.attendanceChk').prop('checked', checked);
+        });
+    });
+});
+</script>

@@ -99,7 +99,7 @@ namespace Student_Attendance.Controllers
                         Date = model.Date,
                         IsPresent = student.IsPresent,
                         TimeStamp = DateTime.Now,
-                        MarkedById = User.Identity?.Name
+                        MarkedById = User.Identity?.Name ?? "Unknown"
                     };
                     _context.AttendanceRecords.Add(attendance);
                 }
@@ -296,6 +296,108 @@ namespace Student_Attendance.Controllers
             {
                 _logger.LogError(ex, "Error loading students for attendance");
                 return Json(new { success = false, message = "An error occurred while loading students." });
+            }
+        }
+
+        // GET: Bulk Attendance page
+        [HttpGet]
+        public IActionResult BulkAttendance()
+        {
+            // Prepare dropdown lists (for Admin and Teacher)
+            var model = new BulkAttendanceViewModel
+            {
+                // If teacher, set logged-in teacher and allocated subjects; else, load all teachers.
+                Teachers = new SelectList(User.IsInRole("Admin")
+                    ? _context.Users.Where(u => u.Role=="Teacher").ToList()
+                    : new List<User>(), "Id", "UserName"),
+                // For teacher login, teacher is read-only.
+                SelectedTeacherId = User.IsInRole("Teacher") ? CurrentUser.Id : 0,
+                Divisions = new SelectList(_context.Divisions.ToList(), "Id", "Name")
+                // ...populate other dropdowns if needed...
+            };
+            return View(model);
+        }
+
+        // GET: Get Bulk Attendance sheet (AJAX)
+        [HttpGet]
+        public async Task<IActionResult> GetBulkAttendanceSheet(int teacherId, int subjectId, int divisionId, int month, int year)
+        {
+            // Get list of dates for given month and year
+            var daysInMonth = DateTime.DaysInMonth(year, month);
+            var dates = Enumerable.Range(1, daysInMonth)
+                            .Select(d => new DateTime(year, month, d))
+                            .ToList();
+
+            // Get students for division
+            var students = await _context.Students
+                                .Where(s => s.DivisionId == divisionId && s.IsActive)
+                                .Select(s => new BulkAttendanceStudentViewModel {
+                                    StudentId = s.Id,
+                                    EnrollmentNo = s.EnrollmentNo,
+                                    StudentName = s.Name
+                                })
+                                .ToListAsync();
+
+            // Get existing attendance records for the month and subject
+            var records = await _context.AttendanceRecords
+                                .Where(a => a.SubjectId == subjectId &&
+                                        a.Date.Month == month &&
+                                        a.Date.Year == year)
+                                .ToListAsync();
+
+            // Pass data to grid view model (assemble a dictionary of attendance status)
+            var gridModel = new BulkAttendanceGridViewModel {
+                Dates = dates,
+                Students = students,
+                ExistingAttendance = records.ToDictionary(
+                                        r => (r.StudentId, r.Date.Date),
+                                        r => r.IsPresent)
+            };
+
+            return PartialView("_BulkAttendanceGrid", gridModel);
+        }
+
+        // POST: Save Bulk Attendance
+        [HttpPost]
+        public async Task<IActionResult> SaveBulkAttendance([FromBody] BulkAttendanceSaveModel model)
+        {
+            try
+            {
+                // Remove existing records for the subject and month
+                var month = model.Month;
+                var year = model.Year;
+                var existingRecords = await _context.AttendanceRecords
+                    .Where(a => a.SubjectId == model.SubjectId &&
+                                a.Date.Month == month &&
+                                a.Date.Year == year)
+                    .ToListAsync();
+                _context.AttendanceRecords.RemoveRange(existingRecords);
+
+                // Loop over attendance data from grid
+                foreach(var entry in model.AttendanceData)
+                {
+                    // entry.Key = studentId, entry.Value = dictionary of date and presence flag
+                    int studentId = entry.Key;
+                    foreach(var datePair in entry.Value)
+                    {
+                        var attendance = new AttendanceRecord
+                        {
+                            StudentId = studentId,
+                            SubjectId = model.SubjectId,
+                            Date = datePair.Key,
+                            IsPresent = datePair.Value,
+                            TimeStamp = DateTime.Now,
+                            MarkedById = User.Identity?.Name ?? "Unknown"
+                        };
+                        _context.AttendanceRecords.Add(attendance);
+                    }
+                }
+                await _context.SaveChangesAsync();
+                return Json(new { success = true, message = "Bulk attendance saved successfully" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
             }
         }
     }
