@@ -26,5 +26,8 @@ namespace Student_Attendance.Models
 
         public DateTime TimeStamp { get; set; }
         public string? MarkedById { get; set; }
+
+        [StringLength(500)]
+        public string? DiscussionTopic { get; set; }
     }
 }

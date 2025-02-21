@@ -83,6 +83,7 @@ namespace Student_Attendance.Controllers
                     }
                 }
 
+                // Remove existing records for this date and subject
                 var existingRecords = await _context.AttendanceRecords
                     .Where(a => a.Date.Date == model.Date.Date && 
                                a.SubjectId == model.SubjectId)
@@ -90,6 +91,7 @@ namespace Student_Attendance.Controllers
 
                 _context.AttendanceRecords.RemoveRange(existingRecords);
 
+                // Add new records
                 foreach (var student in model.Students)
                 {
                     var attendance = new AttendanceRecord
@@ -99,7 +101,8 @@ namespace Student_Attendance.Controllers
                         Date = model.Date,
                         IsPresent = student.IsPresent,
                         TimeStamp = DateTime.Now,
-                        MarkedById = User.Identity?.Name ?? "Unknown"
+                        MarkedById = User.Identity?.Name ?? "Unknown",
+                        DiscussionTopic = model.DiscussionTopic // Make sure this is set
                     };
                     _context.AttendanceRecords.Add(attendance);
                 }
@@ -477,6 +480,79 @@ namespace Student_Attendance.Controllers
             {
                 _logger.LogError(ex, "Error saving bulk attendance");
                 return Json(new { success = false, message = "Failed to save attendance: " + ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> TopicDiscussions()
+        {
+            var model = new TopicDiscussionsReportViewModel
+            {
+                StartDate = DateTime.Today.AddDays(-30),
+                EndDate = DateTime.Today
+            };
+
+            if (User.IsInRole("Admin"))
+            {
+                model.Teachers = new SelectList(
+                    await _context.Users.Where(u => u.Role == "Teacher").ToListAsync(),
+                    "Id", "UserName");
+                model.Subjects = new SelectList(await _context.Subjects.ToListAsync(), "Id", "Name");
+            }
+            else
+            {
+                model.TeacherId = CurrentUser.Id;
+                var teacherSubjects = await _context.TeacherSubjects
+                    .Include(ts => ts.Subject)
+                    .Where(ts => ts.UserId == CurrentUser.Id && ts.IsActive)
+                    .Select(ts => ts.Subject)
+                    .ToListAsync();
+                model.Subjects = new SelectList(teacherSubjects, "Id", "Name");
+            }
+
+            return View(model);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetTopicDiscussionsReport(int? teacherId, int subjectId, DateTime startDate, DateTime endDate)
+        {
+            try
+            {
+                var query = from ar in _context.AttendanceRecords
+                            join s in _context.Subjects on ar.SubjectId equals s.Id
+                            where ar.SubjectId == subjectId &&
+                                  ar.Date.Date >= startDate.Date &&
+                                  ar.Date.Date <= endDate.Date
+                            group ar by new { ar.Date, ar.SubjectId, ar.MarkedById, ar.DiscussionTopic, s.Name } into g
+                            select new TopicDiscussionItem
+                            {
+                                Date = g.Key.Date,
+                                SubjectName = g.Key.Name,
+                                TeacherName = g.Key.MarkedById,
+                                DiscussionTopic = g.Key.DiscussionTopic ?? "-",
+                                StudentsPresent = g.Count(x => x.IsPresent),
+                                TotalStudents = g.Count()
+                            };
+
+                if (teacherId.HasValue)
+                {
+                    var teacherUsername = await _context.Users
+                        .Where(u => u.Id == teacherId)
+                        .Select(u => u.UserName)
+                        .FirstOrDefaultAsync();
+                    query = query.Where(x => x.TeacherName == teacherUsername);
+                }
+
+                var discussions = await query
+                    .OrderByDescending(d => d.Date)
+                    .ToListAsync();
+
+                return PartialView("_TopicDiscussionsReport", discussions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating topic discussions report");
+                return Json(new { success = false, message = "Error generating report" });
             }
         }
     }

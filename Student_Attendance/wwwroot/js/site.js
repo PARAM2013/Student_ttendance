@@ -172,6 +172,7 @@ function markAttendance(form) {
     const data = {
         SubjectId: $('#SubjectId').val(),
         Date: $('#Date').val(),
+        DiscussionTopic: $('#discussionTopic').val(),
         Students: []
     };
 
@@ -192,6 +193,7 @@ function markAttendance(form) {
         success: function(response) {
             if (response.success) {
                 Swal.fire('Success', response.message, 'success');
+                $('#discussionTopic').val(''); // Clear the discussion topic
             } else {
                 Swal.fire('Error', response.message, 'error');
             }
