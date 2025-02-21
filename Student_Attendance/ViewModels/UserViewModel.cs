@@ -22,5 +22,15 @@ namespace Student_Attendance.ViewModels
         public string Role { get; set; }
 
         public List<string> Roles { get; set; } = new List<string>();
+
+        [Required(ErrorMessage = "Name is required")]
+        [StringLength(100)]
+        public string Name { get; set; }
+
+        [Required(ErrorMessage = "Designation is required")]
+        [StringLength(100)]
+        public string Designation { get; set; }
+
+        public bool IsActive { get; set; } = true;
     }
 }
