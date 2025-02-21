@@ -301,7 +301,7 @@ namespace Student_Attendance.Controllers
 
         // GET: Bulk Attendance page
         [HttpGet]
-        public IActionResult BulkAttendance()
+        public IActionResult BulkAttendanceMonthly()
         {
             // Prepare dropdown lists (for Admin and Teacher)
             var model = new BulkAttendanceViewModel
@@ -314,6 +314,22 @@ namespace Student_Attendance.Controllers
                 SelectedTeacherId = User.IsInRole("Teacher") ? CurrentUser.Id : 0,
                 Divisions = new SelectList(_context.Divisions.ToList(), "Id", "Name")
                 // ...populate other dropdowns if needed...
+            };
+            return View(model);
+        }
+
+        [HttpGet]
+        public IActionResult BulkAttendance()
+        {
+            var model = new BulkAttendanceRangeViewModel
+            {
+                Teachers = new SelectList(User.IsInRole("Admin")
+                    ? _context.Users.Where(u => u.Role=="Teacher").ToList()
+                    : new List<User>(), "Id", "UserName"),
+                SelectedTeacherId = User.IsInRole("Teacher") ? CurrentUser.Id : 0,
+                Divisions = new SelectList(_context.Divisions.ToList(), "Id", "Name"),
+                StartDate = DateTime.Today,
+                EndDate = DateTime.Today
             };
             return View(model);
         }
@@ -357,6 +373,44 @@ namespace Student_Attendance.Controllers
             return PartialView("_BulkAttendanceGrid", gridModel);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetBulkAttendanceSheetRange(int teacherId, int subjectId, int divisionId, DateTime startDate, DateTime endDate)
+        {
+            if ((endDate - startDate).Days > 31)
+            {
+                return Json(new { success = false, message = "Date range cannot exceed 31 days" });
+            }
+
+            var dates = Enumerable.Range(0, (endDate - startDate).Days + 1)
+                            .Select(d => startDate.AddDays(d))
+                            .ToList();
+
+            var students = await _context.Students
+                                .Where(s => s.DivisionId == divisionId && s.IsActive)
+                                .Select(s => new BulkAttendanceStudentViewModel {
+                                    StudentId = s.Id,
+                                    EnrollmentNo = s.EnrollmentNo,
+                                    StudentName = s.Name
+                                })
+                                .ToListAsync();
+
+            var records = await _context.AttendanceRecords
+                                .Where(a => a.SubjectId == subjectId &&
+                                        a.Date >= startDate &&
+                                        a.Date <= endDate)
+                                .ToListAsync();
+
+            var gridModel = new BulkAttendanceGridViewModel {
+                Dates = dates,
+                Students = students,
+                ExistingAttendance = records.ToDictionary(
+                                        r => (r.StudentId, r.Date.Date),
+                                        r => r.IsPresent)
+            };
+
+            return PartialView("_BulkAttendanceGrid", gridModel);
+        }
+
         // POST: Save Bulk Attendance
         [HttpPost]
         public async Task<IActionResult> SaveBulkAttendance([FromBody] BulkAttendanceSaveModel model)
@@ -368,9 +422,25 @@ namespace Student_Attendance.Controllers
                     return Json(new { success = false, message = "Invalid data submitted" });
                 }
 
-                // Remove existing records for the subject and month
-                var startDate = new DateTime(model.Year, model.Month, 1);
-                var endDate = startDate.AddMonths(1).AddDays(-1);
+                DateTime startDate, endDate;
+
+                // Handle both monthly and date range scenarios
+                if (model.Month > 0 && model.Year > 0)
+                {
+                    startDate = new DateTime(model.Year, model.Month, 1);
+                    endDate = startDate.AddMonths(1).AddDays(-1);
+                }
+                else
+                {
+                    // Parse the first date from AttendanceData to determine range
+                    var firstDateKey = model.AttendanceData.FirstOrDefault().Value?.Keys.FirstOrDefault();
+                    if (string.IsNullOrEmpty(firstDateKey))
+                    {
+                        return Json(new { success = false, message = "No date data found" });
+                    }
+                    startDate = DateTime.Parse(firstDateKey);
+                    endDate = DateTime.Parse(model.AttendanceData.FirstOrDefault().Value.Keys.Last());
+                }
 
                 var existingRecords = await _context.AttendanceRecords
                     .Where(a => a.SubjectId == model.SubjectId &&

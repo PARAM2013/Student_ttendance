@@ -1,11 +1,11 @@
-@model BulkAttendanceRangeViewModel
+@model BulkAttendanceViewModel
 @{
-    ViewData["Title"] = "Bulk Attendance";
+    ViewData["Title"] = "Bulk Attendance Monthly";
 }
 <div class="container-fluid">
     <div class="card">
         <div class="card-header">
-            <h3><i class="fas fa-calendar-alt me-2"></i>Bulk Attendance</h3>
+            <h3><i class="fas fa-calendar-check me-2"></i>Bulk Attendance Monthly</h3>
         </div>
         <div class="card-body">
             <form id="bulkAttendanceForm" class="row g-3">
@@ -47,10 +47,11 @@
                     </select>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">Date Range</label>
-                    <input type="text" id="dateRange" class="form-control" />
-                    <input type="hidden" id="StartDate" />
-                    <input type="hidden" id="EndDate" />
+                    <label class="form-label">Select Month & Year</label>
+                    <input type="month" id="monthYearPicker" class="form-control" 
+                           value="@DateTime.Now.ToString("yyyy-MM")" />
+                    <input type="hidden" id="Month" name="Month" />
+                    <input type="hidden" id="Year" name="Year" />
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
                     <button type="button" id="generateSheet" class="btn btn-primary w-100">
@@ -74,28 +75,8 @@
 </div>
 
 @section Scripts {
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
     $(document).ready(function(){
-        // Initialize daterangepicker
-        $('#dateRange').daterangepicker({
-            startDate: moment(),
-            endDate: moment(),
-            maxSpan: { days: 31 },
-            locale: {
-                format: 'YYYY-MM-DD'
-            }
-        }, function(start, end) {
-            $('#StartDate').val(start.format('YYYY-MM-DD'));
-            $('#EndDate').val(end.format('YYYY-MM-DD'));
-        });
-
-        // Set initial values
-        $('#StartDate').val(moment().format('YYYY-MM-DD'));
-        $('#EndDate').val(moment().format('YYYY-MM-DD'));
-
         // TeacherId change handler
         $('#TeacherId').change(function(){
             loadTeacherSubjects($(this).val());
@@ -119,41 +100,41 @@
             loadTeacherSubjects($('#TeacherId').val());
         }
 
+        // Month & Year picker handling
+        $('#monthYearPicker').change(function(){
+            var date = new Date($(this).val());
+            $('#Month').val(date.getMonth() + 1);
+            $('#Year').val(date.getFullYear());
+        }).trigger('change');
+
         $('#generateSheet').click(function(){
             var teacherId = $('#TeacherId').val() || 0;
             var subjectId = $('#SubjectId').val();
             var divisionId = $('#DivisionId').val();
-            var startDate = $('#StartDate').val();
-            var endDate = $('#EndDate').val();
+            var month = $('#Month').val();
+            var year = $('#Year').val();
 
             if(!subjectId || !divisionId){
                 Swal.fire({title:'Warning', text:'Please select subject and division.', icon:'warning'});
                 return;
             }
-
+            
             $('#attendanceGrid').html('<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>');
             
-            $.get('/Attendance/GetBulkAttendanceSheetRange', { 
+            $.get('/Attendance/GetBulkAttendanceSheet', { 
                 teacherId: teacherId, 
                 subjectId: subjectId, 
                 divisionId: divisionId, 
-                startDate: startDate,
-                endDate: endDate
+                month: month,
+                year: year
             })
             .done(function(data){
                 $('#attendanceGrid').html(data);
                 $('#saveAttendance').show();
-            })
-            .fail(function(error){
-                console.error('Error:', error);
-                Swal.fire({
-                    title: 'Error',
-                    text: 'Failed to load attendance sheet',
-                    icon: 'error'
-                });
             });
         });
 
+        // Save attendance
         $('#saveAttendance').click(function(){
             var attendanceData = {};
             $('#bulkGrid tbody tr').each(function(){
@@ -168,6 +149,8 @@
 
             var payload = {
                 SubjectId: parseInt($('#SubjectId').val()),
+                Month: parseInt($('#Month').val()),
+                Year: parseInt($('#Year').val()),
                 AttendanceData: attendanceData
             };
 
