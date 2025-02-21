@@ -134,33 +134,38 @@
 
         // Save attendance
         $('#saveAttendance').click(function(){
-            // Gather attendance data from grid checkboxes.
             var attendanceData = {};
             $('#bulkGrid tbody tr').each(function(){
-                var studentId = $(this).data('student-id');
+                var studentId = $(this).data('student-id').toString();
                 attendanceData[studentId] = {};
-                $(this).find('td.dateCol').each(function(){
+                $(this).find('td.date-column').each(function(){
                     var date = $(this).data('date'); 
                     var isPresent = $(this).find('input.attendanceChk').is(':checked');
                     attendanceData[studentId][date] = isPresent;
                 });
             });
+
             var payload = {
                 SubjectId: parseInt($('#SubjectId').val()),
                 Month: parseInt($('#Month').val()),
                 Year: parseInt($('#Year').val()),
                 AttendanceData: attendanceData
             };
+
             $.ajax({
                 url: '/Attendance/SaveBulkAttendance',
                 type: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(payload),
-                success: function(res){
-                     Swal.fire({title:'Success', text: res.message, icon:'success'});
+                success: function(response){
+                    if(response.success) {
+                        Swal.fire({title:'Success', text: response.message, icon:'success'});
+                    } else {
+                        Swal.fire({title:'Error', text: response.message || 'Failed to save attendance', icon:'error'});
+                    }
                 },
                 error: function(){
-                     Swal.fire({title:'Error', text:'Failed to save attendance', icon:'error'});
+                    Swal.fire({title:'Error', text:'Failed to save attendance', icon:'error'});
                 }
             });
         });

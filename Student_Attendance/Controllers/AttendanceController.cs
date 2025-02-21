@@ -363,41 +363,50 @@ namespace Student_Attendance.Controllers
         {
             try
             {
+                if (!ModelState.IsValid)
+                {
+                    return Json(new { success = false, message = "Invalid data submitted" });
+                }
+
                 // Remove existing records for the subject and month
-                var month = model.Month;
-                var year = model.Year;
+                var startDate = new DateTime(model.Year, model.Month, 1);
+                var endDate = startDate.AddMonths(1).AddDays(-1);
+
                 var existingRecords = await _context.AttendanceRecords
                     .Where(a => a.SubjectId == model.SubjectId &&
-                                a.Date.Month == month &&
-                                a.Date.Year == year)
+                               a.Date >= startDate &&
+                               a.Date <= endDate)
                     .ToListAsync();
+
                 _context.AttendanceRecords.RemoveRange(existingRecords);
 
-                // Loop over attendance data from grid
-                foreach(var entry in model.AttendanceData)
+                // Add new records
+                foreach (var studentEntry in model.AttendanceData)
                 {
-                    // entry.Key = studentId, entry.Value = dictionary of date and presence flag
-                    int studentId = entry.Key;
-                    foreach(var datePair in entry.Value)
+                    var studentId = int.Parse(studentEntry.Key);
+                    foreach (var dateEntry in studentEntry.Value)
                     {
+                        var date = DateTime.Parse(dateEntry.Key);
                         var attendance = new AttendanceRecord
                         {
                             StudentId = studentId,
                             SubjectId = model.SubjectId,
-                            Date = datePair.Key,
-                            IsPresent = datePair.Value,
+                            Date = date,
+                            IsPresent = dateEntry.Value,
                             TimeStamp = DateTime.Now,
-                            MarkedById = User.Identity?.Name ?? "Unknown"
+                            MarkedById = User.Identity?.Name ?? "System"
                         };
                         _context.AttendanceRecords.Add(attendance);
                     }
                 }
+
                 await _context.SaveChangesAsync();
-                return Json(new { success = true, message = "Bulk attendance saved successfully" });
+                return Json(new { success = true, message = "Attendance saved successfully" });
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = ex.Message });
+                _logger.LogError(ex, "Error saving bulk attendance");
+                return Json(new { success = false, message = "Failed to save attendance: " + ex.Message });
             }
         }
     }

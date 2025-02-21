@@ -8,6 +8,6 @@ namespace Student_Attendance.Models
         public int SubjectId { get; set; }
         public int Month { get; set; }
         public int Year { get; set; }
-        public Dictionary<int, Dictionary<DateTime, bool>> AttendanceData { get; set; } = new Dictionary<int, Dictionary<DateTime, bool>>();
+        public Dictionary<string, Dictionary<string, bool>> AttendanceData { get; set; } = new(); // Changed type to string keys
     }
 }
