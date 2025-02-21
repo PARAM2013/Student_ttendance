@@ -52,10 +52,7 @@ namespace Student_Attendance.Controllers
                     UserName = model.UserName,
                     Email = model.Email,
                     Password = BCrypt.Net.BCrypt.HashPassword(model.Password), // Hash password
-                    Role = model.Role,
-                    Name = model.Name,
-                    Designation = model.Designation,
-                    IsActive = model.IsActive
+                    Role = model.Role
                 };
 
                 await _context.Users.AddAsync(user);
@@ -100,9 +97,6 @@ namespace Student_Attendance.Controllers
 
                 user.UserName = model.UserName;
                 user.Email = model.Email;
-                user.Name = model.Name;
-                user.Designation = model.Designation;
-                user.IsActive = model.IsActive;
                 if (!string.IsNullOrEmpty(model.Password))
                 {
                     user.Password = BCrypt.Net.BCrypt.HashPassword(model.Password);

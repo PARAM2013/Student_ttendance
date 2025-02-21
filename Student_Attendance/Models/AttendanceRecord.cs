@@ -26,12 +26,5 @@ namespace Student_Attendance.Models
 
         public DateTime TimeStamp { get; set; }
         public string? MarkedById { get; set; }
-
-        [Required]
-        [StringLength(500)]
-        public string TopicDiscussed { get; set; }
-
-        [ForeignKey("MarkedById")]
-        public User MarkedByTeacher { get; set; }
     }
 }

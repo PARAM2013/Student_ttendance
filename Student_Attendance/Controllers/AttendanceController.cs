@@ -71,15 +71,16 @@ namespace Student_Attendance.Controllers
             try
             {
                 // Verify user has permission for this subject
-                if (!await HasTeacherPermission(model.SubjectId))
+                if (!User.IsInRole("Admin"))
                 {
-                    return Json(new { success = false, message = "Unauthorized" });
-                }
-
-                var teacher = await _context.Users.FindAsync(CurrentUser.Id);
-                if (teacher == null || !teacher.IsActive)
-                {
-                    return Json(new { success = false, message = "Invalid or inactive teacher" });
+                    var hasPermission = await _context.TeacherSubjects
+                        .AnyAsync(ts => ts.UserId == CurrentUser.Id && 
+                                      ts.SubjectId == model.SubjectId && 
+                                      ts.IsActive);
+                    if (!hasPermission)
+                    {
+                        return Json(new { success = false, message = "Unauthorized" });
+                    }
                 }
 
                 var existingRecords = await _context.AttendanceRecords
@@ -98,8 +99,7 @@ namespace Student_Attendance.Controllers
                         Date = model.Date,
                         IsPresent = student.IsPresent,
                         TimeStamp = DateTime.Now,
-                        MarkedById = CurrentUser.Id,
-                        TopicDiscussed = model.TopicDiscussed
+                        MarkedById = User.Identity?.Name ?? "Unknown"
                     };
                     _context.AttendanceRecords.Add(attendance);
                 }
@@ -112,21 +112,6 @@ namespace Student_Attendance.Controllers
                 _logger.LogError(ex, "Error marking attendance");
                 return Json(new { success = false, message = "Error marking attendance" });
             }
-        }
-
-        private async Task<bool> HasTeacherPermission(int subjectId)
-        {
-            if (User.IsInRole("Admin")) return true;
-
-            var teacher = await _context.Users
-                .FirstOrDefaultAsync(u => u.Id == CurrentUser.Id && u.IsActive);
-            
-            if (teacher == null) return false;
-
-            return await _context.TeacherSubjects
-                .AnyAsync(ts => ts.UserId == CurrentUser.Id && 
-                               ts.SubjectId == subjectId && 
-                               ts.IsActive);
         }
 
         [HttpGet]

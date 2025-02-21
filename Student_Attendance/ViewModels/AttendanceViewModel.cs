@@ -10,11 +10,5 @@ namespace Student_Attendance.ViewModels
         public List<StudentAttendanceViewModel> Students { get; set; }
         public SelectList Subjects { get; set; }
         public SelectList Divisions { get; set; }
-
-        [Required(ErrorMessage = "Topic discussed is required")]
-        [StringLength(500)]
-        public string TopicDiscussed { get; set; }
-
-        public string TeacherName { get; set; }
     }
 }
