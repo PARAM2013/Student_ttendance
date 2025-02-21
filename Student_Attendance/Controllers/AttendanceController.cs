@@ -98,7 +98,7 @@ namespace Student_Attendance.Controllers
                         Date = model.Date,
                         IsPresent = student.IsPresent,
                         TimeStamp = DateTime.Now,
-                        MarkedById = CurrentUser.Id,
+                        MarkedById = CurrentUser.Id.ToString(), // Convert to string
                         TopicDiscussed = model.TopicDiscussed
                     };
                     _context.AttendanceRecords.Add(attendance);
