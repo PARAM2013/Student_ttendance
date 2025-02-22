@@ -6,7 +6,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using OfficeOpenXml; // Add this line
 
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Change your logging configuration to this:
@@ -14,7 +13,6 @@ builder.Logging.ClearProviders(); // Clear first
 builder.Logging.AddConsole()     // Then add providers
     .AddDebug()
     .SetMinimumLevel(LogLevel.Debug); // Set minimum level to see more details
-
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
@@ -28,7 +26,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 
 builder.Services.AddDbContext<Student_Attendance.Data.ApplicationDbContext>(options =>
-options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 
@@ -57,41 +55,37 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Search_Attendance}/{id?}");
 
-
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
-        
-        // Ensure database is created
+
+        // Ensure database is created and up-to-date.
         context.Database.Migrate();
 
-        // Check if any users exist
+        // Seed default users if they don't exist.
         if (!context.Users.Any())
         {
-            // Create default Admin user
             var adminUser = new User
             {
                 UserName = "admin",
                 Email = "admin@example.com",
-                Password = BCrypt.Net.BCrypt.HashPassword("Admin@123"), // Default password: Admin@123
+                Password = BCrypt.Net.BCrypt.HashPassword("admin"), // Default password: Admin@123
                 Role = "Admin"
             };
             context.Users.Add(adminUser);
 
-            // Create default Teacher user
             var teacherUser = new User
             {
                 UserName = "teacher",
                 Email = "teacher@example.com",
-                Password = BCrypt.Net.BCrypt.HashPassword("Teacher@123"), // Default password: Teacher@123
+                Password = BCrypt.Net.BCrypt.HashPassword("teacher"), // Default password: Teacher@123
                 Role = "Teacher"
             };
             context.Users.Add(teacherUser);
 
-            // Create default Student user
             var studentUser = new User
             {
                 UserName = "student",
@@ -101,6 +95,63 @@ using (var scope = app.Services.CreateScope())
             };
             context.Users.Add(studentUser);
 
+            context.SaveChanges();
+        }
+
+        // Seed dummy related data if not exists.
+        if (!context.Courses.Any())
+        {
+            var course = new Course { Name = "Dummy Course" };
+            context.Courses.Add(course);
+            context.SaveChanges();
+        }
+        var dummyCourse = context.Courses.First();
+
+        if (!context.AcademicYears.Any())
+        {
+            var acadYear = new AcademicYear { Name = "2024-2025", StartDate = DateTime.Today.AddMonths(-3), EndDate = DateTime.Today.AddMonths(9), IsActive = true };
+            context.AcademicYears.Add(acadYear);
+            context.SaveChanges();
+        }
+        var dummyYear = context.AcademicYears.First();
+
+        if (!context.Classes.Any())
+        {
+            var dummyClass = new Class { Name = "Class A", CourseId = dummyCourse.Id, AcademicYearId = dummyYear.Id };
+            context.Classes.Add(dummyClass);
+            context.SaveChanges();
+        }
+        var dummyClassExisting = context.Classes.First();
+
+        if (!context.Divisions.Any())
+        {
+            var dummyDivision = new Division { Name = "Division 1", ClassId = dummyClassExisting.Id };
+            context.Divisions.Add(dummyDivision);
+            context.SaveChanges();
+        }
+        var dummyDivisionExisting = context.Divisions.First();
+
+        // Seed dummy Students if not exists.
+        if (!context.Students.Any())
+        {
+            for (int i = 1; i <= 10; i++)
+            {
+                var student = new Student
+                {
+                    EnrollmentNo = $"S{i:000}",
+                    Name = $"Student {i}",
+                    Cast = "Dummy Cast",
+                    Email = $"student{i}@example.com",
+                    Mobile = "1234567890",
+                    CourseId = dummyCourse.Id,
+                    Semester = 1,
+                    IsActive = true,
+                    AcademicYearId = dummyYear.Id,
+                    DivisionId = dummyDivisionExisting.Id,
+                    ClassId = dummyClassExisting.Id
+                };
+                context.Students.Add(student);
+            }
             context.SaveChanges();
         }
     }

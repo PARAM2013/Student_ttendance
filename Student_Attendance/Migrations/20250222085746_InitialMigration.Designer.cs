@@ -12,8 +12,8 @@ using Student_Attendance.Data;
 namespace Student_Attendance.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250210070051_AddAttendanceMapping")]
-    partial class AddAttendanceMapping
+    [Migration("20250222085746_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -60,12 +60,12 @@ namespace Student_Attendance.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("AbsenceReason")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("DiscussionTopic")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<bool>("IsPresent")
                         .HasColumnType("bit");
@@ -244,6 +244,9 @@ namespace Student_Attendance.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<int>("ClassId")
+                        .HasColumnType("int");
+
                     b.Property<int>("CourseId")
                         .HasColumnType("int");
 
@@ -277,6 +280,8 @@ namespace Student_Attendance.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AcademicYearId");
+
+                    b.HasIndex("ClassId");
 
                     b.HasIndex("CourseId");
 
@@ -316,7 +321,7 @@ namespace Student_Attendance.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("AcademicYearId")
+                    b.Property<int>("ClassId")
                         .HasColumnType("int");
 
                     b.Property<string>("Code")
@@ -340,7 +345,7 @@ namespace Student_Attendance.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AcademicYearId");
+                    b.HasIndex("ClassId");
 
                     b.HasIndex("CourseId");
 
@@ -357,6 +362,12 @@ namespace Student_Attendance.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("AcademicYearId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<int>("SubjectId")
                         .HasColumnType("int");
 
@@ -364,6 +375,8 @@ namespace Student_Attendance.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AcademicYearId");
 
                     b.HasIndex("SubjectId");
 
@@ -473,6 +486,12 @@ namespace Student_Attendance.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("Student_Attendance.Models.Class", "Class")
+                        .WithMany()
+                        .HasForeignKey("ClassId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.HasOne("Student_Attendance.Models.Course", "Course")
                         .WithMany()
                         .HasForeignKey("CourseId")
@@ -486,6 +505,8 @@ namespace Student_Attendance.Migrations
                         .IsRequired();
 
                     b.Navigation("AcademicYear");
+
+                    b.Navigation("Class");
 
                     b.Navigation("Course");
 
@@ -513,10 +534,10 @@ namespace Student_Attendance.Migrations
 
             modelBuilder.Entity("Student_Attendance.Models.Subject", b =>
                 {
-                    b.HasOne("Student_Attendance.Models.AcademicYear", "AcademicYear")
+                    b.HasOne("Student_Attendance.Models.Class", "Class")
                         .WithMany()
-                        .HasForeignKey("AcademicYearId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasForeignKey("ClassId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Student_Attendance.Models.Course", "Course")
@@ -529,7 +550,7 @@ namespace Student_Attendance.Migrations
                         .WithMany()
                         .HasForeignKey("SpecializationId");
 
-                    b.Navigation("AcademicYear");
+                    b.Navigation("Class");
 
                     b.Navigation("Course");
 
@@ -538,6 +559,12 @@ namespace Student_Attendance.Migrations
 
             modelBuilder.Entity("Student_Attendance.Models.TeacherSubject", b =>
                 {
+                    b.HasOne("Student_Attendance.Models.AcademicYear", "AcademicYear")
+                        .WithMany()
+                        .HasForeignKey("AcademicYearId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.HasOne("Student_Attendance.Models.Subject", "Subject")
                         .WithMany()
                         .HasForeignKey("SubjectId")
@@ -549,6 +576,8 @@ namespace Student_Attendance.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
+
+                    b.Navigation("AcademicYear");
 
                     b.Navigation("Subject");
 
