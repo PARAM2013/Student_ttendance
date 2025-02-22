@@ -15,8 +15,9 @@ namespace Student_Attendance.ViewModels
         [StringLength(100)]
         public string Email { get; set; }
 
-        [StringLength(100)]
-        public string? Password { get; set; }  // Optional for editing
+        [StringLength(100, MinimumLength = 6, ErrorMessage = "Password must be at least 6 characters long")]
+        [DataType(DataType.Password)]
+        public string? Password { get; set; }  // Made nullable and removed Required attribute
 
         [Required(ErrorMessage = "Role is required")]
         public string Role { get; set; }

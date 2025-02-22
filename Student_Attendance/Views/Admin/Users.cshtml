@@ -17,6 +17,7 @@
                         <th>Username</th>
                         <th>Email</th>
                         <th>Role</th>
+                        <th>Status</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -27,6 +28,11 @@
                             <td>@item.UserName</td>
                             <td>@item.Email</td>
                             <td>@item.Role</td>
+                            <td>
+                                <span class="badge @(item.IsActive ? "bg-success" : "bg-danger")">
+                                    @(item.IsActive ? "Active" : "Inactive")
+                                </span>
+                            </td>
                             <td>
                                 <button type="button" class="btn btn-info btn-sm" onclick="showInPopup('@Url.Action("EditUser","Admin",new {id=item.Id},Context.Request.Scheme)','Edit User')">
                                     Edit

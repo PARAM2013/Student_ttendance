@@ -52,7 +52,8 @@ namespace Student_Attendance.Controllers
                     UserName = model.UserName,
                     Email = model.Email,
                     Password = BCrypt.Net.BCrypt.HashPassword(model.Password), // Hash password
-                    Role = model.Role
+                    Role = model.Role,
+                    IsActive = model.IsActive
                 };
 
                 await _context.Users.AddAsync(user);
@@ -78,6 +79,7 @@ namespace Student_Attendance.Controllers
                 UserName = user.UserName,
                 Email = user.Email,
                 Role = user.Role,
+                IsActive = user.IsActive,  // Add this line
                 Roles = new List<string> { "Admin", "Teacher", "Student" }
             };
 
@@ -87,28 +89,35 @@ namespace Student_Attendance.Controllers
         [HttpPost]
         public async Task<IActionResult> EditUser(UserViewModel model)
         {
-            if (ModelState.IsValid)
+            // Remove the ModelState check for Password since it's optional during edit
+            if (!string.IsNullOrEmpty(model.Password))
             {
-                var user = await _context.Users.FindAsync(model.Id);
-                if (user == null)
+                // Only validate password if it's provided
+                if (model.Password.Length < 6)
                 {
-                    return Json(new { success = false, message = "User not found" });
+                    return Json(new { success = false, message = "Password must be at least 6 characters long" });
                 }
-
-                user.UserName = model.UserName;
-                user.Email = model.Email;
-                if (!string.IsNullOrEmpty(model.Password))
-                {
-                    user.Password = BCrypt.Net.BCrypt.HashPassword(model.Password);
-                }
-                user.Role = model.Role;
-
-                _context.Users.Update(user);
-                await _context.SaveChangesAsync();
-                return Json(new { success = true, message = "User updated successfully" });
             }
 
-            return Json(new { success = false, message = "Invalid data" });
+            var user = await _context.Users.FindAsync(model.Id);
+            if (user == null)
+            {
+                return Json(new { success = false, message = "User not found" });
+            }
+
+            // Update user properties
+            user.UserName = model.UserName;
+            user.Email = model.Email;
+            if (!string.IsNullOrEmpty(model.Password))
+            {
+                user.Password = BCrypt.Net.BCrypt.HashPassword(model.Password);
+            }
+            user.Role = model.Role;
+            user.IsActive = model.IsActive;
+
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+            return Json(new { success = true, message = "User updated successfully" });
         }
 
         [HttpPost]
