@@ -48,11 +48,19 @@ namespace Student_Attendance.Controllers
 
                 if (user != null && BCrypt.Net.BCrypt.Verify(model.Password, user.Password))
                 {
+                    // Check if user is active
+                    if (!user.IsActive)
+                    {
+                        ModelState.AddModelError(string.Empty, "Your account is not active. Please contact administrator.");
+                        return View(model);
+                    }
+
                     var claims = new List<Claim>
                     {
                         new Claim(ClaimTypes.Name, user.UserName),
                         new Claim(ClaimTypes.Email, user.Email),
-                        new Claim(ClaimTypes.Role, user.Role)
+                        new Claim(ClaimTypes.Role, user.Role),
+                        new Claim("IsActive", user.IsActive.ToString())
                     };
 
                     var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

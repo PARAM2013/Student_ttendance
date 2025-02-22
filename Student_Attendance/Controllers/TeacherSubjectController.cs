@@ -76,8 +76,9 @@ namespace Student_Attendance.Controllers
 
         private async Task LoadTeacherSubjectDropDowns(TeacherSubjectViewModel model)
         {
+            // Only get active teachers
             model.Teachers = await _context.Users
-                .Where(u => u.Role == "Teacher")
+                .Where(u => u.Role == "Teacher" && u.IsActive)
                 .Select(u => new SelectListItem 
                 { 
                     Value = u.Id.ToString(), 

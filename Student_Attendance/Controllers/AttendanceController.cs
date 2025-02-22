@@ -244,9 +244,15 @@ namespace Student_Attendance.Controllers
         {
             try
             {
-                // Check if teacher is authorized for this subject
+                // Check if teacher is authorized and active
                 if (!User.IsInRole("Admin"))
                 {
+                    var teacher = await _context.Users.FindAsync(CurrentUser.Id);
+                    if (teacher == null || !teacher.IsActive)
+                    {
+                        return Json(new { success = false, message = "Your account is not active." });
+                    }
+
                     var hasPermission = await _context.TeacherSubjects
                         .AnyAsync(ts => ts.UserId == CurrentUser.Id && 
                                        ts.SubjectId == subjectId && 

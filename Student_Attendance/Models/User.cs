@@ -18,5 +18,8 @@ namespace Student_Attendance.Models
         [Required]
         [StringLength(20)]
         public string Role { get; set; }
+
+        [Required]
+        public bool IsActive { get; set; } = true;  // Default to true
     }
 }
