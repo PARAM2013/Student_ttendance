@@ -256,39 +256,12 @@ function showAlert(title, message, icon) {
     });
 }
 
-// Updated saveAttendance function
-function saveAttendance(form) {
-    $.ajax({
-        url: form.action,
-        type: form.method,
-        data: $(form).serialize(),
-        success: function(response) {
-            if(response.success) {
-                Swal.fire({
-                   title: 'Success!',
-                   text: response.message,
-                   icon: 'success',
-                   timer: 2000,
-                   showConfirmButton: false
-                });
-            } else {
-                Swal.fire({
-                   title: 'Error!',
-                   text: response.message,
-                   icon: 'error'
-                });
-            }
-        },
-        error: function() {
-           Swal.fire({
-               title: 'Error!',
-               text: 'An error occurred while saving attendance.',
-               icon: 'error'
-           });
-        }
-    });
-    return false;
+// Remove or comment out this function if it exists
+/* 
+function saveAttendance(e) {
+    // Remove this function as we're handling form submission in the view
 }
+*/
 
 // Attach attendance form submission handler
 $(document).on('submit', '#attendanceForm', function(e) {

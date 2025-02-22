@@ -12,7 +12,7 @@
             </h3>
         </div>
         <div class="card-body">
-            <form asp-action="MarkAttendance" method="post" id="attendanceForm">
+            <form id="attendanceForm">
                 <div class="row g-3 mb-4">
                     <!-- New Teacher Name dropdown -->
                     <div class="col-md-3">
@@ -58,9 +58,9 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="discussionTopic" class="form-label">Discussion Topic (Optional)</label>
+                    <label for="discussionTopic" class="form-label">Topic Discussion (Optional)</label>
                     <textarea id="discussionTopic" name="discussionTopic" class="form-control" 
-                            rows="3" placeholder="Enter today's discussion topic..."></textarea>
+                            rows="2" placeholder="Enter today's discussion topic..."></textarea>
                 </div>
 
                 <div id="studentList" class="table-responsive mt-4">
@@ -84,6 +84,55 @@
         $(document).ready(function() {
             // Set today's date by default
             $('#Date').val(new Date().toISOString().split('T')[0]);
+
+            // Handle form submission
+            $('#attendanceForm').on('submit', function(e) {
+                e.preventDefault();
+                
+                const data = {
+                    teacherId: $('#TeacherId').val(),
+                    subjectId: $('#SubjectId').val(),
+                    divisionId: $('#DivisionId').val(),
+                    date: $('#Date').val(),
+                    discussionTopic: $('#discussionTopic').val(),
+                    students: []
+                };
+
+                $('.student-row').each(function() {
+                    const row = $(this);
+                    data.students.push({
+                        studentId: row.data('student-id'),
+                        isPresent: row.find('input[type="radio"]:checked').val() === 'true'
+                    });
+                });
+
+                $.ajax({
+                    url: '/Attendance/MarkAttendance',
+                    type: 'POST',
+                    data: JSON.stringify(data),
+                    contentType: 'application/json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Success',
+                                text: response.message,
+                                icon: 'success'
+                            }).then(() => {
+                                $('#discussionTopic').val('');
+                                $('#studentList').empty();
+                                $('#saveAttendance').hide();
+                            });
+                        } else {
+                            Swal.fire('Error', response.message, 'error');
+                        }
+                    },
+                    error: function() {
+                        Swal.fire('Error', 'Failed to mark attendance', 'error');
+                    }
+                });
+
+                return false;
+            });
 
             // Admin: Change handler for Teacher dropdown to update Subject dropdown
             $('#TeacherId').change(function() {
@@ -151,42 +200,6 @@
                     icon: 'error'
                 });
              });
-        }
-
-        function markAttendance(form) {
-            const data = {
-                SubjectId: $('#SubjectId').val(),
-                Date: $('#Date').val(),
-                DiscussionTopic: $('#discussionTopic').val(), // Make sure this is included
-                Students: []
-            };
-
-            $('.student-row').each(function() {
-                const row = $(this);
-                data.Students.push({
-                    StudentId: row.data('student-id'),
-                    IsPresent: row.find('input[type="radio"]:checked').val() === 'true'
-                });
-            });
-
-            $.ajax({
-                url: '/Attendance/MarkAttendance',
-                type: 'POST',
-                data: JSON.stringify(data),
-                contentType: 'application/json',
-                success: function(response) {
-                    if (response.success) {
-                        Swal.fire('Success', response.message, 'success');
-                    } else {
-                        Swal.fire('Error', response.message, 'error');
-                    }
-                },
-                error: function() {
-                    Swal.fire('Error', 'Failed to mark attendance', 'error');
-                }
-            });
-
-            return false;
         }
     </script>
 }

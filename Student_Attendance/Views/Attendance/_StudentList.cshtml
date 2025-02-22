@@ -3,6 +3,16 @@
     int index = 0;
 }
 
+<script>
+    // Set the discussion topic if it exists
+    $(document).ready(function() {
+        var existingTopic = '@ViewBag.ExistingDiscussionTopic';
+        if (existingTopic) {
+            $('#discussionTopic').val(existingTopic);
+        }
+    });
+</script>
+
 @if (!Model.Any())
 {
     <div class="alert alert-info">

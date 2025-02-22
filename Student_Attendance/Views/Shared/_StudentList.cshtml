@@ -1,0 +1,33 @@
+@model List<StudentAttendanceViewModel>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Enrollment No</th>
+            <th>Student Name</th>
+            <th class="text-center">Attendance</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var student in Model)
+        {
+            <tr class="student-row" data-student-id="@student.StudentId">
+                <td>@student.EnrollmentNo</td>
+                <td>@student.StudentName</td>
+                <td class="text-center">
+                    <div class="btn-group" role="group">
+                        <input type="radio" class="btn-check" name="attendance_@student.StudentId" 
+                               id="present_@student.StudentId" value="true" 
+                               @(student.IsPresent ? "checked" : "") autocomplete="off">
+                        <label class="btn btn-outline-success" for="present_@student.StudentId">Present</label>
+
+                        <input type="radio" class="btn-check" name="attendance_@student.StudentId" 
+                               id="absent_@student.StudentId" value="false" 
+                               @(!student.IsPresent ? "checked" : "") autocomplete="off">
+                        <label class="btn btn-outline-danger" for="absent_@student.StudentId">Absent</label>
+                    </div>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

@@ -66,7 +66,7 @@ namespace Student_Attendance.Controllers
 
         // Update existing methods to check permissions
         [HttpPost]
-        public async Task<IActionResult> MarkAttendance(AttendanceViewModel model)
+        public async Task<IActionResult> MarkAttendance([FromBody] AttendanceViewModel model)
         {
             try
             {
@@ -102,7 +102,7 @@ namespace Student_Attendance.Controllers
                         IsPresent = student.IsPresent,
                         TimeStamp = DateTime.Now,
                         MarkedById = User.Identity?.Name ?? "Unknown",
-                        DiscussionTopic = model.DiscussionTopic // Make sure this is set
+                        DiscussionTopic = model.DiscussionTopic // Make sure this is properly set
                     };
                     _context.AttendanceRecords.Add(attendance);
                 }
@@ -257,6 +257,13 @@ namespace Student_Attendance.Controllers
                     }
                 }
 
+                // Get existing discussion topic for this date and subject
+                var existingDiscussionTopic = await _context.AttendanceRecords
+                    .Where(a => a.SubjectId == subjectId && 
+                               a.Date.Date == date.Date)
+                    .Select(a => a.DiscussionTopic)
+                    .FirstOrDefaultAsync();
+
                 // Get students who are mapped to this subject
                 var students = await _context.Students
                     .Include(s => s.StudentSubjects)
@@ -268,7 +275,8 @@ namespace Student_Attendance.Controllers
                         StudentId = s.Id,
                         EnrollmentNo = s.EnrollmentNo,
                         StudentName = s.Name,
-                        IsPresent = true // Default to present
+                        IsPresent = true, // Default to present
+                        DiscussionTopic = existingDiscussionTopic // Add the discussion topic
                     })
                     .ToListAsync();
 
@@ -293,6 +301,7 @@ namespace Student_Attendance.Controllers
                     }
                 }
 
+                ViewBag.ExistingDiscussionTopic = existingDiscussionTopic;
                 return PartialView("_StudentList", students);
             }
             catch (Exception ex)

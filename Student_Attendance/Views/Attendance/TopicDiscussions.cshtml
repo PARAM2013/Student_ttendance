@@ -17,31 +17,37 @@
                     {
                         <div class="col-md-3">
                             <label class="form-label">Teacher</label>
-                            <select asp-for="TeacherId" asp-items="Model.Teachers" class="form-select" required>
-                                <option value="">Select Teacher</option>
+                            <select id="TeacherId" name="TeacherId" class="form-select">
+                                <option value="">All Teachers</option>
+                                @foreach (var item in Model.Teachers)
+                                {
+                                    <option value="@item.Value">@item.Text</option>
+                                }
                             </select>
                         </div>
-                    }
-                    else
-                    {
-                        <input type="hidden" asp-for="TeacherId" />
                     }
                     
                     <div class="col-md-3">
                         <label class="form-label">Subject</label>
-                        <select asp-for="SubjectId" asp-items="Model.Subjects" class="form-select" required>
+                        <select id="SubjectId" name="SubjectId" class="form-select" required>
                             <option value="">Select Subject</option>
+                            @foreach (var item in Model.Subjects)
+                            {
+                                <option value="@item.Value">@item.Text</option>
+                            }
                         </select>
                     </div>
                     
                     <div class="col-md-2">
                         <label class="form-label">Start Date</label>
-                        <input type="date" asp-for="StartDate" class="form-control" required />
+                        <input type="date" id="StartDate" name="StartDate" class="form-control" required 
+                               value="@Model.StartDate.ToString("yyyy-MM-dd")" />
                     </div>
                     
                     <div class="col-md-2">
                         <label class="form-label">End Date</label>
-                        <input type="date" asp-for="EndDate" class="form-control" required />
+                        <input type="date" id="EndDate" name="EndDate" class="form-control" required 
+                               value="@Model.EndDate.ToString("yyyy-MM-dd")" />
                     </div>
                     
                     <div class="col-md-2 d-flex align-items-end">
@@ -62,38 +68,26 @@
 @section Scripts {
     <script>
         $(document).ready(function() {
-            // For admin: Update subjects when teacher changes
-            $('#TeacherId').change(function() {
-                var teacherId = $(this).val();
-                if (teacherId) {
-                    $.get('/Attendance/GetTeacherSubjects', { teacherId: teacherId })
-                        .done(function(response) {
-                            var options = '<option value="">Select Subject</option>';
-                            response.forEach(function(subj) {
-                                options += `<option value="${subj.id}">${subj.name}</option>`;
-                            });
-                            $('#SubjectId').html(options);
-                        })
-                        .fail(function() {
-                            showAlert('Error', 'Failed to load subjects', 'error');
-                        });
-                }
-            });
+            // Generate report on page load with default values
+            generateReport();
         });
 
         function generateReport() {
-            var form = $('#reportForm');
-            var teacherId = $('#TeacherId').val();
+            var teacherId = $('#TeacherId').val() || '';
             var subjectId = $('#SubjectId').val();
             var startDate = $('#StartDate').val();
             var endDate = $('#EndDate').val();
 
             if (!subjectId || !startDate || !endDate) {
-                showAlert('Warning', 'Please fill all required fields', 'warning');
+                Swal.fire({
+                    title: 'Warning',
+                    text: 'Please fill all required fields',
+                    icon: 'warning'
+                });
                 return;
             }
 
-            $('#reportContent').html('<div class="text-center"><i class="fas fa-spinner fa-spin me-2"></i>Generating report...</div>');
+            $('#reportContent').html('<div class="text-center"><div class="spinner-border text-primary" role="status"></div></div>');
 
             $.get('/Attendance/GetTopicDiscussionsReport', {
                 teacherId: teacherId,
@@ -104,8 +98,9 @@
             .done(function(response) {
                 $('#reportContent').html(response);
             })
-            .fail(function() {
-                showAlert('Error', 'Failed to generate report', 'error');
+            .fail(function(xhr, status, error) {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Failed to generate report', 'error');
                 $('#reportContent').html('');
             });
         }

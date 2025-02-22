@@ -9,7 +9,7 @@
 else
 {
     <div class="table-responsive mt-4">
-        <table class="table table-striped table-hover">
+        <table class="table table-striped table-hover" id="topicDiscussionsTable">
             <thead class="table-light">
                 <tr>
                     <th>Date</th>
@@ -26,12 +26,17 @@ else
                         <td>@item.Date.ToString("dd/MM/yyyy")</td>
                         <td>@item.SubjectName</td>
                         <td>@item.TeacherName</td>
-                        <td>@(string.IsNullOrEmpty(item.DiscussionTopic) ? "-" : item.DiscussionTopic)</td>
+                        <td>@item.DiscussionTopic</td>
                         <td class="text-center">
                             @item.StudentsPresent / @item.TotalStudents
                             <div class="progress" style="height: 5px;">
-                                <div class="progress-bar" role="progressbar" 
-                                     style="width: @(item.TotalStudents > 0 ? (item.StudentsPresent * 100 / item.TotalStudents) : 0)%">
+                                @{
+                                    var percentage = item.TotalStudents > 0 
+                                        ? (item.StudentsPresent * 100 / item.TotalStudents) 
+                                        : 0;
+                                }
+                                <div class="progress-bar bg-success" role="progressbar" 
+                                     style="width: @percentage%">
                                 </div>
                             </div>
                         </td>
