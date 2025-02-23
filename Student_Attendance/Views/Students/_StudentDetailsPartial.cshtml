@@ -1,0 +1,61 @@
+@model Student_Attendance.ViewModels.StudentViewModel
+
+<div class="modal-content">
+    <div class="modal-header">
+        <h5 class="modal-title">Student Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="fw-bold">Enrollment No:</label>
+                    <p>@Model.EnrollmentNo</p>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Name:</label>
+                    <p>@Model.Name</p>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Cast:</label>
+                    <p>@(Model.Cast ?? "Not Specified")</p>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Email:</label>
+                    <p>@(Model.Email ?? "Not Specified")</p>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Mobile:</label>
+                    <p>@(Model.Mobile ?? "Not Specified")</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="fw-bold">Course:</label>
+                    <p>@(Model.Course?.Name ?? "Not Assigned")</p>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Semester:</label>
+                    <p>@Model.Semester</p>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Academic Year:</label>
+                    <p>@(Model.AcademicYear?.Name ?? "Not Assigned")</p>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Division:</label>
+                    <p>@(Model.Division?.Name ?? "Not Assigned")</p>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Status:</label>
+                    <p><span class="badge bg-@(Model.IsActive ? "success" : "danger")">
+                        @(Model.IsActive ? "Active" : "Inactive")
+                    </span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+    </div>
+</div>

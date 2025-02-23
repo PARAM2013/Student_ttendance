@@ -667,5 +667,42 @@ namespace Student_Attendance.Controllers
                     $"Students_{DateTime.Now:yyyyMMdd}.xlsx");
             }
         }
+
+        [HttpGet]
+        public async Task<IActionResult> GetDetails(int id)
+        {
+            var student = await _context.Students
+                .Include(s => s.Course)
+                .Include(s => s.AcademicYear)
+                .Include(s => s.Division)
+                .Include(s => s.Class)
+                .FirstOrDefaultAsync(m => m.Id == id);
+
+            if (student == null)
+            {
+                return NotFound();
+            }
+
+            var viewModel = new StudentViewModel
+            {
+                Id = student.Id,
+                EnrollmentNo = student.EnrollmentNo,
+                Name = student.Name,
+                Cast = student.Cast,
+                Email = student.Email,
+                Mobile = student.Mobile,
+                CourseId = student.CourseId,
+                Semester = student.Semester,
+                IsActive = student.IsActive,
+                AcademicYearId = student.AcademicYearId,
+                DivisionId = student.DivisionId,
+                Course = student.Course,
+                AcademicYear = student.AcademicYear,
+                Division = student.Division,
+                Class = student.Class
+            };
+
+            return PartialView("_StudentDetailsPartial", viewModel);
+        }
     }
 }
