@@ -172,7 +172,13 @@ namespace Student_Attendance.Controllers
                 return NotFound();
             }
 
-            var student = await _context.Students.FindAsync(id);
+            var student = await _context.Students
+                .Include(s => s.Course)
+                .Include(s => s.AcademicYear)
+                .Include(s => s.Division)
+                .Include(s => s.Class)  // Make sure Class is included
+                .FirstOrDefaultAsync(s => s.Id == id);
+
             if (student == null)
             {
                 return NotFound();
@@ -187,18 +193,32 @@ namespace Student_Attendance.Controllers
                 Email = student.Email,
                 Mobile = student.Mobile,
                 CourseId = student.CourseId,
+                ClassId = student.ClassId,  // Set the ClassId
                 Semester = student.Semester,
                 IsActive = student.IsActive,
                 AcademicYearId = student.AcademicYearId,
-                DivisionId = student.DivisionId
+                DivisionId = student.DivisionId,
+                Course = student.Course,
+                Class = student.Class,     // Set the Class
+                AcademicYear = student.AcademicYear,
+                Division = student.Division
             };
 
             await LoadStudentDropDowns(viewModel);
-            
-            // Populate Divisions dropdown
-            viewModel.Divisions = _context.Divisions
-                .Select(d => new SelectListItem { Value = d.Id.ToString(), Text = d.Name })
-                .ToList();
+
+            // If a division is selected, populate divisions for the selected class
+            if (student.ClassId > 0)
+            {
+                viewModel.Divisions = await _context.Divisions
+                    .Where(d => d.ClassId == student.ClassId)
+                    .Select(d => new SelectListItem 
+                    { 
+                        Value = d.Id.ToString(), 
+                        Text = d.Name,
+                        Selected = d.Id == student.DivisionId
+                    })
+                    .ToListAsync();
+            }
 
             return View(viewModel);
         }
@@ -304,33 +324,54 @@ namespace Student_Attendance.Controllers
 
         private async Task LoadStudentDropDowns(StudentViewModel model)
         {
-            model.Courses = await _context.Courses.Select(c => new SelectListItem
-            {
-                Value = c.Id.ToString(),
-                Text = c.Name
-            }).ToListAsync();
-
-            model.AcademicYears = await _context.AcademicYears.Select(ay => new SelectListItem
-            {
-                Value = ay.Id.ToString(),
-                Text = ay.Name
-            }).ToListAsync();
-
-            model.Divisions = await _context.Divisions.Select(d => new SelectListItem
-            {
-                Value = d.Id.ToString(),
-                Text = d.Name
-            }).ToListAsync();
-
-            model.Classes = await _context.Classes
+            // Load courses with selected state
+            model.Courses = await _context.Courses
                 .Select(c => new SelectListItem
                 {
                     Value = c.Id.ToString(),
-                    Text = $"{c.Name} ({c.Course.Name})"
-                }).ToListAsync();
+                    Text = c.Name,
+                    Selected = c.Id == model.CourseId
+                })
+                .ToListAsync();
 
-            // Reset Divisions dropdown when loading initially
-            model.Divisions = new List<SelectListItem>();
+            // Load academic years with selected state
+            model.AcademicYears = await _context.AcademicYears
+                .Select(ay => new SelectListItem
+                {
+                    Value = ay.Id.ToString(),
+                    Text = ay.Name,
+                    Selected = ay.Id == model.AcademicYearId
+                })
+                .ToListAsync();
+
+            // Load classes with selected state
+            model.Classes = await _context.Classes
+                .Include(c => c.Course)
+                .Select(c => new SelectListItem
+                {
+                    Value = c.Id.ToString(),
+                    Text = $"{c.Name} ({c.Course.Name})",
+                    Selected = c.Id == model.ClassId
+                })
+                .ToListAsync();
+
+            // Only populate divisions if a class is selected
+            if (model.ClassId.HasValue)
+            {
+                model.Divisions = await _context.Divisions
+                    .Where(d => d.ClassId == model.ClassId)
+                    .Select(d => new SelectListItem
+                    {
+                        Value = d.Id.ToString(),
+                        Text = d.Name,
+                        Selected = d.Id == model.DivisionId
+                    })
+                    .ToListAsync();
+            }
+            else
+            {
+                model.Divisions = new List<SelectListItem>();
+            }
         }
 
         [HttpGet]
