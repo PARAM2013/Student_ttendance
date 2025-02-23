@@ -1,0 +1,92 @@
+@model MonthlyAttendanceReportData
+
+<div class="monthly-report print-friendly">
+    <div class="report-header text-center mb-4">
+        <h3>@Model.InstituteName</h3>
+        <div class="report-info">
+            <div class="row">
+                <div class="col-md-4">
+                    <strong>Teacher:</strong> @Model.TeacherName
+                </div>
+                <div class="col-md-4">
+                    <strong>Subject:</strong> @Model.SubjectInfo
+                </div>
+                <div class="col-md-4">
+                    <strong>Month:</strong> @Model.MonthYear
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <strong>Class:</strong> @Model.ClassInfo
+                </div>
+                <div class="col-md-4">
+                    <strong>Division:</strong> @Model.DivisionName
+                </div>
+                <div class="col-md-4">
+                    <strong>Academic Year:</strong> @Model.AcademicYear
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm">
+            <thead>
+                <tr>
+                    <th style="min-width:200px">Student Details</th>
+                    @foreach (var date in Model.Dates)
+                    {
+                        <th class="text-center" style="min-width:35px">
+                            @date.Day
+                        </th>
+                    }
+                    <th class="text-center">%</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var student in Model.Students)
+                {
+                    <tr>
+                        <td>
+                            <div>@student.EnrollmentNo</div>
+                            <small>@student.StudentName</small>
+                        </td>
+                        @foreach (var date in Model.Dates)
+                        {
+                            <td class="text-center">
+                                @{
+                                    var status = student.AttendanceByDate.GetValueOrDefault(date);
+                                    if (status.HasValue)
+                                    {
+                                        <span class="@(status.Value ? "text-success" : "text-danger")">
+                                            @(status.Value ? "P" : "A")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                }
+                            </td>
+                        }
+                        <td class="text-center">
+                            @{
+                                var totalDays = student.AttendanceByDate.Count(x => x.Value.HasValue);
+                                var presentDays = student.AttendanceByDate.Count(x => x.Value == true);
+                                var percentage = totalDays > 0 ? (presentDays * 100.0 / totalDays) : 0;
+                                @($"{percentage:F1}%")
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="report-footer text-center mt-4">
+        <small class="text-muted">
+            Generated on @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
+            | @Context.Request.Host
+        </small>
+    </div>
+</div>

@@ -574,3 +574,53 @@ input[type="month"] {
         padding: 8px;
     }
 }
+
+/* Monthly Report Print Styles */
+@media print {
+    .monthly-report {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    .monthly-report .report-header {
+        margin-bottom: 20px;
+    }
+
+    .monthly-report .report-footer {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+    }
+
+    .monthly-report table { 
+        page-break-inside: auto;
+        width: 100%;
+    }
+
+    .monthly-report tr { 
+        page-break-inside: avoid;
+    }
+
+    .monthly-report thead { 
+        display: table-header-group;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+
+    /* Additional print optimizations */
+    @page {
+        size: landscape;
+        margin: 1cm;
+    }
+
+    body {
+        min-width: 992px !important;
+    }
+
+    .container {
+        min-width: 992px !important;
+    }
+}

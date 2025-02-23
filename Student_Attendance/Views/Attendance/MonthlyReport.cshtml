@@ -1,0 +1,148 @@
+@model MonthlyReportViewModel
+@{
+    ViewData["Title"] = "Monthly Attendance Report - Subject Wise";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-calendar-alt me-2"></i>Monthly Attendance Report  - Subject Wise</h3>
+    </div>
+    <div class="card-body">
+        <form id="reportForm" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Teacher</label>
+                @if (User.IsInRole("Admin"))
+                {
+                    <select id="TeacherId" name="TeacherId" class="form-select" required>
+                        <option value="">Select Teacher</option>
+                        @foreach (var item in Model.Teachers)
+                        {
+                            <option value="@item.Value">@item.Text</option>
+                        }
+                    </select>
+                }
+                else
+                {
+                    <input type="text" class="form-control" value="@User.Identity.Name" readonly />
+                    <input type="hidden" id="TeacherId" name="TeacherId" value="@Model.TeacherId" />
+                }
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Subject</label>
+                <select id="SubjectId" name="SubjectId" class="form-select" required>
+                    <option value="">Select Subject</option>
+                    @if (!User.IsInRole("Admin"))
+                    {
+                        @foreach (var item in Model.Subjects)
+                        {
+                            <option value="@item.Value">@item.Text</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Month & Year</label>
+                <input type="month" id="reportMonth" name="reportMonth" class="form-control" 
+                       required value="@DateTime.Now.ToString("yyyy-MM")" />
+            </div>
+
+            <div class="col-md-3 d-flex align-items-end">
+                <div class="form-check">
+                    <input type="checkbox" id="skipEmptyDates" name="skipEmptyDates" 
+                           class="form-check-input" />
+                    <label class="form-check-label">Skip Empty Dates</label>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search me-2"></i>Generate Report
+                </button>
+                <button type="button" id="exportPdf" class="btn btn-secondary" style="display:none">
+                    <i class="fas fa-file-pdf me-2"></i>Export PDF
+                </button>
+            </div>
+        </form>
+
+        <div id="reportContent" class="mt-4"></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Handle teacher change (admin only)
+            $('#TeacherId').change(function() {
+                loadSubjects();
+            });
+
+            // Handle form submission
+            $('#reportForm').on('submit', function(e) {
+                e.preventDefault();
+                generateReport();
+            });
+
+            // Handle PDF export
+            $('#exportPdf').click(function() {
+                exportToPdf();
+            });
+
+            // Initial subjects load for teacher (if value exists)
+            if ($('#TeacherId').val()) {
+                loadSubjects();
+            }
+        });
+
+        function loadSubjects() {
+            var teacherId = $('#TeacherId').val();
+            if (!teacherId) return;
+
+            $.get('/Attendance/GetTeacherSubjects', { teacherId: teacherId })
+                .done(function(data) {
+                    var options = '<option value="">Select Subject</option>';
+                    data.forEach(function(subject) {
+                        options += `<option value="${subject.id}">${subject.name}</option>`;
+                    });
+                    $('#SubjectId').html(options);
+                })
+                .fail(function() {
+                    Swal.fire('Error', 'Failed to load subjects', 'error');
+                });
+        }
+
+        function generateReport() {
+            var data = {
+                teacherId: $('#TeacherId').val(),
+                subjectId: $('#SubjectId').val(),
+                reportMonth: $('#reportMonth').val(),
+                skipEmptyDates: $('#skipEmptyDates').is(':checked')
+            };
+
+            $('#reportContent').html('<div class="text-center"><div class="spinner-border"></div></div>');
+
+            $.get('/Attendance/GetMonthlyReport', data)
+                .done(function(response) {
+                    $('#reportContent').html(response);
+                    $('#exportPdf').show();
+                })
+                .fail(function() {
+                    Swal.fire('Error', 'Failed to generate report', 'error');
+                    $('#reportContent').empty();
+                    $('#exportPdf').hide();
+                });
+        }
+
+        function exportToPdf() {
+            var data = {
+                teacherId: $('#TeacherId').val(),
+                subjectId: $('#SubjectId').val(),
+                reportMonth: $('#reportMonth').val(),
+                skipEmptyDates: $('#skipEmptyDates').is(':checked')
+            };
+
+            window.location.href = '/Attendance/ExportMonthlyReport?' + $.param(data);
+        }
+    </script>
+}

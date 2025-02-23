@@ -38,7 +38,9 @@
                             <td class="date-column @(date.DayOfWeek == DayOfWeek.Sunday ? "sunday-column" : "")" 
                                 data-date="@date.ToString("yyyy-MM-dd")">
                                 <input type="checkbox" class="attendance-checkbox attendanceChk" 
-                                       @(isChecked ? "checked" : "") />
+                                       data-marked="false"
+                                       @(isChecked ? "checked" : "") 
+                                       onchange="this.dataset.marked='true'" />
                             </td>
                         }
                     </tr>
@@ -55,7 +57,9 @@ $(document).ready(function(){
         var date = $(this).data('date');
         var checked = $(this).is(':checked');
         $('#bulkGrid tbody tr').each(function(){
-            $(this).find('td[data-date="'+date+'"] input.attendanceChk').prop('checked', checked);
+            var checkbox = $(this).find('td[data-date="'+date+'"] input.attendanceChk');
+            checkbox.prop('checked', checked);
+            checkbox.data('marked', true);
         });
     });
 

@@ -161,8 +161,11 @@
                 attendanceData[studentId] = {};
                 $(this).find('td.date-column').each(function(){
                     var date = $(this).data('date'); 
-                    var isPresent = $(this).find('input.attendanceChk').is(':checked');
-                    attendanceData[studentId][date] = isPresent;
+                    var checkbox = $(this).find('input.attendanceChk');
+                    // Only include dates where attendance was explicitly marked
+                    if(checkbox.data('marked')) {
+                        attendanceData[studentId][date] = checkbox.is(':checked');
+                    }
                 });
             });
 
