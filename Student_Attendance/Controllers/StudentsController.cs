@@ -577,46 +577,127 @@ namespace Student_Attendance.Controllers
 
             try
             {
+                int newStudentsCount = 0;
+                int updatedStudentsCount = 0;
+
                 using var stream = model.File.OpenReadStream();
                 using var package = new ExcelPackage(stream);
                 var worksheet = package.Workbook.Worksheets[0];
                 var rowCount = worksheet.Dimension?.Rows ?? 0;
 
+                // First, validate all data
+                var validationErrors = new List<string>();
+                for (int row = 2; row <= rowCount; row++)
+                {
+                    var enrollmentNo = worksheet.Cells[row, 1].Value?.ToString();
+                    if (string.IsNullOrEmpty(enrollmentNo)) continue;
+
+                    // Parse semester value - improved parsing logic
+                    var semesterValue = worksheet.Cells[row, 9].Value;
+                    if (semesterValue == null)
+                    {
+                        validationErrors.Add($"Row {row}: Semester is required");
+                        continue;
+                    }
+
+                    // Handle both string and number formats
+                    int semester;
+                    if (semesterValue is double || semesterValue is int)
+                    {
+                        semester = Convert.ToInt32(semesterValue);
+                    }
+                    else if (!int.TryParse(semesterValue.ToString(), out semester))
+                    {
+                        validationErrors.Add($"Row {row}: Invalid semester value '{semesterValue}'. Must be a number between 1 and 12.");
+                        continue;
+                    }
+
+                    if (semester < 1 || semester > 12)
+                    {
+                        validationErrors.Add($"Row {row}: Semester must be between 1 and 12. Found: {semester}");
+                        continue;
+                    }
+
+                    // Validate other required fields
+                    var name = worksheet.Cells[row, 2].Value?.ToString();
+                    var courseName = worksheet.Cells[row, 6].Value?.ToString();
+                    var divisionName = worksheet.Cells[row, 8].Value?.ToString();
+                    var academicYearName = worksheet.Cells[row, 10].Value?.ToString();
+
+                    if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(courseName) || 
+                        string.IsNullOrEmpty(divisionName) || string.IsNullOrEmpty(academicYearName))
+                    {
+                        validationErrors.Add($"Row {row}: Missing required fields (Name, Course, Division, or Academic Year)");
+                    }
+                }
+
+                if (validationErrors.Any())
+                {
+                    model.ImportErrors.AddRange(validationErrors);
+                    model.ErrorCount = validationErrors.Count;
+                    return View(model);
+                }
+
+                // Process the data
                 for (int row = 2; row <= rowCount; row++)
                 {
                     try
                     {
-                        var enrollmentNo = worksheet.Cells[row, 1].Value?.ToString();
+                        var enrollmentNo = worksheet.Cells[row, 1].Value?.ToString()?.Trim();
                         if (string.IsNullOrEmpty(enrollmentNo)) continue;
 
                         var student = await _context.Students
                             .FirstOrDefaultAsync(s => s.EnrollmentNo == enrollmentNo);
-                        
+
                         bool isNewStudent = student == null;
+
                         if (isNewStudent)
                         {
-                            student = new Student();
+                            var lastStudent = await _context.Students
+                                .OrderByDescending(s => s.Id)
+                                .FirstOrDefaultAsync();
+                            
+                            int nextNumber = (lastStudent?.Id ?? 0) + 1;
+                            string ssid = $"S{nextNumber:D3}";
+
+                            student = new Student
+                            {
+                                SSID = ssid,
+                                EnrollmentNo = enrollmentNo,
+                                IsActive = true
+                            };
+                            newStudentsCount++;
+                        }
+                        else
+                        {
+                            updatedStudentsCount++;
                         }
 
                         // Update student properties
-                        student.EnrollmentNo = enrollmentNo;
-                        student.Name = worksheet.Cells[row, 2].Value?.ToString();
-                        student.Email = worksheet.Cells[row, 3].Value?.ToString();
-                        student.Mobile = worksheet.Cells[row, 4].Value?.ToString();
-                        student.Cast = worksheet.Cells[row, 5].Value?.ToString();
+                        student.Name = worksheet.Cells[row, 2].Value?.ToString()?.Trim();
+                        student.Email = worksheet.Cells[row, 3].Value?.ToString()?.Trim();
+                        student.Mobile = worksheet.Cells[row, 4].Value?.ToString()?.Trim();
+                        student.Cast = worksheet.Cells[row, 5].Value?.ToString()?.Trim();
+                        
+                        // Safely parse semester
+                        var semesterValue = worksheet.Cells[row, 9].Value;
+                        student.Semester = Convert.ToInt32(semesterValue);
 
-                        // Get or create related entities
-                        var courseName = worksheet.Cells[row, 6].Value?.ToString();
-                        var className = worksheet.Cells[row, 7].Value?.ToString();
-                        var divisionName = worksheet.Cells[row, 8].Value?.ToString();
-                        var semester = Convert.ToInt32(worksheet.Cells[row, 9].Value);
-                        var academicYearName = worksheet.Cells[row, 10].Value?.ToString();
+                        var courseName = worksheet.Cells[row, 6].Value?.ToString()?.Trim();
+                        var className = worksheet.Cells[row, 7].Value?.ToString()?.Trim();
+                        var divisionName = worksheet.Cells[row, 8].Value?.ToString()?.Trim();
+                        var academicYearName = worksheet.Cells[row, 10].Value?.ToString()?.Trim();
 
-                        var course = await _context.Courses.FirstOrDefaultAsync(c => c.Name == courseName);
-                        var division = await _context.Divisions.FirstOrDefaultAsync(d => d.Name == divisionName);
-                        var academicYear = await _context.AcademicYears.FirstOrDefaultAsync(a => a.Name == academicYearName);
-                        var class_ = !string.IsNullOrEmpty(className) ? 
-                            await _context.Classes.FirstOrDefaultAsync(c => c.Name == className) : null;
+                        // Get related entities
+                        var course = await _context.Courses
+                            .FirstOrDefaultAsync(c => c.Name.Equals(courseName, StringComparison.OrdinalIgnoreCase));
+                        var division = await _context.Divisions
+                            .FirstOrDefaultAsync(d => d.Name.Equals(divisionName, StringComparison.OrdinalIgnoreCase));
+                        var academicYear = await _context.AcademicYears
+                            .FirstOrDefaultAsync(a => a.Name.Equals(academicYearName, StringComparison.OrdinalIgnoreCase));
+                        var class_ = !string.IsNullOrEmpty(className) 
+                            ? await _context.Classes.FirstOrDefaultAsync(c => c.Name.Equals(className, StringComparison.OrdinalIgnoreCase)) 
+                            : null;
 
                         if (course == null || division == null || academicYear == null)
                         {
@@ -627,8 +708,6 @@ namespace Student_Attendance.Controllers
                         student.DivisionId = division.Id;
                         student.AcademicYearId = academicYear.Id;
                         student.ClassId = class_?.Id ?? 0;
-                        student.Semester = semester;
-                        student.IsActive = true;
 
                         if (isNewStudent)
                         {
@@ -640,29 +719,6 @@ namespace Student_Attendance.Controllers
                         }
 
                         await _context.SaveChangesAsync();
-
-                        // Map subjects if class is specified
-                        if (class_ != null)
-                        {
-                            var subjects = await _context.Subjects
-                                .Where(s => s.ClassId == class_.Id && s.Semester == semester)
-                                .ToListAsync();
-
-                            foreach (var subject in subjects)
-                            {
-                                if (!await _context.StudentSubjects.AnyAsync(ss => 
-                                    ss.StudentId == student.Id && ss.SubjectId == subject.Id))
-                                {
-                                    await _context.StudentSubjects.AddAsync(new StudentSubject
-                                    {
-                                        StudentId = student.Id,
-                                        SubjectId = subject.Id
-                                    });
-                                }
-                            }
-                            await _context.SaveChangesAsync();
-                        }
-
                         model.SuccessCount++;
                     }
                     catch (Exception ex)
@@ -671,6 +727,10 @@ namespace Student_Attendance.Controllers
                         model.ErrorCount++;
                     }
                 }
+
+                // Update the view model with counts
+                model.NewStudentsCount = newStudentsCount;
+                model.UpdatedStudentsCount = updatedStudentsCount;
 
                 return View(model);
             }
@@ -761,14 +821,27 @@ namespace Student_Attendance.Controllers
 
                 // Add headers
                 var headers = new[] { 
-                    "EnrollmentNo", "Name", "Email", "Mobile", "Cast", 
-                    "Course", "Class", "Division", "Semester", "AcademicYear" 
+                    "SSID", // Added SSID column
+                    "EnrollmentNo",
+                    "Name",
+                    "Email",
+                    "Mobile",
+                    "Cast",
+                    "Course",
+                    "Class",
+                    "Division",
+                    "Semester", 
+                    "AcademicYear",
+                    "Status"  // Added Status column
                 };
                 
+                // Style header row
                 for (int i = 0; i < headers.Length; i++)
                 {
                     worksheet.Cells[1, i + 1].Value = headers[i];
                     worksheet.Cells[1, i + 1].Style.Font.Bold = true;
+                    worksheet.Cells[1, i + 1].Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
+                    worksheet.Cells[1, i + 1].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
                 }
 
                 var students = await _context.Students
@@ -776,29 +849,34 @@ namespace Student_Attendance.Controllers
                     .Include(s => s.Class)
                     .Include(s => s.Division)
                     .Include(s => s.AcademicYear)
+                    .OrderByDescending(s => s.Id) // Newest first
                     .ToListAsync();
 
                 int row = 2;
                 foreach (var student in students)
                 {
-                    worksheet.Cells[row, 1].Value = student.EnrollmentNo;
-                    worksheet.Cells[row, 2].Value = student.Name;
-                    worksheet.Cells[row, 3].Value = student.Email;
-                    worksheet.Cells[row, 4].Value = student.Mobile;
-                    worksheet.Cells[row, 5].Value = student.Cast;
-                    worksheet.Cells[row, 6].Value = student.Course?.Name;
-                    worksheet.Cells[row, 7].Value = student.Class?.Name;
-                    worksheet.Cells[row, 8].Value = student.Division?.Name;
-                    worksheet.Cells[row, 9].Value = student.Semester;
-                    worksheet.Cells[row, 10].Value = student.AcademicYear?.Name;
+                    int col = 1;
+                    worksheet.Cells[row, col++].Value = student.SSID;
+                    worksheet.Cells[row, col++].Value = student.EnrollmentNo;
+                    worksheet.Cells[row, col++].Value = student.Name;
+                    worksheet.Cells[row, col++].Value = student.Email;
+                    worksheet.Cells[row, col++].Value = student.Mobile;
+                    worksheet.Cells[row, col++].Value = student.Cast;
+                    worksheet.Cells[row, col++].Value = student.Course?.Name;
+                    worksheet.Cells[row, col++].Value = student.Class?.Name;
+                    worksheet.Cells[row, col++].Value = student.Division?.Name;
+                    worksheet.Cells[row, col++].Value = student.Semester;
+                    worksheet.Cells[row, col++].Value = student.AcademicYear?.Name;
+                    worksheet.Cells[row, col++].Value = student.IsActive ? "Active" : "Inactive";
                     row++;
                 }
 
-                worksheet.Cells.AutoFitColumns();
+                // Auto-fit columns
+                worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
 
                 var content = package.GetAsByteArray();
-                return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
-                    $"Students_{DateTime.Now:yyyyMMdd}.xlsx");
+                var fileName = $"Students_Export_{DateTime.Now:yyyy-MM-dd}.xlsx";
+                return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
             }
         }
 
