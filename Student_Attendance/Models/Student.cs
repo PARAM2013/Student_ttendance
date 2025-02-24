@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Student_Attendance.Models
 {
     public class Student
@@ -28,6 +29,7 @@ namespace Student_Attendance.Models
 
         [StringLength(15)]
         public string? Mobile { get; set; }
+
         [Required]
         public int CourseId { get; set; }
         [ForeignKey("CourseId")]
@@ -42,6 +44,7 @@ namespace Student_Attendance.Models
         public int AcademicYearId { get; set; }
         [ForeignKey("AcademicYearId")]
         public AcademicYear AcademicYear { get; set; }
+
         [Required]
         public int DivisionId { get; set; }
         [ForeignKey("DivisionId")]
@@ -51,5 +54,12 @@ namespace Student_Attendance.Models
         public Class Class { get; set; }
 
         public virtual ICollection<StudentSubject> StudentSubjects { get; set; }
+        public virtual ICollection<AttendanceRecord> AttendanceRecords { get; set; }
+
+        public Student()
+        {
+            StudentSubjects = new HashSet<StudentSubject>();
+            AttendanceRecords = new HashSet<AttendanceRecord>();
+        }
     }
 }

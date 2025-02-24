@@ -22,21 +22,54 @@ namespace Student_Attendance.Controllers
         public async Task<IActionResult> Index()
         {
             var institute = await _context.Institutes.FirstOrDefaultAsync();
-            
-            // Get current date
             var today = DateTime.Today;
 
-            // Calculate statistics
+            // Basic stats
             ViewBag.TotalStudents = await _context.Students.CountAsync();
-            ViewBag.TotalCourses = await _context.Courses.CountAsync();
-            
-            // Get today's attendance
-            var todayAttendance = await _context.AttendanceRecords
-                .Where(a => a.Date.Date == today)
+            ViewBag.TotalTeachers = await _context.Users.CountAsync(u => u.Role == "Teacher");
+
+            // Get course-wise statistics
+            var courseStats = await _context.Courses
+                .Select(c => new
+                {
+                    CourseName = c.Name,
+                    TotalStudents = c.Students.Count(),
+                    TotalTeachers = c.Subjects.SelectMany(s => s.TeacherSubjects).Select(ts => ts.UserId).Distinct().Count(),
+                    TodayAttendance = c.Students
+                        .SelectMany(s => s.StudentSubjects)
+                        .SelectMany(ss => ss.Subject.AttendanceRecords)
+                        .Where(ar => ar.Date.Date == today)
+                        .GroupBy(ar => ar.StudentId)
+                        .Select(g => g.First())
+                        .Count(ar => ar.IsPresent),
+                    TodayAbsent = c.Students
+                        .SelectMany(s => s.StudentSubjects)
+                        .SelectMany(ss => ss.Subject.AttendanceRecords)
+                        .Where(ar => ar.Date.Date == today)
+                        .GroupBy(ar => ar.StudentId)
+                        .Select(g => g.First())
+                        .Count(ar => !ar.IsPresent)
+                })
                 .ToListAsync();
-            
-            ViewBag.PresentToday = todayAttendance.Count(a => a.IsPresent);
-            ViewBag.AbsentToday = todayAttendance.Count(a => !a.IsPresent);
+
+            // Get class-wise statistics
+            var classStats = await _context.Classes
+                .Select(c => new
+                {
+                    ClassName = c.Name,
+                    TotalStudents = c.Students.Count(),
+                    TodayAttendance = c.Students
+                        .SelectMany(s => s.StudentSubjects)
+                        .SelectMany(ss => ss.Subject.AttendanceRecords)
+                        .Where(ar => ar.Date.Date == today)
+                        .GroupBy(ar => ar.StudentId)
+                        .Select(g => g.First())
+                        .Count(ar => ar.IsPresent)
+                })
+                .ToListAsync();
+
+            ViewBag.CourseStats = courseStats;
+            ViewBag.ClassStats = classStats;
 
             return View(institute);
         }

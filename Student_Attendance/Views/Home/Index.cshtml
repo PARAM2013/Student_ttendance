@@ -1,11 +1,9 @@
 ﻿@model Student_Attendance.Models.Institute
 
 @{
-    // Set institute info for menu (_Layout)
+    ViewData["Title"] = "Dashboard";
     ViewBag.ShortName = Model?.ShortName ?? "SAS";
     ViewBag.Logo = string.IsNullOrEmpty(Model?.Logo) ? "/images/default-logo.png" : Model.Logo;
-    
-    ViewData["Title"] = "Dashboard";
 }
 
 <div class="container-fluid py-4">
@@ -29,7 +27,7 @@
         </div>
     </div>
 
-    <!-- Quick Stats -->
+    <!-- Overall Stats -->
     <div class="row mb-4">
         <div class="col-md-3 col-sm-6 mb-3">
             <div class="card bg-primary text-white shadow-sm">
@@ -45,40 +43,110 @@
             </div>
         </div>
         <div class="col-md-3 col-sm-6 mb-3">
-            <div class="card bg-success text-white shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title mb-0">Present Today</h6>
-                            <h2 class="mb-0">@ViewBag.PresentToday</h2>
-                        </div>
-                        <i class="fas fa-check-circle fa-2x opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-sm-6 mb-3">
-            <div class="card bg-danger text-white shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title mb-0">Absent Today</h6>
-                            <h2 class="mb-0">@ViewBag.AbsentToday</h2>
-                        </div>
-                        <i class="fas fa-times-circle fa-2x opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-sm-6 mb-3">
             <div class="card bg-info text-white shadow-sm">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="card-title mb-0">Total Courses</h6>
-                            <h2 class="mb-0">@ViewBag.TotalCourses</h2>
+                            <h6 class="card-title mb-0">Total Teachers</h6>
+                            <h2 class="mb-0">@ViewBag.TotalTeachers</h6>
                         </div>
-                        <i class="fas fa-book fa-2x opacity-50"></i>
+                        <i class="fas fa-chalkboard-teacher fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Combined Course and Class Stats Row -->
+    <div class="row mb-4">
+        <!-- Course-wise Stats -->
+        <div class="col-md-6 mb-4 mb-md-0">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Course-wise Attendance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Course</th>
+                                    <th class="text-center">Students</th>
+                                    <th class="text-center">Present</th>
+                                    <th class="text-center">Absent</th>
+                                    <th class="text-center">%</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var stat in ViewBag.CourseStats)
+                                {
+                                    var totalStudents = stat.TotalStudents;
+                                    var attendancePercentage = totalStudents > 0 
+                                        ? (stat.TodayAttendance * 100.0 / totalStudents) 
+                                        : 0;
+                                    <tr>
+                                        <td>@stat.CourseName</td>
+                                        <td class="text-center">@totalStudents</td>
+                                        <td class="text-center text-success">@stat.TodayAttendance</td>
+                                        <td class="text-center text-danger">@stat.TodayAbsent</td>
+                                        <td class="text-center">
+                                            <div class="progress" style="height: 15px;">
+                                                <div class="progress-bar bg-success" 
+                                                     role="progressbar" 
+                                                     style="width: @attendancePercentage%">
+                                                    @attendancePercentage.ToString("F1")%
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Class-wise Stats -->
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Class-wise Attendance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Class</th>
+                                    <th class="text-center">Students</th>
+                                    <th class="text-center">Present</th>
+                                    <th class="text-center">%</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var stat in ViewBag.ClassStats)
+                                {
+                                    var attendancePercentage = stat.TotalStudents > 0 
+                                        ? (stat.TodayAttendance * 100.0 / stat.TotalStudents) 
+                                        : 0;
+                                    <tr>
+                                        <td>@stat.ClassName</td>
+                                        <td class="text-center">@stat.TotalStudents</td>
+                                        <td class="text-center">@stat.TodayAttendance</td>
+                                        <td class="text-center">
+                                            <div class="progress" style="height: 15px;">
+                                                <div class="progress-bar bg-success" 
+                                                     role="progressbar" 
+                                                     style="width: @attendancePercentage%">
+                                                    @attendancePercentage.ToString("F1")%
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -107,15 +175,15 @@
                             </a>
                         </div>
                         <div class="col-md-3 col-sm-6">
-                            <a asp-controller="Reports" asp-action="Index" class="btn btn-outline-info w-100 p-4">
-                                <i class="fas fa-chart-bar fa-2x mb-2"></i>
-                                <div>View Reports</div>
+                            <a asp-controller="Attendance" asp-action="MonthlyReport" class="btn btn-outline-info w-100 p-4">
+                                <i class="fas fa-calendar-alt fa-2x mb-2"></i>
+                                <div>Monthly Attendance Report</div>
                             </a>
                         </div>
                         <div class="col-md-3 col-sm-6">
-                            <a asp-controller="Academic" asp-action="Subjects" class="btn btn-outline-secondary w-100 p-4">
-                                <i class="fas fa-book-open fa-2x mb-2"></i>
-                                <div>Manage Subjects</div>
+                            <a asp-controller="Attendance" asp-action="TopicDiscussions" class="btn btn-outline-secondary w-100 p-4">
+                                <i class="fas fa-comments fa-2x mb-2"></i>
+                                <div>Topic Discussions Report</div>
                             </a>
                         </div>
                     </div>
@@ -155,6 +223,32 @@
         }
         .opacity-50 {
             opacity: 0.5;
+        }
+        .progress {
+            background-color: #e9ecef;
+            border-radius: 0.25rem;
+        }
+        .table th {
+            background-color: #f8f9fa;
+        }
+        .table-sm td, .table-sm th {
+            padding: 0.3rem;
+            font-size: 0.9rem;
+        }
+        .progress {
+            margin-bottom: 0;
+            min-width: 50px;
+        }
+        .table-responsive {
+            scrollbar-width: thin;
+        }
+        .table-responsive::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .table-responsive::-webkit-scrollbar-thumb {
+            background-color: rgba(0,0,0,.2);
+            border-radius: 3px;
         }
     </style>
 }
