@@ -103,11 +103,7 @@
 
     <div class="report-footer text-center mt-4">
         <small class="text-muted">
-            Generated on @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
-            @if (!string.IsNullOrEmpty(Model.WebsiteUrl))
-            {
-                <span>| @Model.WebsiteUrl</span>
-            }
+            Report Generated on @DateTime.Now.ToString("dd/MM/yyyy HH:mm") | @Model.WebsiteUrl
         </small>
     </div>
 </div>

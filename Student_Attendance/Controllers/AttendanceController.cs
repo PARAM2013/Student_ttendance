@@ -19,6 +19,8 @@ using iText.IO.Font.Constants;
 using iText.Kernel.Font;
 using iText.IO.Font;
 using iText.Layout.Borders;
+using iText.Kernel.Events;  // Add this at the top with other using statements
+using iText.Kernel.Pdf.Canvas;  // Add this for PdfCanvas
 
 namespace Student_Attendance.Controllers
 {
@@ -774,116 +776,109 @@ namespace Student_Attendance.Controllers
                 var pdf = new PdfDocument(writer);
                 var document = new Document(pdf, PageSize.A4.Rotate());
 
-                // Set default fonts
-                PdfFont font = PdfFontFactory.CreateFont(StandardFonts.HELVETICA);
-                PdfFont boldFont = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
-                document.SetFont(font);
+                // Set smaller margins
+                document.SetMargins(15, 10, 25, 10);  // top, right, bottom, left
 
-                // Institute Header
-                var headerTable = new Table(1).UseAllAvailableWidth().SetMarginBottom(10);
+                // Add page numbers
+                pdf.AddEventHandler(PdfDocumentEvent.END_PAGE, new PageNumberEventHandler());
+
+                // Header - Only on first page
+                var headerTable = new Table(1).UseAllAvailableWidth().SetMarginBottom(5);
                 headerTable.AddCell(CreateCell(reportData.InstituteName)
-                    .SetFont(boldFont)
-                    .SetFontSize(16)
+                    .SetFont(PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD))
+                    .SetFontSize(14)
                     .SetTextAlignment(TextAlignment.CENTER)
-                    .SetBorder(new SolidBorder(0)));
+                    .SetBorder(new SolidBorder(0))
+                    .SetPadding(2));
 
                 if (!string.IsNullOrEmpty(reportData.InstituteAddress))
                 {
                     headerTable.AddCell(CreateCell(reportData.InstituteAddress)
-                        .SetFontSize(10)
+                        .SetFontSize(8)
                         .SetTextAlignment(TextAlignment.CENTER)
-                        .SetBorder(new SolidBorder(0)));
+                        .SetBorder(new SolidBorder(0))
+                        .SetPadding(2));
                 }
                 document.Add(headerTable);
 
-                // Title
+                // Report Title
                 document.Add(new Paragraph("Monthly Attendance Report")
                     .SetTextAlignment(TextAlignment.CENTER)
-                    .SetFont(boldFont)
-                    .SetFontSize(14)
-                    .SetMarginBottom(10));
+                    .SetFont(PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD))
+                    .SetFontSize(12)
+                    .SetMarginBottom(5));
 
-                // Basic Info Table
-                var infoTable = new Table(3).UseAllAvailableWidth();
+                // Info Table - Only on first page
+                var infoTable = new Table(3).UseAllAvailableWidth().SetMarginBottom(5);
+                AddCompactInfoRow(infoTable, "Teacher", reportData.TeacherName);
+                AddCompactInfoRow(infoTable, "Subject", reportData.SubjectInfo);
+                AddCompactInfoRow(infoTable, "Month", reportData.MonthYear);
                 
-                // Row 1
-                AddInfoCell(infoTable, "Teacher", reportData.TeacherName);
-                AddInfoCell(infoTable, "Subject", reportData.SubjectInfo);
-                AddInfoCell(infoTable, "Month", reportData.MonthYear);
-
-                // Row 2
                 if (!string.IsNullOrEmpty(reportData.CourseName))
-                {
-                    AddInfoCell(infoTable, "Course", reportData.CourseName);
-                }
-                AddInfoCell(infoTable, "Class", reportData.ClassInfo);
+                    AddCompactInfoRow(infoTable, "Course", reportData.CourseName);
+                    
+                AddCompactInfoRow(infoTable, "Class", reportData.ClassInfo);
+                
                 if (!string.IsNullOrEmpty(reportData.Specialization))
-                {
-                    AddInfoCell(infoTable, "Specialization", reportData.Specialization);
-                }
-
-                // Row 3
-                AddInfoCell(infoTable, "Division", reportData.DivisionName);
-                AddInfoCell(infoTable, "Academic Year", reportData.AcademicYear);
+                    AddCompactInfoRow(infoTable, "Specialization", reportData.Specialization);
+                    
+                AddCompactInfoRow(infoTable, "Division", reportData.DivisionName);
+                AddCompactInfoRow(infoTable, "Academic Year", reportData.AcademicYear);
                 document.Add(infoTable);
 
-                // Attendance Table
+                // Optimize column widths
                 float[] columnWidths = new float[reportData.Dates.Count + 2];
-                columnWidths[0] = 150f; // Student details column
+                columnWidths[0] = 120f; // Student details
                 for (int i = 1; i < columnWidths.Length - 1; i++)
-                    columnWidths[i] = 35f; // Date columns
-                columnWidths[columnWidths.Length - 1] = 40f; // Percentage column
+                    columnWidths[i] = 25f; // Date columns
+                columnWidths[columnWidths.Length - 1] = 25f; // Percentage column - reduced
 
+                // Split students into groups of 40 per page (after first page)
+                var firstPageCount = 30; // Fewer students on first page due to header
+                var remainingPagesCount = 40; // More students on subsequent pages
+
+                var firstPageStudents = reportData.Students.Take(firstPageCount).ToList();
+                var remainingStudents = reportData.Students.Skip(firstPageCount)
+                    .Select((x, i) => new { Student = x, Index = i })
+                    .GroupBy(x => x.Index / remainingPagesCount)
+                    .Select(g => g.Select(x => x.Student).ToList())
+                    .ToList();
+
+                // First page
                 var table = new Table(UnitValue.CreatePointArray(columnWidths))
                     .UseAllAvailableWidth()
-                    .SetMarginTop(20);
-
-                // Table Header
-                table.AddCell(CreateHeaderCell("Student Details"));
-                foreach (var date in reportData.Dates)
+                    .SetMarginTop(5);
+                AddTableHeader(table, reportData.Dates);
+                foreach (var student in firstPageStudents)
                 {
-                    table.AddCell(CreateHeaderCell(date.Day.ToString()));
-                }
-                table.AddCell(CreateHeaderCell("%"));
-
-                // Table Data
-                foreach (var student in reportData.Students)
-                {
-                    // Student Info
-                    table.AddCell(CreateCell($"{student.EnrollmentNo}\n{student.StudentName}"));
-
-                    // Attendance Cells
-                    int presentCount = 0;
-                    int totalDays = 0;
-                    foreach (var date in reportData.Dates)
-                    {
-                        var status = student.AttendanceByDate.GetValueOrDefault(date);
-                        if (status.HasValue)
-                        {
-                            totalDays++;
-                            if (status.Value) presentCount++;
-                        }
-                        table.AddCell(CreateCell(status.HasValue ? (status.Value ? "P" : "A") : "-"));
-                    }
-
-                    // Percentage
-                    var percentage = totalDays > 0 ? (presentCount * 100.0 / totalDays) : 0;
-                    table.AddCell(CreateCell($"{percentage:F1}%"));
+                    AddStudentRow(table, student, reportData.Dates);
                 }
                 document.Add(table);
 
-                // Footer
-                var footerTable = new Table(2).UseAllAvailableWidth().SetMarginTop(20);
-                footerTable.AddCell(CreateCell($"Generated on {DateTime.Now:dd/MM/yyyy HH:mm}")
-                    .SetBorder(new SolidBorder(0))
-                    .SetFontSize(8));
-                if (!string.IsNullOrEmpty(reportData.WebsiteUrl))
+                // Remaining pages
+                foreach (var studentGroup in remainingStudents)
                 {
-                    footerTable.AddCell(CreateCell(reportData.WebsiteUrl)
-                        .SetBorder(new SolidBorder(0))
-                        .SetFontSize(8)
-                        .SetTextAlignment(TextAlignment.RIGHT));
+                    document.Add(new AreaBreak(AreaBreakType.NEXT_PAGE));
+                    
+                    table = new Table(UnitValue.CreatePointArray(columnWidths))
+                        .UseAllAvailableWidth()
+                        .SetMarginTop(5);
+                    AddTableHeader(table, reportData.Dates);
+                    
+                    foreach (var student in studentGroup)
+                    {
+                        AddStudentRow(table, student, reportData.Dates);
+                    }
+                    document.Add(table);
                 }
+
+                // Update footer with both date and website URL
+                var footerTable = new Table(1).UseAllAvailableWidth().SetMarginTop(20);
+                footerTable.AddCell(CreateCell(
+                    $"Report Generated on {DateTime.Now:dd/MM/yyyy HH:mm} | {reportData.WebsiteUrl}")
+                    .SetBorder(new SolidBorder(0))
+                    .SetFontSize(8)
+                    .SetTextAlignment(TextAlignment.CENTER));
                 document.Add(footerTable);
 
                 document.Close();
@@ -891,15 +886,91 @@ namespace Student_Attendance.Controllers
             }
         }
 
-        private Cell CreateHeaderCell(string text)
+        // New helper methods
+        private void AddTableHeader(Table table, List<DateTime> dates)
+        {
+            table.AddCell(CreateCompactHeaderCell("Student Details"));
+            foreach (var date in dates)
+            {
+                table.AddCell(CreateCompactHeaderCell(date.Day.ToString()));
+            }
+            table.AddCell(CreateCompactHeaderCell("%"));
+        }
+
+        private void AddStudentRow(Table table, StudentMonthlyAttendance student, List<DateTime> dates)
+        {
+            // Student Info - more compact
+            table.AddCell(CreateCompactCell($"{student.EnrollmentNo}\n{student.StudentName}"));
+
+            // Attendance Cells
+            int presentCount = 0;
+            int totalDays = 0;
+            
+            foreach (var date in dates)
+            {
+                var status = student.AttendanceByDate.GetValueOrDefault(date);
+                if (status.HasValue)
+                {
+                    totalDays++;
+                    if (status.Value) presentCount++;
+                }
+                table.AddCell(CreateCompactCell(status.HasValue ? (status.Value ? "P" : "A") : "-"));
+            }
+
+            var percentage = totalDays > 0 ? (presentCount * 100.0 / totalDays) : 0;
+            table.AddCell(CreateCompactCell($"{percentage:F1}%"));
+        }
+
+        private Cell CreateCompactHeaderCell(string text)
         {
             return new Cell()
-                .Add(new Paragraph(text))
+                .Add(new Paragraph(text).SetFontSize(8))
                 .SetBackgroundColor(ColorConstants.LIGHT_GRAY)
                 .SetFont(PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD))
                 .SetTextAlignment(TextAlignment.CENTER)
-                .SetPadding(5)
+                .SetPadding(3)
                 .SetBorder(new SolidBorder(ColorConstants.BLACK, 0.5f));
+        }
+
+        private Cell CreateCompactCell(string text)
+        {
+            return new Cell()
+                .Add(new Paragraph(text).SetFontSize(8))
+                .SetTextAlignment(TextAlignment.CENTER)
+                .SetPadding(3)
+                .SetBorder(new SolidBorder(ColorConstants.BLACK, 0.5f));
+        }
+
+        private void AddCompactInfoRow(Table table, string label, string value)
+        {
+            table.AddCell(new Cell()
+                .Add(new Paragraph($"{label}: {value}")
+                    .SetFontSize(8))
+                .SetBorder(new SolidBorder(0))
+                .SetPadding(2));
+        }
+
+        // Page number handler class
+        private class PageNumberEventHandler : IEventHandler 
+        {
+            public void HandleEvent(Event currentEvent)
+            {
+                PdfDocumentEvent docEvent = (PdfDocumentEvent)currentEvent;
+                PdfDocument pdf = docEvent.GetDocument();
+                PdfPage page = docEvent.GetPage();
+                int pageNumber = pdf.GetPageNumber(page);
+                int totalPages = pdf.GetNumberOfPages();
+
+                Rectangle pageSize = page.GetPageSize();
+                PdfCanvas canvas = new PdfCanvas(page);
+                
+                // Moved page numbers slightly up to avoid overlapping with footer
+                canvas.BeginText()
+                    .SetFontAndSize(PdfFontFactory.CreateFont(StandardFonts.HELVETICA), 8)
+                    .MoveText(pageSize.GetWidth() / 2 - 20, 30) // Changed from 20 to 30
+                    .ShowText($"Page {pageNumber} of {totalPages}")
+                    .EndText();
+            }
         }
 
         private Cell CreateCell(string text)
@@ -907,17 +978,7 @@ namespace Student_Attendance.Controllers
             return new Cell()
                 .Add(new Paragraph(text))
                 .SetTextAlignment(TextAlignment.CENTER)
-                .SetPadding(5)
-                .SetBorder(new SolidBorder(ColorConstants.BLACK, 0.5f));
-        }
-
-        private void AddInfoCell(Table table, string label, string value)
-        {
-            table.AddCell(new Cell()
-                .Add(new Paragraph($"{label}: {value}")
-                    .SetFontSize(10))
-                .SetBorder(new SolidBorder(0))
-                .SetPadding(5));
+                .SetPadding(5);
         }
     }
 }
