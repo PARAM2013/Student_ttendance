@@ -8,6 +8,10 @@ namespace Student_Attendance.ViewModels
     {
         public int Id { get; set; }
 
+        // Add this property for SSID
+        [Display(Name = "Student ID")]
+        public string SSID { get; set; }
+
         [Required(ErrorMessage = "Enrollment Number is Required")]
         [StringLength(20)]
         public string EnrollmentNo { get; set; }

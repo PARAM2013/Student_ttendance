@@ -727,6 +727,7 @@ namespace Student_Attendance.Controllers
             var viewModel = new StudentViewModel
             {
                 Id = student.Id,
+                SSID = student.SSID,  // Add this line
                 EnrollmentNo = student.EnrollmentNo,
                 Name = student.Name,
                 Cast = student.Cast,

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using OfficeOpenXml; // Add this line
+using Student_Attendance.Services; // Add this line at the top with other using statements
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +28,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 builder.Services.AddDbContext<Student_Attendance.Data.ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Add this line to register SSIDGenerator
+builder.Services.AddScoped<SSIDGenerator>();
 
 var app = builder.Build();
 

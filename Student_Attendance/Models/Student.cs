@@ -8,6 +8,10 @@ namespace Student_Attendance.Models
         public int Id { get; set; }
 
         [Required]
+        [StringLength(6)]
+        public string SSID { get; set; }
+
+        [Required]
         [StringLength(20)]
         public string EnrollmentNo { get; set; }
 
