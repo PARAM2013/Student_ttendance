@@ -14,6 +14,11 @@ using iText.Layout;
 using iText.Layout.Element;
 using iText.Layout.Properties;
 using iText.Kernel.Geom;
+using iText.Kernel.Colors;
+using iText.IO.Font.Constants;
+using iText.Kernel.Font;
+using iText.IO.Font;
+using iText.Layout.Borders;
 
 namespace Student_Attendance.Controllers
 {
@@ -694,16 +699,30 @@ namespace Student_Attendance.Controllers
                 var division = await _context.Divisions
                     .FirstOrDefaultAsync(d => d.Id == students.First().DivisionId);
                     
+                // Get course and specialization details
+                var classDetails = await _context.Classes
+                    .Include(c => c.Course)
+                    .Include(c => c.Specialization)
+                    .FirstOrDefaultAsync(c => c.Id == subject.ClassId);
+
+                // Get the current website URL
+                var request = HttpContext.Request;
+                var currentUrl = $"{request.Scheme}://{request.Host}";
+
                 // Prepare report data
                 var reportData = new MonthlyAttendanceReportData
                 {
                     InstituteName = institute?.Name ?? "Institute Name",
+                    InstituteAddress = institute?.Address,
                     TeacherName = teacher.UserName,
                     SubjectInfo = $"{subject.Code} - {subject.Name}",
-                    ClassInfo = $"{subject.Class.Course.Name} - {subject.Class.Name}",
+                    ClassInfo = classDetails?.Name ?? "N/A",
+                    CourseName = classDetails?.Course?.Name,
+                    Specialization = classDetails?.Specialization?.Name,
                     DivisionName = division?.Name ?? "All Divisions",
                     AcademicYear = academicYear?.Name ?? "Current Academic Year",
                     MonthYear = date.ToString("MMMM yyyy"),
+                    WebsiteUrl = currentUrl, // Set current website URL instead of institute.Website
                     Dates = finalDates,
                     Students = students.Select(s => new StudentMonthlyAttendance
                     {
@@ -731,19 +750,14 @@ namespace Student_Attendance.Controllers
         {
             try
             {
-                // Re-use the GetMonthlyReport logic to get report data
-                var report = await GetMonthlyReport(teacherId, subjectId, reportMonth, skipEmptyDates) as PartialViewResult;
-                if (report?.Model == null)
-                    return BadRequest("Failed to generate report");
+                var reportResult = await GetMonthlyReport(teacherId, subjectId, reportMonth, skipEmptyDates) as PartialViewResult;
+                if (reportResult?.Model is not MonthlyAttendanceReportData reportData)
+                {
+                    return BadRequest("Failed to generate report data");
+                }
 
-                var reportData = report.Model as MonthlyAttendanceReportData;
-                
-                // Generate PDF using a PDF library like iTextSharp or similar
-                // This is a placeholder for the actual PDF generation logic
                 var pdfBytes = GeneratePdf(reportData);
-                
-                return File(pdfBytes, "application/pdf", 
-                    $"attendance-report-{reportMonth}.pdf");
+                return File(pdfBytes, "application/pdf", $"attendance-report-{reportMonth}.pdf");
             }
             catch (Exception ex)
             {
@@ -756,80 +770,154 @@ namespace Student_Attendance.Controllers
         {
             using (MemoryStream ms = new MemoryStream())
             {
-                using (var writer = new PdfWriter(ms))
+                var writer = new PdfWriter(ms);
+                var pdf = new PdfDocument(writer);
+                var document = new Document(pdf, PageSize.A4.Rotate());
+
+                // Set default fonts
+                PdfFont font = PdfFontFactory.CreateFont(StandardFonts.HELVETICA);
+                PdfFont boldFont = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
+                document.SetFont(font);
+
+                // Institute Header
+                var headerTable = new Table(1).UseAllAvailableWidth().SetMarginBottom(10);
+                headerTable.AddCell(CreateCell(reportData.InstituteName)
+                    .SetFont(boldFont)
+                    .SetFontSize(16)
+                    .SetTextAlignment(TextAlignment.CENTER)
+                    .SetBorder(new SolidBorder(0)));
+
+                if (!string.IsNullOrEmpty(reportData.InstituteAddress))
                 {
-                    using (var pdf = new PdfDocument(writer))
-                    {
-                        var document = new Document(pdf, PageSize.A4.Rotate());  // Landscape mode
-                        document.SetMargins(20, 20, 20, 20);
-
-                        // Add institute header
-                        var header = new Paragraph(reportData.InstituteName)
-                            .SetTextAlignment(TextAlignment.CENTER)
-                            .SetFontSize(16)
-                            .SetBold();
-                        document.Add(header);
-
-                        // Add report info
-                        var info = new Table(3)
-                            .UseAllAvailableWidth()
-                            .SetMarginTop(10);
-
-                        info.AddCell(new Cell().Add(new Paragraph($"Teacher: {reportData.TeacherName}")));
-                        info.AddCell(new Cell().Add(new Paragraph($"Subject: {reportData.SubjectInfo}")));
-                        info.AddCell(new Cell().Add(new Paragraph($"Month: {reportData.MonthYear}")));
-                        info.AddCell(new Cell().Add(new Paragraph($"Class: {reportData.ClassInfo}")));
-                        info.AddCell(new Cell().Add(new Paragraph($"Division: {reportData.DivisionName}")));
-                        info.AddCell(new Cell().Add(new Paragraph($"Academic Year: {reportData.AcademicYear}")));
-
-                        document.Add(info);
-
-                        // Create attendance table
-                        var table = new Table(reportData.Dates.Count + 2)  // +2 for student details and percentage
-                            .UseAllAvailableWidth()
-                            .SetMarginTop(20);
-
-                        // Add header row
-                        table.AddCell(new Cell().Add(new Paragraph("Student Details")).SetBold());
-                        foreach (var date in reportData.Dates)
-                        {
-                            table.AddCell(new Cell().Add(new Paragraph(date.Day.ToString())).SetBold().SetTextAlignment(TextAlignment.CENTER));
-                        }
-                        table.AddCell(new Cell().Add(new Paragraph("%")).SetBold().SetTextAlignment(TextAlignment.CENTER));
-
-                        // Add student rows
-                        foreach (var student in reportData.Students)
-                        {
-                            table.AddCell(new Cell().Add(new Paragraph($"{student.EnrollmentNo}\n{student.StudentName}")));
-                            
-                            foreach (var date in reportData.Dates)
-                            {
-                                var status = student.AttendanceByDate.GetValueOrDefault(date);
-                                var text = status.HasValue ? (status.Value ? "P" : "A") : "-";
-                                var cell = new Cell().Add(new Paragraph(text)).SetTextAlignment(TextAlignment.CENTER);
-                                table.AddCell(cell);
-                            }
-
-                            // Calculate percentage
-                            var totalDays = student.AttendanceByDate.Count(x => x.Value.HasValue);
-                            var presentDays = student.AttendanceByDate.Count(x => x.Value == true);
-                            var percentage = totalDays > 0 ? (presentDays * 100.0 / totalDays) : 0;
-                            table.AddCell(new Cell().Add(new Paragraph($"{percentage:F1}%")).SetTextAlignment(TextAlignment.CENTER));
-                        }
-
-                        document.Add(table);
-
-                        // Add footer
-                        var footer = new Paragraph($"Generated on {DateTime.Now:dd/MM/yyyy HH:mm}")
-                            .SetTextAlignment(TextAlignment.CENTER)
-                            .SetMarginTop(20);
-                        document.Add(footer);
-
-                        document.Close();
-                    }
+                    headerTable.AddCell(CreateCell(reportData.InstituteAddress)
+                        .SetFontSize(10)
+                        .SetTextAlignment(TextAlignment.CENTER)
+                        .SetBorder(new SolidBorder(0)));
                 }
+                document.Add(headerTable);
+
+                // Title
+                document.Add(new Paragraph("Monthly Attendance Report")
+                    .SetTextAlignment(TextAlignment.CENTER)
+                    .SetFont(boldFont)
+                    .SetFontSize(14)
+                    .SetMarginBottom(10));
+
+                // Basic Info Table
+                var infoTable = new Table(3).UseAllAvailableWidth();
+                
+                // Row 1
+                AddInfoCell(infoTable, "Teacher", reportData.TeacherName);
+                AddInfoCell(infoTable, "Subject", reportData.SubjectInfo);
+                AddInfoCell(infoTable, "Month", reportData.MonthYear);
+
+                // Row 2
+                if (!string.IsNullOrEmpty(reportData.CourseName))
+                {
+                    AddInfoCell(infoTable, "Course", reportData.CourseName);
+                }
+                AddInfoCell(infoTable, "Class", reportData.ClassInfo);
+                if (!string.IsNullOrEmpty(reportData.Specialization))
+                {
+                    AddInfoCell(infoTable, "Specialization", reportData.Specialization);
+                }
+
+                // Row 3
+                AddInfoCell(infoTable, "Division", reportData.DivisionName);
+                AddInfoCell(infoTable, "Academic Year", reportData.AcademicYear);
+                document.Add(infoTable);
+
+                // Attendance Table
+                float[] columnWidths = new float[reportData.Dates.Count + 2];
+                columnWidths[0] = 150f; // Student details column
+                for (int i = 1; i < columnWidths.Length - 1; i++)
+                    columnWidths[i] = 35f; // Date columns
+                columnWidths[columnWidths.Length - 1] = 40f; // Percentage column
+
+                var table = new Table(UnitValue.CreatePointArray(columnWidths))
+                    .UseAllAvailableWidth()
+                    .SetMarginTop(20);
+
+                // Table Header
+                table.AddCell(CreateHeaderCell("Student Details"));
+                foreach (var date in reportData.Dates)
+                {
+                    table.AddCell(CreateHeaderCell(date.Day.ToString()));
+                }
+                table.AddCell(CreateHeaderCell("%"));
+
+                // Table Data
+                foreach (var student in reportData.Students)
+                {
+                    // Student Info
+                    table.AddCell(CreateCell($"{student.EnrollmentNo}\n{student.StudentName}"));
+
+                    // Attendance Cells
+                    int presentCount = 0;
+                    int totalDays = 0;
+                    foreach (var date in reportData.Dates)
+                    {
+                        var status = student.AttendanceByDate.GetValueOrDefault(date);
+                        if (status.HasValue)
+                        {
+                            totalDays++;
+                            if (status.Value) presentCount++;
+                        }
+                        table.AddCell(CreateCell(status.HasValue ? (status.Value ? "P" : "A") : "-"));
+                    }
+
+                    // Percentage
+                    var percentage = totalDays > 0 ? (presentCount * 100.0 / totalDays) : 0;
+                    table.AddCell(CreateCell($"{percentage:F1}%"));
+                }
+                document.Add(table);
+
+                // Footer
+                var footerTable = new Table(2).UseAllAvailableWidth().SetMarginTop(20);
+                footerTable.AddCell(CreateCell($"Generated on {DateTime.Now:dd/MM/yyyy HH:mm}")
+                    .SetBorder(new SolidBorder(0))
+                    .SetFontSize(8));
+                if (!string.IsNullOrEmpty(reportData.WebsiteUrl))
+                {
+                    footerTable.AddCell(CreateCell(reportData.WebsiteUrl)
+                        .SetBorder(new SolidBorder(0))
+                        .SetFontSize(8)
+                        .SetTextAlignment(TextAlignment.RIGHT));
+                }
+                document.Add(footerTable);
+
+                document.Close();
                 return ms.ToArray();
             }
+        }
+
+        private Cell CreateHeaderCell(string text)
+        {
+            return new Cell()
+                .Add(new Paragraph(text))
+                .SetBackgroundColor(ColorConstants.LIGHT_GRAY)
+                .SetFont(PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD))
+                .SetTextAlignment(TextAlignment.CENTER)
+                .SetPadding(5)
+                .SetBorder(new SolidBorder(ColorConstants.BLACK, 0.5f));
+        }
+
+        private Cell CreateCell(string text)
+        {
+            return new Cell()
+                .Add(new Paragraph(text))
+                .SetTextAlignment(TextAlignment.CENTER)
+                .SetPadding(5)
+                .SetBorder(new SolidBorder(ColorConstants.BLACK, 0.5f));
+        }
+
+        private void AddInfoCell(Table table, string label, string value)
+        {
+            table.AddCell(new Cell()
+                .Add(new Paragraph($"{label}: {value}")
+                    .SetFontSize(10))
+                .SetBorder(new SolidBorder(0))
+                .SetPadding(5));
         }
     }
 }

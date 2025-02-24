@@ -17,9 +17,17 @@ namespace Student_Attendance.Models
         [ForeignKey("CourseId")]
         public Course Course { get; set; }
 
+        public int? SpecializationId { get; set; }
+        [ForeignKey("SpecializationId")]
+        public Specialization? Specialization { get; set; }
+
         [Required]
         public int AcademicYearId { get; set; }
         [ForeignKey("AcademicYearId")]
         public AcademicYear AcademicYear { get; set; }
+
+        public bool IsActive { get; set; } = true;
+
+        public ICollection<Student> Students { get; set; }
     }
 }

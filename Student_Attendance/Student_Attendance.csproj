@@ -12,6 +12,7 @@
     <PackageReference Include="EPPlus" Version="7.6.0" />
     <PackageReference Include="Font.Awesome" Version="5.15.4" />
     <PackageReference Include="itext7" Version="8.0.2" />
+    <PackageReference Include="itext7.bouncy-castle-adapter" Version="8.0.2" />
     <PackageReference Include="itext7.commons" Version="8.0.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0">
       <PrivateAssets>all</PrivateAssets>

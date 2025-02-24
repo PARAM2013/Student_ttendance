@@ -23,6 +23,10 @@ namespace Student_Attendance.ViewModels
         public string MonthYear { get; set; }
         public List<DateTime> Dates { get; set; }
         public List<StudentMonthlyAttendance> Students { get; set; }
+        public string? InstituteAddress { get; set; }
+        public string? CourseName { get; set; }
+        public string? Specialization { get; set; }
+        public string? WebsiteUrl { get; set; }
     }
 
     public class StudentMonthlyAttendance

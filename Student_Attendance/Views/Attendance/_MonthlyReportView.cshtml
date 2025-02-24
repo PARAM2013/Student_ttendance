@@ -3,8 +3,12 @@
 <div class="monthly-report print-friendly">
     <div class="report-header text-center mb-4">
         <h3>@Model.InstituteName</h3>
+        @if (!string.IsNullOrEmpty(Model.InstituteAddress))
+        {
+            <p class="mb-3">@Model.InstituteAddress</p>
+        }
         <div class="report-info">
-            <div class="row">
+            <div class="row mb-2">
                 <div class="col-md-4">
                     <strong>Teacher:</strong> @Model.TeacherName
                 </div>
@@ -15,10 +19,24 @@
                     <strong>Month:</strong> @Model.MonthYear
                 </div>
             </div>
-            <div class="row">
+            <div class="row mb-2">
+                @if (!string.IsNullOrEmpty(Model.CourseName))
+                {
+                    <div class="col-md-4">
+                        <strong>Course:</strong> @Model.CourseName
+                    </div>
+                }
                 <div class="col-md-4">
                     <strong>Class:</strong> @Model.ClassInfo
                 </div>
+                @if (!string.IsNullOrEmpty(Model.Specialization))
+                {
+                    <div class="col-md-4">
+                        <strong>Specialization:</strong> @Model.Specialization
+                    </div>
+                }
+            </div>
+            <div class="row">
                 <div class="col-md-4">
                     <strong>Division:</strong> @Model.DivisionName
                 </div>
@@ -86,7 +104,10 @@
     <div class="report-footer text-center mt-4">
         <small class="text-muted">
             Generated on @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
-            | @Context.Request.Host
+            @if (!string.IsNullOrEmpty(Model.WebsiteUrl))
+            {
+                <span>| @Model.WebsiteUrl</span>
+            }
         </small>
     </div>
 </div>
