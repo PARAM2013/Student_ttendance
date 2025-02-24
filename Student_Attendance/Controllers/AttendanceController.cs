@@ -977,5 +977,269 @@ namespace Student_Attendance.Controllers
                 .SetTextAlignment(TextAlignment.CENTER)
                 .SetPadding(5);
         }
+
+        [HttpGet]
+        public async Task<IActionResult> ClassWiseReport()
+        {
+            var model = new ClassWiseReportViewModel
+            {
+                AcademicYears = new SelectList(await _context.AcademicYears
+                    .Where(ay => ay.IsActive)
+                    .ToListAsync(), "Id", "Name"),
+                Courses = new SelectList(await _context.Courses.ToListAsync(), "Id", "Name")
+            };
+            return View(model);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetClasses(int courseId, int academicYearId)
+        {
+            var classes = await _context.Classes
+                .Where(c => c.CourseId == courseId && c.AcademicYearId == academicYearId)
+                .Select(c => new { id = c.Id, name = c.Name })
+                .ToListAsync();
+            return Json(classes);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetClassWiseReport(int academicYearId, int courseId, int classId)
+        {
+            try
+            {
+                var institute = await _context.Institutes.FirstOrDefaultAsync();
+                var classInfo = await _context.Classes
+                    .Include(c => c.Course)
+                    .FirstOrDefaultAsync(c => c.Id == classId);
+
+                if (classInfo == null)
+                    return Json(new { success = false, message = "Class not found" });
+
+                var students = await _context.Students
+                    .Include(s => s.Division)
+                    .Include(s => s.Class)
+                    .ThenInclude(c => c.Specialization)
+                    .Where(s => s.ClassId == classId && s.IsActive)
+                    .OrderBy(s => s.EnrollmentNo)
+                    .ToListAsync();
+
+                var subjects = await _context.Subjects
+                    .Where(s => s.ClassId == classId)
+                    .ToListAsync();
+
+                var attendanceRecords = await _context.AttendanceRecords
+                    .Where(ar => ar.Student.ClassId == classId)
+                    .ToListAsync();
+
+                var reportData = new ClassWiseReportData
+                {
+                    InstituteName = institute?.Name ?? "Institute Name",
+                    InstituteAddress = institute?.Address,
+                    CourseName = classInfo.Course.Name,
+                    ClassName = classInfo.Name,
+                    AcademicYear = (await _context.AcademicYears.FindAsync(academicYearId))?.Name ?? "Current Year",
+                    WebsiteUrl = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}",
+                    Students = students.Select(s => new StudentAttendanceSummary
+                    {
+                        EnrollmentNo = s.EnrollmentNo,
+                        StudentName = s.Name,
+                        Division = s.Division?.Name ?? "N/A",
+                        Specialization = s.Class?.Specialization?.Name ?? "N/A",
+                        SubjectAttendances = subjects.Select(subj => {
+                            var records = attendanceRecords.Where(ar => 
+                                ar.StudentId == s.Id && ar.SubjectId == subj.Id);
+                            var totalClasses = records.Count();
+                            var present = records.Count(r => r.IsPresent);
+                            return new SubjectAttendance
+                            {
+                                SubjectName = subj.Name,
+                                TotalClasses = totalClasses,
+                                Present = present,
+                                Percentage = totalClasses > 0 ? (present * 100.0M / totalClasses) : 0
+                            };
+                        }).ToList()
+                    }).ToList()
+                };
+
+                // Calculate overall percentage for each student
+                foreach (var student in reportData.Students)
+                {
+                    var totalClasses = student.SubjectAttendances.Sum(sa => sa.TotalClasses);
+                    var totalPresent = student.SubjectAttendances.Sum(sa => sa.Present);
+                    student.OverallPercentage = totalClasses > 0 ? (totalPresent * 100.0M / totalClasses) : 0;
+                }
+
+                return PartialView("_ClassWiseReportView", reportData);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating class wise report");
+                return Json(new { success = false, message = "Error generating report" });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ExportClassWiseReport(int academicYearId, int courseId, int classId)
+        {
+            try
+            {
+                var reportResult = await GetClassWiseReport(academicYearId, courseId, classId) as PartialViewResult;
+                if (reportResult?.Model is not ClassWiseReportData reportData)
+                {
+                    return BadRequest("Failed to generate report data");
+                }
+
+                var pdfBytes = GenerateClassWisePdf(reportData);
+                return File(pdfBytes, "application/pdf", $"class-wise-report-{DateTime.Now:yyyyMMdd}.pdf");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting class wise report");
+                return BadRequest("Error exporting report");
+            }
+        }
+
+        private byte[] GenerateClassWisePdf(ClassWiseReportData reportData)
+        {
+            using (MemoryStream ms = new MemoryStream())
+            {
+                var writer = new PdfWriter(ms);
+                var pdf = new PdfDocument(writer);
+                var document = new Document(pdf, PageSize.A4);
+
+                // Set margins (top, right, bottom, left)
+                document.SetMargins(15, 15, 25, 15);
+
+                // Add page numbers
+                pdf.AddEventHandler(PdfDocumentEvent.END_PAGE, new PageNumberEventHandler());
+
+                // Header
+                var headerTable = new Table(1).UseAllAvailableWidth().SetMarginBottom(10);
+                headerTable.AddCell(CreateCell(reportData.InstituteName)
+                    .SetFont(PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD))
+                    .SetFontSize(14)
+                    .SetTextAlignment(TextAlignment.CENTER)
+                    .SetBorder(Border.NO_BORDER)
+                    .SetPadding(2));
+
+                if (!string.IsNullOrEmpty(reportData.InstituteAddress))
+                {
+                    headerTable.AddCell(CreateCell(reportData.InstituteAddress)
+                        .SetFontSize(8)
+                        .SetTextAlignment(TextAlignment.CENTER)
+                        .SetBorder(Border.NO_BORDER)
+                        .SetPadding(2));
+                }
+                document.Add(headerTable);
+
+                // Report Title
+                document.Add(new Paragraph("Class Wise Attendance Report")
+                    .SetTextAlignment(TextAlignment.CENTER)
+                    .SetFont(PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD))
+                    .SetFontSize(12)
+                    .SetMarginBottom(10));
+
+                // Report Info
+                var infoTable = new Table(2).UseAllAvailableWidth().SetMarginBottom(10);
+                AddInfoRow(infoTable, "Course", reportData.CourseName);
+                AddInfoRow(infoTable, "Class", reportData.ClassName);
+                AddInfoRow(infoTable, "Academic Year", reportData.AcademicYear);
+                document.Add(infoTable);
+
+                // Check if specialization column should be shown
+                bool showSpecialization = reportData.Students.Any(s => 
+                    !string.IsNullOrEmpty(s.Specialization) && s.Specialization != "N/A");
+
+                // Calculate column widths based on subjects and specialization
+                var subjectCount = reportData.Students.FirstOrDefault()?.SubjectAttendances.Count ?? 0;
+                var columnCount = 4 + subjectCount + (showSpecialization ? 1 : 0); // Basic columns + subjects + specialization (if shown) + overall
+                var columnWidths = new float[columnCount];
+                
+                // Set column widths
+                int currentColumn = 0;
+                columnWidths[currentColumn++] = 80; // Enrollment
+                columnWidths[currentColumn++] = 120; // Name
+                columnWidths[currentColumn++] = 60; // Division
+                if (showSpecialization)
+                {
+                    columnWidths[currentColumn++] = 80; // Specialization
+                }
+                // Set subject column widths
+                for (int i = currentColumn; i < columnWidths.Length - 1; i++)
+                {
+                    columnWidths[i] = 50; // Subject columns
+                }
+                columnWidths[columnWidths.Length - 1] = 50; // Overall column
+
+                // Create attendance table
+                var table = new Table(UnitValue.CreatePointArray(columnWidths))
+                    .UseAllAvailableWidth()
+                    .SetFontSize(8);
+
+                // Add header row
+                table.AddHeaderCell(CreateHeaderCell("Enrollment No"));
+                table.AddHeaderCell(CreateHeaderCell("Student Name"));
+                table.AddHeaderCell(CreateHeaderCell("Division"));
+                if (showSpecialization)
+                {
+                    table.AddHeaderCell(CreateHeaderCell("Specialization"));
+                }
+                foreach (var subject in reportData.Students.FirstOrDefault()?.SubjectAttendances ?? new List<SubjectAttendance>())
+                {
+                    table.AddHeaderCell(CreateHeaderCell(subject.SubjectName));
+                }
+                table.AddHeaderCell(CreateHeaderCell("Overall %"));
+
+                // Add data rows
+                foreach (var student in reportData.Students)
+                {
+                    table.AddCell(CreateCell(student.EnrollmentNo));
+                    table.AddCell(CreateCell(student.StudentName));
+                    table.AddCell(CreateCell(student.Division));
+                    if (showSpecialization)
+                    {
+                        table.AddCell(CreateCell(student.Specialization));
+                    }
+                    foreach (var subject in student.SubjectAttendances)
+                    {
+                        table.AddCell(CreateCell($"{subject.Percentage:F1}%\n({subject.Present}/{subject.TotalClasses})"));
+                    }
+                    table.AddCell(CreateCell($"{student.OverallPercentage:F1}%")
+                        .SetFont(PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD)));
+                }
+
+                // Add the table to the document! (This was missing)
+                document.Add(table);
+
+                // Footer with generation date and website
+                var footerTable = new Table(1).UseAllAvailableWidth().SetMarginTop(20);
+                footerTable.AddCell(CreateCell(
+                    $"Report Generated on {DateTime.Now:dd/MM/yyyy HH:mm} | {reportData.WebsiteUrl}")
+                    .SetBorder(Border.NO_BORDER)
+                    .SetFontSize(8)
+                    .SetTextAlignment(TextAlignment.CENTER));
+                document.Add(footerTable);
+
+                document.Close();
+                return ms.ToArray();
+            }
+        }
+
+        private void AddInfoRow(Table table, string label, string value)
+        {
+            table.AddCell(CreateCell(label + ":")
+                .SetBorder(Border.NO_BORDER)
+                .SetFontSize(9)
+                .SetFont(PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD)));
+            table.AddCell(CreateCell(value)
+                .SetBorder(Border.NO_BORDER)
+                .SetFontSize(9));
+        }
+
+        private Cell CreateHeaderCell(string text)
+        {
+            return CreateCell(text)
+                .SetBackgroundColor(ColorConstants.LIGHT_GRAY)
+                .SetFont(PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD));
+        }
     }
 }

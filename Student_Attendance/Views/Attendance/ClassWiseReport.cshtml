@@ -1,0 +1,121 @@
+@model ClassWiseReportViewModel
+@{
+    ViewData["Title"] = "Class Wise Attendance Report";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-chart-bar me-2"></i>Class Wise Attendance Report</h3>
+    </div>
+    <div class="card-body">
+        <form id="reportForm" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Academic Year</label>
+                <select id="AcademicYearId" name="AcademicYearId" class="form-select" required>
+                    <option value="">Select Academic Year</option>
+                    @foreach (var item in Model.AcademicYears)
+                    {
+                        <option value="@item.Value">@item.Text</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Course</label>
+                <select id="CourseId" name="CourseId" class="form-select" required>
+                    <option value="">Select Course</option>
+                    @foreach (var item in Model.Courses)
+                    {
+                        <option value="@item.Value">@item.Text</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Class</label>
+                <select id="ClassId" name="ClassId" class="form-select" required>
+                    <option value="">Select Class</option>
+                </select>
+            </div>
+
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search me-2"></i>Generate Report
+                </button>
+                <button type="button" id="exportPdf" class="btn btn-secondary" style="display:none">
+                    <i class="fas fa-file-pdf me-2"></i>Export PDF
+                </button>
+            </div>
+        </form>
+
+        <div id="reportContent" class="mt-4"></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#CourseId').change(function() {
+                loadClasses();
+            });
+
+            $('#reportForm').on('submit', function(e) {
+                e.preventDefault();
+                generateReport();
+            });
+
+            $('#exportPdf').click(function() {
+                exportToPdf();
+            });
+        });
+
+        function loadClasses() {
+            var courseId = $('#CourseId').val();
+            var yearId = $('#AcademicYearId').val();
+            if (!courseId || !yearId) return;
+
+            $.get('/Attendance/GetClasses', { courseId: courseId, academicYearId: yearId })
+                .done(function(data) {
+                    var options = '<option value="">Select Class</option>';
+                    data.forEach(function(cls) {
+                        options += `<option value="${cls.id}">${cls.name}</option>`;
+                    });
+                    $('#ClassId').html(options);
+                })
+                .fail(function() {
+                    Swal.fire('Error', 'Failed to load classes', 'error');
+                });
+        }
+
+        function generateReport() {
+            var data = {
+                academicYearId: $('#AcademicYearId').val(),
+                courseId: $('#CourseId').val(),
+                classId: $('#ClassId').val()
+            };
+
+            $('#reportContent').html('<div class="text-center"><div class="spinner-border"></div></div>');
+
+            $.get('/Attendance/GetClassWiseReport', data)
+                .done(function(response) {
+                    $('#reportContent').html(response);
+                    $('#exportPdf').show();
+                })
+                .fail(function() {
+                    Swal.fire('Error', 'Failed to generate report', 'error');
+                    $('#reportContent').empty();
+                    $('#exportPdf').hide();
+                });
+        }
+
+        function exportToPdf() {
+            var data = {
+                academicYearId: $('#AcademicYearId').val(),
+                courseId: $('#CourseId').val(),
+                classId: $('#ClassId').val()
+            };
+
+            window.location.href = '/Attendance/ExportClassWiseReport?' + $.param(data);
+        }
+    </script>
+}

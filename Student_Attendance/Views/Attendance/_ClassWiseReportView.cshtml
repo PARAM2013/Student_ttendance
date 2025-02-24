@@ -1,0 +1,44 @@
+@model ClassWiseReportData
+
+<div class="table-responsive">
+    <table class="table table-bordered table-striped">
+        <thead class="table-light">
+            <tr>
+                <th>Enrollment No</th>
+                <th>Student Name</th>
+                <th>Division</th>
+                @if (Model.Students.Any(s => !string.IsNullOrEmpty(s.Specialization) && s.Specialization != "N/A"))
+                {
+                    <th>Specialization</th>
+                }
+                @foreach (var subject in Model.Students.FirstOrDefault()?.SubjectAttendances ?? new List<SubjectAttendance>())
+                {
+                    <th>@subject.SubjectName</th>
+                }
+                <th>Overall %</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var student in Model.Students)
+            {
+                <tr>
+                    <td>@student.EnrollmentNo</td>
+                    <td>@student.StudentName</td>
+                    <td>@student.Division</td>
+                    @if (Model.Students.Any(s => !string.IsNullOrEmpty(s.Specialization) && s.Specialization != "N/A"))
+                    {
+                        <td>@student.Specialization</td>
+                    }
+                    @foreach (var subject in student.SubjectAttendances)
+                    {
+                        <td class="text-center">
+                            @subject.Percentage.ToString("F1")%
+                            <small class="d-block text-muted">(@subject.Present/@subject.TotalClasses)</small>
+                        </td>
+                    }
+                    <td class="text-center fw-bold">@student.OverallPercentage.ToString("F1")%</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
