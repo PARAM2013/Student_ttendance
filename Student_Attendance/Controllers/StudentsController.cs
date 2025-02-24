@@ -33,6 +33,8 @@ namespace Student_Attendance.Controllers
                 .Include(s => s.Course)
                 .Include(s => s.AcademicYear)
                 .Include(s => s.Division)
+                .Include(s => s.Class) // Add Class include
+                .OrderByDescending(s => s.Id) // Show newest students first
                 .AsQueryable();
 
             // Apply filters
@@ -56,30 +58,33 @@ namespace Student_Attendance.Controllers
                 query = query.Where(s => s.IsActive == isActive.Value);
             }
 
-            var students = await query
-                .Select(s => new StudentViewModel
-                {
-                    Id = s.Id,
-                    EnrollmentNo = s.EnrollmentNo,
-                    Name = s.Name,
-                    Cast = s.Cast,
-                    Email = s.Email,
-                    Mobile = s.Mobile,
-                    CourseId = s.CourseId,
-                    Semester = s.Semester,
-                    IsActive = s.IsActive,
-                    AcademicYearId = s.AcademicYearId,
-                    DivisionId = s.DivisionId,
-                    Course = s.Course,
-                    AcademicYear = s.AcademicYear,
-                    Division = s.Division
-                })
-                .ToListAsync();
+            var students = await query.Select(s => new StudentViewModel
+            {
+                Id = s.Id,
+                SSID = s.SSID,
+                EnrollmentNo = s.EnrollmentNo,
+                Name = s.Name,
+                Cast = s.Cast,
+                Email = s.Email,
+                Mobile = s.Mobile,
+                CourseId = s.CourseId,
+                Semester = s.Semester,
+                IsActive = s.IsActive,
+                AcademicYearId = s.AcademicYearId,
+                DivisionId = s.DivisionId,
+                Course = s.Course,
+                Class = s.Class,
+                AcademicYear = s.AcademicYear,
+                Division = s.Division
+            }).ToListAsync();
 
             // Load dropdown data
-            ViewBag.Years = new SelectList(await _context.AcademicYears.ToListAsync(), "Id", "Name");
-            ViewBag.Courses = new SelectList(await _context.Courses.ToListAsync(), "Id", "Name");
-            ViewBag.Divisions = new SelectList(await _context.Divisions.ToListAsync(), "Id", "Name");
+            ViewBag.Years = new SelectList(await _context.AcademicYears
+                .OrderByDescending(y => y.IsActive)
+                .ThenByDescending(y => y.Name)
+                .ToListAsync(), "Id", "Name");
+            ViewBag.Courses = new SelectList(await _context.Courses.OrderBy(c => c.Name).ToListAsync(), "Id", "Name");
+            ViewBag.Divisions = new SelectList(await _context.Divisions.OrderBy(d => d.Name).ToListAsync(), "Id", "Name");
 
             // Set selected values
             ViewBag.SelectedYear = yearId;
@@ -143,35 +148,72 @@ namespace Student_Attendance.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(StudentViewModel model)
         {
-            if (ModelState.IsValid)
+            try
             {
+                if (!ModelState.IsValid)
+                {
+                    var validationErrors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .ToList();
+                    return Json(new { success = false, message = "Validation failed", errors = validationErrors });
+                }
+
+                // Verify all required relationships exist
+                var course = await _context.Courses.FindAsync(model.CourseId);
+                var academicYear = await _context.AcademicYears.FindAsync(model.AcademicYearId);
+                var class_ = await _context.Classes.FindAsync(model.ClassId);
+                var division = await _context.Divisions.FindAsync(model.DivisionId);
+
+                if (course == null || academicYear == null || class_ == null || division == null)
+                {
+                    return Json(new { success = false, message = "One or more required relationships not found" });
+                }
+
+                // Check if enrollment number is unique
+                var existingStudent = await _context.Students
+                    .FirstOrDefaultAsync(s => s.EnrollmentNo == model.EnrollmentNo);
+                
+                if (existingStudent != null)
+                {
+                    return Json(new { success = false, message = "Enrollment number already exists" });
+                }
+
+                // Generate SSID with shorter format
+                var lastStudent = await _context.Students
+                    .OrderByDescending(s => s.Id)
+                    .FirstOrDefaultAsync();
+                
+                int nextNumber = (lastStudent?.Id ?? 0) + 1;
+                string ssid = $"S{nextNumber:D3}"; // This will generate SSID like S001, S002, etc.
+
+                // Create new student
+                var student = new Student
+                {
+                    SSID = ssid, // Add the generated SSID
+                    EnrollmentNo = model.EnrollmentNo,
+                    Name = model.Name,
+                    Cast = model.Cast,
+                    Email = model.Email,
+                    Mobile = model.Mobile,
+                    CourseId = model.CourseId.Value,
+                    ClassId = model.ClassId.Value,
+                    Semester = model.Semester.Value,
+                    IsActive = model.IsActive,
+                    AcademicYearId = model.AcademicYearId.Value,
+                    DivisionId = model.DivisionId.Value
+                };
+
                 try
                 {
-                    var student = new Student
-                    {
-                        EnrollmentNo = model.EnrollmentNo,
-                        Name = model.Name,
-                        Cast = model.Cast,
-                        Email = model.Email,
-                        Mobile = model.Mobile,
-                        CourseId = model.CourseId ?? 0,  // Add null check
-                        Semester = model.Semester ?? 0,   // Add null check
-                        IsActive = model.IsActive,
-                        AcademicYearId = model.AcademicYearId ?? 0,  // Add null check
-                        DivisionId = model.DivisionId ?? 0,          // Add null check
-                        ClassId = model.ClassId ?? 0                 // Add null check
-                    };
-
-                    _context.Add(student);
+                    _context.Students.Add(student);
                     await _context.SaveChangesAsync();
 
-                    // After saving the student, get all subjects for the selected class and semester
+                    // After successfully saving student, map subjects
                     var subjects = await _context.Subjects
-                        .Where(s => s.ClassId == model.ClassId && 
-                                   s.Semester == model.Semester)
+                        .Where(s => s.ClassId == model.ClassId && s.Semester == model.Semester)
                         .ToListAsync();
 
-                    // Create subject mappings for the student
                     if (subjects.Any())
                     {
                         var studentSubjects = subjects.Select(subject => new StudentSubject
@@ -184,21 +226,21 @@ namespace Student_Attendance.Controllers
                         await _context.SaveChangesAsync();
                     }
 
-                    return Json(new { success = true, message = "Student created successfully with subject mappings!" });
+                    return Json(new { success = true, message = "Student created successfully!" });
                 }
-                catch (Exception ex)
+                catch (DbUpdateException ex)
                 {
-                    _logger.LogError(ex, "Error creating student");
-                    return Json(new { success = false, message = "An error occurred while creating the student", error = ex.Message });
+                    var innerMessage = ex.InnerException?.Message ?? ex.Message;
+                    _logger.LogError(ex, "Database error while creating student: {Error}", innerMessage);
+                    return Json(new { success = false, message = $"Database error: {innerMessage}" });
                 }
             }
-
-            var errors = ModelState.Values
-                .SelectMany(v => v.Errors)
-                .Select(e => e.ErrorMessage)
-                .ToList();
-
-            return Json(new { success = false, message = "Validation failed", errors = errors });
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating student");
+                var errorMessage = ex.InnerException?.Message ?? ex.Message;
+                return Json(new { success = false, message = $"Error creating student: {errorMessage}" });
+            }
         }
 
         // GET: Students/Edit/5
@@ -224,6 +266,7 @@ namespace Student_Attendance.Controllers
             var viewModel = new StudentViewModel
             {
                 Id = student.Id,
+                SSID = student.SSID,  // Add this line
                 EnrollmentNo = student.EnrollmentNo,
                 Name = student.Name,
                 Cast = student.Cast,
@@ -290,6 +333,7 @@ namespace Student_Attendance.Controllers
                     student.IsActive = model.IsActive;
                     student.AcademicYearId = model.AcademicYearId ?? 0;  // Add null check
                     student.DivisionId = model.DivisionId ?? 0;          // Add null check
+                    student.ClassId = model.ClassId ?? 0; // Add this line
 
                     _context.Update(student);
                     await _context.SaveChangesAsync();
@@ -305,6 +349,11 @@ namespace Student_Attendance.Controllers
                     {
                         throw;
                     }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error updating student");
+                    return Json(new { success = false, message = "An error occurred while updating the student", error = ex.Message });
                 }
             }
 
@@ -381,16 +430,23 @@ namespace Student_Attendance.Controllers
                 })
                 .ToListAsync();
 
-            // Load classes with selected state
-            model.Classes = await _context.Classes
-                .Include(c => c.Course)
-                .Select(c => new SelectListItem
-                {
-                    Value = c.Id.ToString(),
-                    Text = $"{c.Name} ({c.Course.Name})",
-                    Selected = c.Id == model.ClassId
-                })
-                .ToListAsync();
+            // Only load classes if course is selected
+            if (model.CourseId.HasValue)
+            {
+                model.Classes = await _context.Classes
+                    .Where(c => c.CourseId == model.CourseId)
+                    .Select(c => new SelectListItem
+                    {
+                        Value = c.Id.ToString(),
+                        Text = c.Name,
+                        Selected = c.Id == model.ClassId
+                    })
+                    .ToListAsync();
+            }
+            else
+            {
+                model.Classes = new List<SelectListItem>();
+            }
 
             // Only populate divisions if a class is selected
             if (model.ClassId.HasValue)
@@ -794,6 +850,16 @@ namespace Student_Attendance.Controllers
                 .Distinct()
                 .ToListAsync();
             return Json(divisions);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetClassesByCourse(int courseId)
+        {
+            var classes = await _context.Classes
+                .Where(c => c.CourseId == courseId)
+                .Select(c => new { id = c.Id, name = c.Name })
+                .ToListAsync();
+            return Json(classes);
         }
     }
 }

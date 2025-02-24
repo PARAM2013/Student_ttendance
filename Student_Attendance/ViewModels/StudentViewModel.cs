@@ -8,9 +8,9 @@ namespace Student_Attendance.ViewModels
     {
         public int Id { get; set; }
 
-        // Add this property for SSID
         [Display(Name = "Student ID")]
-        public string SSID { get; set; }
+        [DisplayFormat(NullDisplayText = "Not Assigned")]
+        public string? SSID { get; set; } // Make it nullable and read-only
 
         [Required(ErrorMessage = "Enrollment Number is Required")]
         [StringLength(20)]

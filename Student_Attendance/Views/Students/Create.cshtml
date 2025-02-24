@@ -97,10 +97,29 @@
     }
     <script>
         $(document).ready(function () {
-            $('#createStudentForm').on('submit', function (e) {
-                e.preventDefault();
-                if ($(this).valid()) {
-                    submitForm(this);
+            // Handle Course change to update Classes
+            $('#CourseId').change(function() {
+                var courseId = $(this).val();
+                var classDropdown = $('#ClassId');
+                var divisionDropdown = $('#DivisionId');
+                
+                // Reset and disable Class dropdown
+                classDropdown.html('<option value="">Select Course First</option>');
+                classDropdown.prop('disabled', !courseId);
+                
+                // Reset and disable Division dropdown
+                divisionDropdown.html('<option value="">Select Class First</option>');
+                divisionDropdown.prop('disabled', true);
+                
+                if (courseId) {
+                    // Get classes for selected course
+                    $.get('@Url.Action("GetClassesByCourse", "Students")', { courseId: courseId }, function(data) {
+                        classDropdown.empty();
+                        classDropdown.append('<option value="">Select Class</option>');
+                        $.each(data, function(i, item) {
+                            classDropdown.append($('<option>').val(item.id).text(item.name));
+                        });
+                    });
                 }
             });
 
@@ -163,18 +182,24 @@
             $('#ClassId, #Semester').change(function() {
                 loadSubjects();
             });
+
+            // Handle form submission
+            $('#createStudentForm').on('submit', function (e) {
+                e.preventDefault();
+                if ($(this).valid()) {
+                    submitForm(this);
+                }
+            });
         });
 
         function submitForm(form) {
             var formData = $(form).serializeArray();
-            console.log('Form data:', formData);
-
+            
             $.ajax({
                 type: "POST",
                 url: form.action,
                 data: formData,
                 success: function (response) {
-                    console.log('Response:', response);
                     if (response.success) {
                         showAlert(response.message, "success");
                         setTimeout(function() {
@@ -187,11 +212,13 @@
                                 showAlert(error, "danger");
                             });
                         }
+                        // Log the full response for debugging
+                        console.log('Error Response:', response);
                     }
                 },
                 error: function (xhr, status, error) {
                     console.error('Error:', xhr.responseText);
-                    showAlert("An error occurred while creating the student", "danger");
+                    showAlert("An error occurred while creating the student. Check console for details.", "danger");
                 }
             });
         }
@@ -205,11 +232,14 @@
 
             $("#alert-container").html(alertHtml);
 
-            setTimeout(function() {
-                $('.alert').fadeOut('slow', function() {
-                    $(this).remove();
-                });
-            }, 5000);
+            // Don't auto-hide error messages
+            if (type !== "danger") {
+                setTimeout(function() {
+                    $('.alert').fadeOut('slow', function() {
+                        $(this).remove();
+                    });
+                }, 5000);
+            }
         }
     </script>
 }

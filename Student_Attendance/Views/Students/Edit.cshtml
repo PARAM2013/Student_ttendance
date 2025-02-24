@@ -17,6 +17,12 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="mb-3">
+                            <label asp-for="SSID" class="form-label">Student ID (SSID)</label>
+                            <input asp-for="SSID" class="form-control" readonly />
+                            <input type="hidden" asp-for="SSID" />
+                            <span asp-validation-for="SSID" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3">
                             <label asp-for="EnrollmentNo" class="form-label"></label>
                             <input asp-for="EnrollmentNo" class="form-control" />
                             <span asp-validation-for="EnrollmentNo" class="text-danger"></span>
