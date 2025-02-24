@@ -1,6 +1,10 @@
 ﻿@model Student_Attendance.Models.Institute
 
 @{
+    // Set institute info for menu (_Layout)
+    ViewBag.ShortName = Model?.ShortName ?? "SAS";
+    ViewBag.Logo = string.IsNullOrEmpty(Model?.Logo) ? "/images/default-logo.png" : Model.Logo;
+    
     ViewData["Title"] = "Dashboard";
 }
 
