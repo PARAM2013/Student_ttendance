@@ -956,19 +956,16 @@ namespace Student_Attendance.Controllers
             public void HandleEvent(Event currentEvent)
             {
                 PdfDocumentEvent docEvent = (PdfDocumentEvent)currentEvent;
-                PdfDocument pdf = docEvent.GetDocument();
                 PdfPage page = docEvent.GetPage();
-                int pageNumber = pdf.GetPageNumber(page);
-                int totalPages = pdf.GetNumberOfPages();
+                int pageNumber = docEvent.GetDocument().GetPageNumber(page);
 
                 Rectangle pageSize = page.GetPageSize();
                 PdfCanvas canvas = new PdfCanvas(page);
                 
-                // Moved page numbers slightly up to avoid overlapping with footer
                 canvas.BeginText()
                     .SetFontAndSize(PdfFontFactory.CreateFont(StandardFonts.HELVETICA), 8)
-                    .MoveText(pageSize.GetWidth() / 2 - 20, 30) // Changed from 20 to 30
-                    .ShowText($"Page {pageNumber} of {totalPages}")
+                    .MoveText(pageSize.GetWidth() / 2 - 20, 30)
+                    .ShowText($"Page {pageNumber}")
                     .EndText();
             }
         }
