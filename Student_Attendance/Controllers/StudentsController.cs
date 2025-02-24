@@ -26,12 +26,37 @@ namespace Student_Attendance.Controllers
         }
 
         // GET: Students
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? yearId, int? courseId, int? divisionId, bool? isActive)
         {
-            var students = await _context.Students
+            // Start with base query
+            var query = _context.Students
                 .Include(s => s.Course)
                 .Include(s => s.AcademicYear)
                 .Include(s => s.Division)
+                .AsQueryable();
+
+            // Apply filters
+            if (yearId.HasValue)
+            {
+                query = query.Where(s => s.AcademicYearId == yearId);
+            }
+
+            if (courseId.HasValue)
+            {
+                query = query.Where(s => s.CourseId == courseId);
+            }
+
+            if (divisionId.HasValue)
+            {
+                query = query.Where(s => s.DivisionId == divisionId);
+            }
+
+            if (isActive.HasValue)
+            {
+                query = query.Where(s => s.IsActive == isActive.Value);
+            }
+
+            var students = await query
                 .Select(s => new StudentViewModel
                 {
                     Id = s.Id,
@@ -50,6 +75,17 @@ namespace Student_Attendance.Controllers
                     Division = s.Division
                 })
                 .ToListAsync();
+
+            // Load dropdown data
+            ViewBag.Years = new SelectList(await _context.AcademicYears.ToListAsync(), "Id", "Name");
+            ViewBag.Courses = new SelectList(await _context.Courses.ToListAsync(), "Id", "Name");
+            ViewBag.Divisions = new SelectList(await _context.Divisions.ToListAsync(), "Id", "Name");
+
+            // Set selected values
+            ViewBag.SelectedYear = yearId;
+            ViewBag.SelectedCourse = courseId;
+            ViewBag.SelectedDivision = divisionId;
+            ViewBag.SelectedStatus = isActive;
 
             return View(students);
         }
@@ -746,6 +782,18 @@ namespace Student_Attendance.Controllers
             };
 
             return PartialView("_StudentDetailsPartial", viewModel);
+        }
+
+        // Add this new action for getting divisions by course
+        [HttpGet]
+        public async Task<IActionResult> GetDivisionsForCourse(int courseId)
+        {
+            var divisions = await _context.Divisions
+                .Where(d => d.Class.CourseId == courseId)
+                .Select(d => new { id = d.Id, name = d.Name })
+                .Distinct()
+                .ToListAsync();
+            return Json(divisions);
         }
     }
 }

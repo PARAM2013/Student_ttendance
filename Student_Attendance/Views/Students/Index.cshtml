@@ -96,6 +96,76 @@
         </div>
     </div>
 
+<!-- Add Filter Section -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="bi bi-funnel-fill me-2"></i>Filters</h5>
+        </div>
+        <div class="card-body">
+            <form id="filterForm" method="get">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">Academic Year <span class="text-danger">*</span></label>
+                            <select id="yearId" name="yearId" class="form-select" required>
+                                <option value="">Select Year</option>
+                                @foreach (var item in (SelectList)ViewBag.Years)
+                                {
+                                    <option value="@item.Value" selected="@(ViewBag.SelectedYear != null && ViewBag.SelectedYear.ToString() == item.Value)">
+                                        @item.Text
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">Course</label>
+                            <select id="courseId" name="courseId" class="form-select">
+                                <option value="">All Courses</option>
+                                @foreach (var item in (SelectList)ViewBag.Courses)
+                                {
+                                    <option value="@item.Value" selected="@(ViewBag.SelectedCourse != null && ViewBag.SelectedCourse.ToString() == item.Value)">
+                                        @item.Text
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">Division</label>
+                            <select id="divisionId" name="divisionId" class="form-select">
+                                <option value="">All Divisions</option>
+                                @foreach (var item in (SelectList)ViewBag.Divisions)
+                                {
+                                    <option value="@item.Value" selected="@(ViewBag.SelectedDivision != null && ViewBag.SelectedDivision.ToString() == item.Value)">
+                                        @item.Text
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label class="form-label">Status</label>
+                            <select id="isActive" name="isActive" class="form-select">
+                                <option value="">All Status</option>
+                                <option value="true" selected="@(ViewBag.SelectedStatus == true)">Active</option>
+                                <option value="false" selected="@(ViewBag.SelectedStatus == false)">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-search me-1"></i> Search
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="card shadow">
         <div class="card-body">
             <div class="row mb-3">
@@ -158,14 +228,47 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
+            // Existing search functionality
             $("#searchInput").on("keyup", function () {
                 var value = $(this).val().toLowerCase();
                 $("#studentsTable tbody tr").filter(function () {
                     $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
                 });
             });
+
+            // Handle course change to update divisions
+            $("#courseId").change(function() {
+                var courseId = $(this).val();
+                var divisionDropdown = $("#divisionId");
+                
+                // Reset division dropdown
+                divisionDropdown.html('<option value="">All Divisions</option>');
+                
+                if (courseId) {
+                    // Get divisions for selected course
+                    $.get('/Students/GetDivisionsForCourse', { courseId: courseId }, function(data) {
+                        $.each(data, function(i, item) {
+                            divisionDropdown.append($('<option>', {
+                                value: item.id,
+                                text: item.name
+                            }));
+                        });
+                    });
+                }
+            });
+
+            // Form validation
+            $("#filterForm").submit(function(e) {
+                if (!$("#yearId").val()) {
+                    e.preventDefault();
+                    alert("Please select an Academic Year");
+                    return false;
+                }
+                return true;
+            });
         });
 
+        // Existing showStudentDetails function
         function showStudentDetails(id) {
             $.get(`/Students/GetDetails/${id}`, function(data) {
                 $('#modal-content').html(data);
