@@ -8,9 +8,8 @@ using System.IO;
 
 namespace Student_Attendance.Controllers
 {
-    public class InstituteController : Controller
+    public class InstituteController : BaseController
     {
-        private readonly ApplicationDbContext _context;
         private readonly ILogger<InstituteController> _logger;
         private readonly IWebHostEnvironment _webHostEnvironment;
         private const string DEFAULT_LOGO = "/Images/logos/Defult_logo.jpg";
@@ -18,8 +17,8 @@ namespace Student_Attendance.Controllers
         public InstituteController(ApplicationDbContext context,
             ILogger<InstituteController> logger,
             IWebHostEnvironment webHostEnvironment)
+            : base(context)
         {
-            _context = context;
             _logger = logger;
             _webHostEnvironment = webHostEnvironment;
         }

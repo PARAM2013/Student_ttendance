@@ -9,14 +9,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Student_Attendance.Controllers
 {
-    public class AcademicController : Controller
+    public class AcademicController : BaseController
     {
-        private readonly ApplicationDbContext _context;
         private readonly ILogger<AcademicController> _logger;
 
         public AcademicController(ApplicationDbContext context, ILogger<AcademicController> logger)
+            : base(context)
         {
-            _context = context;
             _logger = logger;
         }
 

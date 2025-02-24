@@ -3,12 +3,13 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
 using Student_Attendance.Data;
 using Student_Attendance.Models;
+using System.Linq;
 
 namespace Student_Attendance.Controllers
 {
     public class BaseController : Controller
     {
-        protected ApplicationDbContext _context;
+        protected readonly ApplicationDbContext _context;
         public User CurrentUser { get; set; }
 
         public BaseController(ApplicationDbContext context)
@@ -17,6 +18,10 @@ namespace Student_Attendance.Controllers
         }
         public override void OnActionExecuting(ActionExecutingContext context)
         {
+            // Retrieve institute info (adjust as needed to your data model)
+            var institute = _context.Institutes.FirstOrDefault();
+            ViewBag.ShortName = institute?.ShortName ?? "SAS";
+            ViewBag.Logo = string.IsNullOrEmpty(institute?.Logo) ? "/images/default-logo.png" : institute.Logo;
             base.OnActionExecuting(context);
 
             string username = User.Identity.Name;

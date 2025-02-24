@@ -10,14 +10,13 @@ namespace Student_Attendance.Controllers
 {
     [Authorize]              // This ensures only logged-in users can access
     [Authorize(Roles = "Admin")]  // This ensures only Admin role can access
-    public class AdminController : Controller
+    public class AdminController : BaseController
     {
-        private readonly ApplicationDbContext _context;
         private readonly ILogger<AdminController> _logger;
 
         public AdminController(ApplicationDbContext context, ILogger<AdminController> logger)
+            : base(context)
         {
-            _context = context;
             _logger = logger;
         }
 

@@ -13,14 +13,15 @@ using OfficeOpenXml; // Add this at the top
 
 namespace Student_Attendance.Controllers
 {
-    public class StudentsController : Controller
+    // Change inheritance:
+    public class StudentsController : BaseController
     {
-        private readonly ApplicationDbContext _context;
         private readonly ILogger<StudentsController> _logger;
 
+        // Update constructor to call base constructor
         public StudentsController(ApplicationDbContext context, ILogger<StudentsController> logger)
+            : base(context)
         {
-            _context = context;
             _logger = logger;
         }
 
