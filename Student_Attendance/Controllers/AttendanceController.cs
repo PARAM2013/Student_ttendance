@@ -368,9 +368,12 @@ namespace Student_Attendance.Controllers
                             .Select(d => new DateTime(year, month, d))
                             .ToList();
 
-            // Get students for division
+            // Get only students who are mapped to this subject
             var students = await _context.Students
-                                .Where(s => s.DivisionId == divisionId && s.IsActive)
+                                .Include(s => s.StudentSubjects)
+                                .Where(s => s.DivisionId == divisionId && 
+                                          s.IsActive &&
+                                          s.StudentSubjects.Any(ss => ss.SubjectId == subjectId))
                                 .Select(s => new BulkAttendanceStudentViewModel {
                                     StudentId = s.Id,
                                     EnrollmentNo = s.EnrollmentNo,
@@ -378,14 +381,18 @@ namespace Student_Attendance.Controllers
                                 })
                                 .ToListAsync();
 
-            // Get existing attendance records for the month and subject
+            if (!students.Any())
+            {
+                return Json(new { success = false, message = "No students found mapped to this subject." });
+            }
+
+            // Get existing attendance records
             var records = await _context.AttendanceRecords
                                 .Where(a => a.SubjectId == subjectId &&
                                         a.Date.Month == month &&
                                         a.Date.Year == year)
                                 .ToListAsync();
 
-            // Pass data to grid view model (assemble a dictionary of attendance status)
             var gridModel = new BulkAttendanceGridViewModel {
                 Dates = dates,
                 Students = students,
@@ -409,14 +416,23 @@ namespace Student_Attendance.Controllers
                             .Select(d => startDate.AddDays(d))
                             .ToList();
 
+            // Get only students who are mapped to this subject
             var students = await _context.Students
-                                .Where(s => s.DivisionId == divisionId && s.IsActive)
+                                .Include(s => s.StudentSubjects)
+                                .Where(s => s.DivisionId == divisionId && 
+                                          s.IsActive &&
+                                          s.StudentSubjects.Any(ss => ss.SubjectId == subjectId))
                                 .Select(s => new BulkAttendanceStudentViewModel {
                                     StudentId = s.Id,
                                     EnrollmentNo = s.EnrollmentNo,
                                     StudentName = s.Name
                                 })
                                 .ToListAsync();
+
+            if (!students.Any())
+            {
+                return Json(new { success = false, message = "No students found mapped to this subject." });
+            }
 
             var records = await _context.AttendanceRecords
                                 .Where(a => a.SubjectId == subjectId &&
