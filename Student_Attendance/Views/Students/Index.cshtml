@@ -132,6 +132,10 @@
                                         <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">
                                             <i class="fas fa-trash"></i>
                                         </a>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                                onclick="showSubjectMapping(@item.Id)" title="Map Subjects">
+                                            <i class="bi bi-book"></i>
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -145,6 +149,15 @@
 
 <!-- Details Modal -->
 <div class="modal fade" id="detailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <!-- Content will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<!-- Add this modal for subject mapping -->
+<div class="modal fade" id="form-modal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <!-- Content will be loaded here -->
@@ -186,6 +199,47 @@
                 $('#detailsModal .modal-content').html(data);
                 $('#detailsModal').modal('show');
             });
+        }
+
+        function showSubjectMapping(studentId) {
+            $.get('/Students/GetSubjectMapping', { id: studentId })
+                .done(function(data) {
+                    $('#form-modal .modal-content').html(data);
+                    $('#form-modal').modal('show');
+                })
+                .fail(function(error) {
+                    console.error('Error loading subject mapping:', error);
+                    Swal.fire('Error', 'Failed to load subject mapping', 'error');
+                });
+        }
+
+        function saveSubjectMapping(form) {
+            var studentId = $(form).find('input[name="studentId"]').val();
+            var subjectIds = [];
+            $(form).find('input[name="subjectIds"]:checked').each(function() {
+                subjectIds.push($(this).val());
+            });
+
+            $.ajax({
+                url: '/Students/SaveSubjectMapping',
+                type: 'POST',
+                data: {
+                    studentId: studentId,
+                    subjectIds: subjectIds
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $('#form-modal').modal('hide');
+                        Swal.fire('Success', 'Subject mapping updated successfully', 'success');
+                    } else {
+                        Swal.fire('Error', response.message || 'Failed to update subject mapping', 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error', 'Failed to save subject mapping', 'error');
+                }
+            });
+            return false;
         }
     </script>
 }
