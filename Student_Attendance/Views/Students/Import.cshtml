@@ -5,36 +5,72 @@
 
 <div class="container-fluid">
     <div class="card">
-        <div class="card-header">
+        <div class="card-header bg-primary text-white">
             <h3 class="card-title">
                 <i class="fas fa-file-import me-2"></i>Import Students
             </h3>
         </div>
         <div class="card-body">
-            @* <div class="row mb-4">
+            <div class="row mb-4">
                 <div class="col-md-12">
                     <div class="alert alert-info">
-                        <h5><i class="fas fa-info-circle me-2"></i>Instructions:</h5>
-                        <ol>
-                            <li>Download the template file below</li>
-                            <li>Fill in the student details as per the format</li>
-                            <li>Save the file and upload it here</li>
-                            <li>Required fields are marked with *</li>
-                        </ol>
-                        <div class="mt-3">
-                            <strong>Required Fields:</strong>
-                            <ul>
-                                <li>Enrollment No* (Unique identifier)</li>
-                                <li>Student Name*</li>
-                                <li>Course*</li>
-                                <li>Academic Year*</li>
-                                <li>Division*</li>
-                                <li>Semester* (1-8)</li>
+                        <h5 class="alert-heading">
+                            <i class="fas fa-info-circle me-2"></i>Instructions for Import
+                        </h5>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="fw-bold">Step-by-Step Guide:</h6>
+                                <ol class="list-group list-group-numbered">
+                                    <li class="list-group-item">Download the template file or current data</li>
+                                    <li class="list-group-item">Fill in the student details following the format</li>
+                                    <li class="list-group-item">Save the file as Excel (.xlsx)</li>
+                                    <li class="list-group-item">Upload the file using the form below</li>
+                                    <li class="list-group-item">Review the preview before confirming import</li>
+                                </ol>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="fw-bold">Required Fields:</h6>
+                                <ul class="list-group">
+                                    <li class="list-group-item">
+                                        <i class="fas fa-asterisk text-danger me-2"></i>Enrollment No 
+                                        <small class="text-muted">(Must be unique)</small>
+                                    </li>
+                                    <li class="list-group-item">
+                                        <i class="fas fa-asterisk text-danger me-2"></i>Student Name
+                                    </li>
+                                    <li class="list-group-item">
+                                        <i class="fas fa-asterisk text-danger me-2"></i>Course
+                                        <small class="text-muted">(Must match existing course)</small>
+                                    </li>
+                                    <li class="list-group-item">
+                                        <i class="fas fa-asterisk text-danger me-2"></i>Division
+                                        <small class="text-muted">(Must match existing division)</small>
+                                    </li>
+                                    <li class="list-group-item">
+                                        <i class="fas fa-asterisk text-danger me-2"></i>Semester
+                                        <small class="text-muted">(1-12)</small>
+                                    </li>
+                                    <li class="list-group-item">
+                                        <i class="fas fa-asterisk text-danger me-2"></i>Academic Year
+                                        <small class="text-muted">(Must match existing year)</small>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="mt-2">
+                            <h6 class="fw-bold">Important Notes:</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check-circle text-success me-2"></i>Existing students will be updated based on Enrollment No</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i>New students will be automatically assigned SSID</li>
+                                <li><i class="fas fa-exclamation-triangle text-warning me-2"></i>Make sure Course, Division, and Academic Year names match exactly</li>
+                                <li><i class="fas fa-exclamation-triangle text-warning me-2"></i>Empty rows will be skipped during import</li>
                             </ul>
                         </div>
                     </div>
                 </div>
-            </div> *@
+            </div>
 
             @if (TempData["Error"] != null)
             {
@@ -47,38 +83,51 @@
             <div class="row mb-4">
                 <div class="col-md-12">
                     <div class="btn-group">
-                        @* <a asp-action="DownloadTemplate" class="btn btn-outline-primary">
-                            <i class="fas fa-download me-2"></i>Download Empty Template
-                        </a> *@
+                        <a asp-action="DownloadTemplate" class="btn btn-outline-primary">
+                            <i class="fas fa-file-download me-2"></i>Download Empty Template
+                        </a>
                         <a asp-action="DownloadData" class="btn btn-outline-success">
-                            <i class="fas fa-file-excel me-2"></i>Download Current Data
+                            <i class="fas fa-database me-2"></i>Download Current Data
                         </a>
                     </div>
                 </div>
             </div>
 
-            <form method="post" enctype="multipart/form-data" asp-action="Import">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label">Excel File</label>
-                            <input type="file" asp-for="File" class="form-control" accept=".xlsx,.xls" required />
-                            <span asp-validation-for="File" class="text-danger"></span>
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Upload Excel File</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" asp-action="Import" id="importForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Select Excel File</label>
+                                    <input type="file" asp-for="File" class="form-control" accept=".xlsx,.xls" required 
+                                           data-bs-toggle="tooltip" data-bs-placement="top" 
+                                           title="Only Excel files (.xlsx, .xls) are supported" />
+                                    <span asp-validation-for="File" class="text-danger"></span>
+                                    <div class="form-text">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Maximum file size: 10MB
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
 
-                <div class="row mt-3">
-                    <div class="col-md-12">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-upload me-2"></i>Upload and Import
-                        </button>
-                        <a asp-action="Index" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left me-2"></i>Back to List
-                        </a>
-                    </div>
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <button type="submit" class="btn btn-primary" id="uploadBtn">
+                                    <i class="fas fa-upload me-2"></i>Upload and Preview
+                                </button>
+                                <a asp-action="Index" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Back to List
+                                </a>
+                            </div>
+                        </div>
+                    </form>
                 </div>
-            </form>
+            </div>
 
             @if (Model != null && (Model.SuccessCount > 0 || Model.ErrorCount > 0))
             {
@@ -116,7 +165,7 @@
                                         <h6><i class="fas fa-list me-2"></i>Error Details:</h6>
                                         <div class="table-responsive">
                                             <table class="table table-striped table-bordered">
-                                                <thead>
+                                                <thead class="table-danger">
                                                     <tr>
                                                         <th>Error Details</th>
                                                     </tr>
@@ -144,4 +193,31 @@
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        $(document).ready(function () {
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            });
+
+            // Handle form submission
+            $('#importForm').on('submit', function () {
+                var fileInput = $('#File');
+                if (fileInput[0].files.length > 0) {
+                    $('#uploadBtn').prop('disabled', true)
+                        .html('<i class="fas fa-spinner fa-spin me-2"></i>Uploading...');
+                }
+            });
+
+            // File input change handler
+            $('#File').on('change', function() {
+                var fileSize = this.files[0]?.size / 1024 / 1024; // in MB
+                if (fileSize > 10) {
+                    alert('File size exceeds 10MB. Please choose a smaller file.');
+                    this.value = '';
+                }
+            });
+        });
+    </script>
 }
