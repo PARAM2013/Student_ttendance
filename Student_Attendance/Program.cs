@@ -105,7 +105,7 @@ using (var scope = app.Services.CreateScope())
         // Seed dummy related data if not exists.
         if (!context.Courses.Any())
         {
-            var course = new Course { Name = "Dummy Course" };
+            var course = new Course { Name = "MBA" };
             context.Courses.Add(course);
             context.SaveChanges();
         }
@@ -121,7 +121,7 @@ using (var scope = app.Services.CreateScope())
 
         if (!context.Classes.Any())
         {
-            var dummyClass = new Class { Name = "Class A", CourseId = dummyCourse.Id, AcademicYearId = dummyYear.Id };
+            var dummyClass = new Class { Name = "MBA SEM 1", CourseId = dummyCourse.Id, AcademicYearId = dummyYear.Id };
             context.Classes.Add(dummyClass);
             context.SaveChanges();
         }
@@ -129,7 +129,7 @@ using (var scope = app.Services.CreateScope())
 
         if (!context.Divisions.Any())
         {
-            var dummyDivision = new Division { Name = "Division 1", ClassId = dummyClassExisting.Id };
+            var dummyDivision = new Division { Name = "A", ClassId = dummyClassExisting.Id };
             context.Divisions.Add(dummyDivision);
             context.SaveChanges();
         }

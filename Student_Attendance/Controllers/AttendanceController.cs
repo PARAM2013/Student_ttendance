@@ -96,7 +96,6 @@ namespace Student_Attendance.Controllers
                     }
                 }
 
-                // Remove existing records for this date and subject
                 var existingRecords = await _context.AttendanceRecords
                     .Where(a => a.Date.Date == model.Date.Date && 
                                a.SubjectId == model.SubjectId)
@@ -104,7 +103,7 @@ namespace Student_Attendance.Controllers
 
                 _context.AttendanceRecords.RemoveRange(existingRecords);
 
-                // Add new records
+                // Add new records with proper teacher attribution
                 foreach (var student in model.Students)
                 {
                     var attendance = new AttendanceRecord
@@ -114,8 +113,8 @@ namespace Student_Attendance.Controllers
                         Date = model.Date,
                         IsPresent = student.IsPresent,
                         TimeStamp = DateTime.Now,
-                        MarkedById = User.Identity?.Name ?? "Unknown",
-                        DiscussionTopic = model.DiscussionTopic // Make sure this is properly set
+                        MarkedById = CurrentUser.Id, // Use the actual teacher ID
+                        DiscussionTopic = model.DiscussionTopic
                     };
                     _context.AttendanceRecords.Add(attendance);
                 }
@@ -524,7 +523,7 @@ namespace Student_Attendance.Controllers
                                 Date = date,
                                 IsPresent = dateEntry.Value.Value, // Use .Value to get the bool value
                                 TimeStamp = DateTime.Now,
-                                MarkedById = User.Identity?.Name ?? "System"
+                                MarkedById = CurrentUser.Id // Change from string to int
                             };
                             _context.AttendanceRecords.Add(attendance);
                         }
@@ -578,15 +577,17 @@ namespace Student_Attendance.Controllers
             {
                 var query = from ar in _context.AttendanceRecords
                             join s in _context.Subjects on ar.SubjectId equals s.Id
+                            join u in _context.Users on ar.MarkedById equals u.Id
                             where ar.SubjectId == subjectId &&
                                   ar.Date.Date >= startDate.Date &&
                                   ar.Date.Date <= endDate.Date
-                            group ar by new { ar.Date, ar.SubjectId, ar.MarkedById, ar.DiscussionTopic, s.Name } into g
+                            group ar by new { ar.Date, ar.SubjectId, ar.MarkedById, u.UserName, ar.DiscussionTopic, s.Name } into g
                             select new TopicDiscussionItem
                             {
                                 Date = g.Key.Date,
                                 SubjectName = g.Key.Name,
-                                TeacherName = g.Key.MarkedById,
+                                MarkedById = g.Key.MarkedById,
+                                TeacherName = g.Key.UserName,
                                 DiscussionTopic = g.Key.DiscussionTopic ?? "-",
                                 StudentsPresent = g.Count(x => x.IsPresent),
                                 TotalStudents = g.Count()
@@ -594,11 +595,7 @@ namespace Student_Attendance.Controllers
 
                 if (teacherId.HasValue)
                 {
-                    var teacherUsername = await _context.Users
-                        .Where(u => u.Id == teacherId)
-                        .Select(u => u.UserName)
-                        .FirstOrDefaultAsync();
-                    query = query.Where(x => x.TeacherName == teacherUsername);
+                    query = query.Where(x => x.MarkedById == teacherId.Value);
                 }
 
                 var discussions = await query
@@ -735,7 +732,11 @@ namespace Student_Attendance.Controllers
                             d => (bool?)records.FirstOrDefault(r => 
                                 r.StudentId == s.Id && r.Date.Date == d.Date)?.IsPresent
                         )
-                    }).ToList()
+                    }).ToList(),
+                    TeacherAttribution = records
+                        .GroupBy(r => r.MarkedBy.UserName)
+                        .Select(g => $"{g.Key}: {g.Count()} records")
+                        .ToList()
                 };
 
                 return PartialView("_MonthlyReportView", reportData);

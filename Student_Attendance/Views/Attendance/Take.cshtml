@@ -21,17 +21,20 @@
                         {
                             <select id="TeacherId" name="TeacherId" class="form-select">
                                 <option value="">Select Teacher</option>
-                                @foreach(var teacher in ViewBag.Teachers as Microsoft.AspNetCore.Mvc.Rendering.SelectList)
+                                @if (ViewBag.Teachers != null)
                                 {
-                                    <option value="@teacher.Value">@teacher.Text</option>
+                                    foreach(var teacher in ViewBag.Teachers as Microsoft.AspNetCore.Mvc.Rendering.SelectList)
+                                    {
+                                        <option value="@teacher.Value">@teacher.Text</option>
+                                    }
                                 }
                             </select>
                         }
                         else
                         {
                             <!-- For teacher login, display teacher name as readonly -->
-                            <input type="text" id="TeacherName" class="form-control" value="@User.Identity.Name" disabled />
-                            <input type="hidden" id="TeacherId" name="TeacherId" value="@User.FindFirst("Id")?.Value" />
+                            <input type="text" id="TeacherName" class="form-control" value="@(User.Identity?.Name ?? "")" disabled />
+                            <input type="hidden" id="TeacherId" name="TeacherId" value="@(User.FindFirst("Id")?.Value ?? "")" />
                         }
                     </div>
                     <div class="col-md-3">

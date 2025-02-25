@@ -67,8 +67,8 @@ namespace Student_Attendance.Migrations
                     b.Property<bool>("IsPresent")
                         .HasColumnType("bit");
 
-                    b.Property<string>("MarkedById")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("MarkedById")
+                        .HasColumnType("int");
 
                     b.Property<int>("StudentId")
                         .HasColumnType("int");
@@ -86,6 +86,8 @@ namespace Student_Attendance.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("MarkedById");
 
                     b.HasIndex("StudentId");
 
@@ -463,6 +465,12 @@ namespace Student_Attendance.Migrations
 
             modelBuilder.Entity("Student_Attendance.Models.AttendanceRecord", b =>
                 {
+                    b.HasOne("Student_Attendance.Models.User", "MarkedBy")
+                        .WithMany()
+                        .HasForeignKey("MarkedById")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Student_Attendance.Models.Student", "Student")
                         .WithMany()
                         .HasForeignKey("StudentId")
@@ -482,6 +490,8 @@ namespace Student_Attendance.Migrations
                     b.HasOne("Student_Attendance.Models.Subject", null)
                         .WithMany("AttendanceRecords")
                         .HasForeignKey("SubjectId1");
+
+                    b.Navigation("MarkedBy");
 
                     b.Navigation("Student");
 

@@ -12,8 +12,8 @@ using Student_Attendance.Data;
 namespace Student_Attendance.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250224074036_AddSSID")]
-    partial class AddSSID
+    [Migration("20250225065525_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -70,13 +70,19 @@ namespace Student_Attendance.Migrations
                     b.Property<bool>("IsPresent")
                         .HasColumnType("bit");
 
-                    b.Property<string>("MarkedById")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("MarkedById")
+                        .HasColumnType("int");
 
                     b.Property<int>("StudentId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("StudentId1")
+                        .HasColumnType("int");
+
                     b.Property<int>("SubjectId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SubjectId1")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("TimeStamp")
@@ -84,9 +90,15 @@ namespace Student_Attendance.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("MarkedById");
+
                     b.HasIndex("StudentId");
 
+                    b.HasIndex("StudentId1");
+
                     b.HasIndex("SubjectId");
+
+                    b.HasIndex("SubjectId1");
 
                     b.ToTable("AttendanceRecords");
                 });
@@ -261,6 +273,9 @@ namespace Student_Attendance.Migrations
                     b.Property<int>("CourseId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("CourseId1")
+                        .HasColumnType("int");
+
                     b.Property<int>("DivisionId")
                         .HasColumnType("int");
 
@@ -302,6 +317,8 @@ namespace Student_Attendance.Migrations
                     b.HasIndex("ClassId1");
 
                     b.HasIndex("CourseId");
+
+                    b.HasIndex("CourseId1");
 
                     b.HasIndex("DivisionId");
 
@@ -350,6 +367,9 @@ namespace Student_Attendance.Migrations
                     b.Property<int>("CourseId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("CourseId1")
+                        .HasColumnType("int");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -366,6 +386,8 @@ namespace Student_Attendance.Migrations
                     b.HasIndex("ClassId");
 
                     b.HasIndex("CourseId");
+
+                    b.HasIndex("CourseId1");
 
                     b.HasIndex("SpecializationId");
 
@@ -389,6 +411,9 @@ namespace Student_Attendance.Migrations
                     b.Property<int>("SubjectId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("SubjectId1")
+                        .HasColumnType("int");
+
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
@@ -397,6 +422,8 @@ namespace Student_Attendance.Migrations
                     b.HasIndex("AcademicYearId");
 
                     b.HasIndex("SubjectId");
+
+                    b.HasIndex("SubjectId1");
 
                     b.HasIndex("UserId");
 
@@ -441,17 +468,33 @@ namespace Student_Attendance.Migrations
 
             modelBuilder.Entity("Student_Attendance.Models.AttendanceRecord", b =>
                 {
+                    b.HasOne("Student_Attendance.Models.User", "MarkedBy")
+                        .WithMany()
+                        .HasForeignKey("MarkedById")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Student_Attendance.Models.Student", "Student")
                         .WithMany()
                         .HasForeignKey("StudentId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("Student_Attendance.Models.Student", null)
+                        .WithMany("AttendanceRecords")
+                        .HasForeignKey("StudentId1");
+
                     b.HasOne("Student_Attendance.Models.Subject", "Subject")
                         .WithMany()
                         .HasForeignKey("SubjectId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
+
+                    b.HasOne("Student_Attendance.Models.Subject", null)
+                        .WithMany("AttendanceRecords")
+                        .HasForeignKey("SubjectId1");
+
+                    b.Navigation("MarkedBy");
 
                     b.Navigation("Student");
 
@@ -529,6 +572,10 @@ namespace Student_Attendance.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("Student_Attendance.Models.Course", null)
+                        .WithMany("Students")
+                        .HasForeignKey("CourseId1");
+
                     b.HasOne("Student_Attendance.Models.Division", "Division")
                         .WithMany()
                         .HasForeignKey("DivisionId")
@@ -577,6 +624,10 @@ namespace Student_Attendance.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("Student_Attendance.Models.Course", null)
+                        .WithMany("Subjects")
+                        .HasForeignKey("CourseId1");
+
                     b.HasOne("Student_Attendance.Models.Specialization", "Specialization")
                         .WithMany()
                         .HasForeignKey("SpecializationId");
@@ -602,6 +653,10 @@ namespace Student_Attendance.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("Student_Attendance.Models.Subject", null)
+                        .WithMany("TeacherSubjects")
+                        .HasForeignKey("SubjectId1");
+
                     b.HasOne("Student_Attendance.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
@@ -620,9 +675,25 @@ namespace Student_Attendance.Migrations
                     b.Navigation("Students");
                 });
 
+            modelBuilder.Entity("Student_Attendance.Models.Course", b =>
+                {
+                    b.Navigation("Students");
+
+                    b.Navigation("Subjects");
+                });
+
             modelBuilder.Entity("Student_Attendance.Models.Student", b =>
                 {
+                    b.Navigation("AttendanceRecords");
+
                     b.Navigation("StudentSubjects");
+                });
+
+            modelBuilder.Entity("Student_Attendance.Models.Subject", b =>
+                {
+                    b.Navigation("AttendanceRecords");
+
+                    b.Navigation("TeacherSubjects");
                 });
 #pragma warning restore 612, 618
         }

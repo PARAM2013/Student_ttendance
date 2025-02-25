@@ -1,0 +1,143 @@
+@model IEnumerable<TeacherSubject>
+@{
+    ViewData["Title"] = "Teacher Subject Mapping";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-link me-2"></i>Teacher Subject Mapping</h3>
+    </div>
+    <div class="card-body">
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <label class="form-label">Teacher</label>
+                <select id="teacherId" class="form-select" required>
+                    <option value="">Select Teacher</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Subject</label>
+                <select id="subjectId" class="form-select" required>
+                    <option value="">Select Subject</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Academic Year</label>
+                <select id="academicYearId" class="form-select" required>
+                    <option value="">Select Academic Year</option>
+                    @foreach(var year in ViewBag.AcademicYears as IEnumerable<SelectListItem>)
+                    {
+                        <option value="@year.Value">@year.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-12 mt-3">
+                <button type="button" id="mapButton" class="btn btn-primary">
+                    <i class="fas fa-link me-2"></i>Map Subject
+                </button>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped" id="mappingsTable">
+                <thead>
+                    <tr>
+                        <th>Teacher</th>
+                        <th>Subject</th>
+                        <th>Academic Year</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach(var item in Model ?? Enumerable.Empty<TeacherSubject>())
+                    {
+                        <tr>
+                            <td>@(item.User?.UserName ?? "Unknown")</td>
+                            <td>@(item.Subject?.Name ?? "Unknown") (@item.Subject?.Code ?? "Unknown")</td>
+                            <td>@item.AcademicYear.Name</td>
+                            <td>
+                                <button type="button" class="btn btn-danger btn-sm unmap-btn" 
+                                        data-id="@item.Id">
+                                    <i class="fas fa-unlink me-1"></i>Unmap
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Load teachers and subjects
+            $.get('/TeacherSubjectMap/GetTeachers', function(data) {
+                var options = '<option value="">Select Teacher</option>';
+                data.forEach(function(item) {
+                    options += `<option value="${item.id}">${item.name}</option>`;
+                });
+                $('#teacherId').html(options);
+            });
+
+            $.get('/TeacherSubjectMap/GetSubjects', function(data) {
+                var options = '<option value="">Select Subject</option>';
+                data.forEach(function(item) {
+                    options += `<option value="${item.id}">${item.name}</option>`;
+                });
+                $('#subjectId').html(options);
+            });
+
+            // Handle mapping
+            $('#mapButton').click(function() {
+                var teacherId = $('#teacherId').val();
+                var subjectId = $('#subjectId').val();
+                var academicYearId = $('#academicYearId').val();
+
+                if (!teacherId || !subjectId || !academicYearId) {
+                    Swal.fire('Warning', 'Please select all fields', 'warning');
+                    return;
+                }
+
+                $.post('/TeacherSubjectMap/Map', {
+                    teacherId: teacherId,
+                    subjectId: subjectId,
+                    academicYearId: academicYearId
+                })
+                .done(function(response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        Swal.fire('Error', response.message || 'Failed to map subject', 'error');
+                    }
+                });
+            });
+
+            // Handle unmapping
+            $('.unmap-btn').click(function() {
+                var id = $(this).data('id');
+                var row = $(this).closest('tr');
+
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: "This will unmap the subject from the teacher",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, unmap it'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.post('/TeacherSubjectMap/Unmap', { id: id })
+                            .done(function(response) {
+                                if (response.success) {
+                                    row.fadeOut();
+                                } else {
+                                    Swal.fire('Error', 'Failed to unmap subject', 'error');
+                                }
+                            });
+                    }
+                });
+            });
+        });
+    </script>
+}

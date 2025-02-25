@@ -25,7 +25,11 @@ namespace Student_Attendance.Models
         public bool IsPresent { get; set; }
 
         public DateTime TimeStamp { get; set; }
-        public string? MarkedById { get; set; }
+
+        [Required]
+        public int MarkedById { get; set; }
+        [ForeignKey("MarkedById")]
+        public User MarkedBy { get; set; }
 
         [StringLength(500)]
         public string? DiscussionTopic { get; set; }
