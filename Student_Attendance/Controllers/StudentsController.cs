@@ -569,206 +569,298 @@ namespace Student_Attendance.Controllers
         [HttpPost]
         public async Task<IActionResult> Import(StudentImportViewModel model)
         {
+            if (model.File == null || model.File.Length == 0)
+            {
+                ModelState.AddModelError("File", "Please select a file to import");
+                return View(model);
+            }
+
+            string tempPath = "";
             try
             {
-                if (model.File == null || model.File.Length == 0)
+                // Create a preview of the import
+                var previewModel = await ValidateAndPreviewImport(model.File);
+                
+                // Store the uploaded file temporarily with a unique ID
+                var fileId = Guid.NewGuid().ToString();
+                tempPath = Path.Combine(Path.GetTempPath(), fileId + ".xlsx");
+                
+                // Use using block to ensure proper disposal of FileStream
+                using (var fileStream = new FileStream(tempPath, FileMode.Create, FileAccess.Write))
                 {
-                    ModelState.AddModelError("File", "Please select a file to import");
-                    return View(model);
+                    await model.File.CopyToAsync(fileStream);
+                }
+                
+                previewModel.FileId = fileId;
+                return View("ImportPreview", previewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during import preview");
+                
+                // Clean up temp file if it exists
+                if (!string.IsNullOrEmpty(tempPath) && System.IO.File.Exists(tempPath))
+                {
+                    try
+                    {
+                        System.IO.File.Delete(tempPath);
+                    }
+                    catch (Exception deleteEx)
+                    {
+                        _logger.LogWarning(deleteEx, "Failed to delete temporary file: {TempPath}", tempPath);
+                    }
+                }
+                
+                model.ImportErrors.Add($"Error previewing import: {ex.Message}");
+                return View(model);
+            }
+        }
+
+        private async Task<ImportPreviewViewModel> ValidateAndPreviewImport(IFormFile file)
+        {
+            var preview = new ImportPreviewViewModel();
+            var processedEnrollmentNos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            
+            using var stream = file.OpenReadStream();
+            using var package = new ExcelPackage(stream);
+            var worksheet = package.Workbook.Worksheets[0];
+            
+            if (worksheet?.Dimension == null)
+                throw new Exception("The Excel file is empty or invalid");
+
+            preview.TotalRows = worksheet.Dimension.Rows - 1; // Excluding header
+
+            for (int row = 2; row <= worksheet.Dimension.Rows; row++)
+            {
+                var studentRow = new StudentImportRow { RowNumber = row };
+
+                try
+                {
+                    // Clean and trim data
+                    studentRow.EnrollmentNo = (worksheet.Cells[row, 2].Value?.ToString() ?? "").Trim();
+                    studentRow.Name = (worksheet.Cells[row, 3].Value?.ToString() ?? "").Trim();
+                    studentRow.Email = (worksheet.Cells[row, 4].Value?.ToString() ?? "").Trim();
+                    studentRow.Mobile = (worksheet.Cells[row, 5].Value?.ToString() ?? "").Trim();
+                    studentRow.Cast = (worksheet.Cells[row, 6].Value?.ToString() ?? "").Trim();
+                    studentRow.Course = (worksheet.Cells[row, 7].Value?.ToString() ?? "").Trim();
+                    studentRow.Class = (worksheet.Cells[row, 8].Value?.ToString() ?? "").Trim();
+                    studentRow.Division = (worksheet.Cells[row, 9].Value?.ToString() ?? "").Trim();
+                    
+                    var semesterStr = worksheet.Cells[row, 10].Value?.ToString();
+                    studentRow.Semester = semesterStr != null ? int.Parse(semesterStr) : null;
+                    
+                    studentRow.AcademicYear = (worksheet.Cells[row, 11].Value?.ToString() ?? "").Trim();
+
+                    // Skip empty rows
+                    if (string.IsNullOrWhiteSpace(studentRow.EnrollmentNo) && 
+                        string.IsNullOrWhiteSpace(studentRow.Name))
+                        continue;
+
+                    // Check for duplicates within the file
+                    if (!string.IsNullOrEmpty(studentRow.EnrollmentNo) && 
+                        !processedEnrollmentNos.Add(studentRow.EnrollmentNo))
+                    {
+                        studentRow.Status = ImportRowStatus.Duplicate;
+                        studentRow.StatusMessage = "Duplicate enrollment number in file";
+                        preview.DuplicatesInFile++;
+                    }
+                    else
+                    {
+                        // Check if student exists in database
+                        var existingStudent = await _context.Students
+                            .FirstOrDefaultAsync(s => s.EnrollmentNo == studentRow.EnrollmentNo);
+
+                        if (existingStudent != null)
+                        {
+                            studentRow.Status = ImportRowStatus.Update;
+                            preview.UpdatedStudents++;
+                        }
+                        else
+                        {
+                            studentRow.Status = ImportRowStatus.New;
+                            preview.NewStudents++;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    studentRow.Status = ImportRowStatus.Error;
+                    studentRow.StatusMessage = ex.Message;
+                    preview.ValidationErrors.Add($"Row {row}: {ex.Message}");
                 }
 
-                int newStudentsCount = 0;
-                int updatedStudentsCount = 0;
+                preview.Students.Add(studentRow);
+            }
 
-                using var stream = model.File.OpenReadStream();
-                using var package = new ExcelPackage(stream);
+            return preview;
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ConfirmImport(string fileId)
+        {
+            var tempPath = Path.Combine(Path.GetTempPath(), fileId + ".xlsx");
+            var importStats = new ImportStats(); // Track import statistics
+
+            try
+            {
+                if (!System.IO.File.Exists(tempPath))
+                {
+                    TempData["Error"] = "Import file not found. Please try again.";
+                    return RedirectToAction("Import");
+                }
+
+                // Read all bytes at once and create new MemoryStream to avoid file locks
+                byte[] fileBytes = await System.IO.File.ReadAllBytesAsync(tempPath);
+                using var memoryStream = new MemoryStream(fileBytes);
+                using var package = new ExcelPackage(memoryStream);
                 var worksheet = package.Workbook.Worksheets[0];
 
                 if (worksheet == null || worksheet.Dimension == null)
                 {
-                    model.ImportErrors.Add("The Excel file is empty or invalid");
-                    return View(model);
+                    TempData["Error"] = "The Excel file is invalid or empty";
+                    return RedirectToAction("Import");
                 }
 
-                var rowCount = worksheet.Dimension.Rows;
-
-                // Dictionary for existing students
-                var existingStudents = await _context.Students
-                    .ToDictionaryAsync(s => s.EnrollmentNo, s => s);
-
-                // First validate all rows
-                for (int row = 2; row <= rowCount; row++)
+                using (var transaction = await _context.Database.BeginTransactionAsync())
                 {
                     try
                     {
-                        var enrollmentNo = worksheet.Cells[row, 2].Value?.ToString()?.Trim();
-                        var name = worksheet.Cells[row, 3].Value?.ToString()?.Trim();
-                        var semesterCell = worksheet.Cells[row, 10].Value; // Changed index to match template
-                        var courseName = worksheet.Cells[row, 7].Value?.ToString()?.Trim();
-                        var divisionName = worksheet.Cells[row, 9].Value?.ToString()?.Trim();
-                        var academicYearName = worksheet.Cells[row, 11].Value?.ToString()?.Trim();
+                        var existingStudents = await _context.Students
+                            .ToDictionaryAsync(s => s.EnrollmentNo.ToLower());
 
-                        // Skip completely empty rows
-                        if (string.IsNullOrWhiteSpace(enrollmentNo) && 
-                            string.IsNullOrWhiteSpace(name))
+                        for (int row = 2; row <= worksheet.Dimension.Rows; row++)
                         {
-                            continue;
-                        }
+                            var enrollmentNo = worksheet.Cells[row, 2].Value?.ToString()?.Trim();
+                            if (string.IsNullOrWhiteSpace(enrollmentNo)) continue;
 
-                        // Validate required fields
-                        var errors = new List<string>();
-                        
-                        if (string.IsNullOrWhiteSpace(enrollmentNo))
-                            errors.Add("Enrollment Number is required");
-                        if (string.IsNullOrWhiteSpace(name))
-                            errors.Add("Name is required");
-                        if (string.IsNullOrWhiteSpace(courseName))
-                            errors.Add("Course is required");
-                        if (string.IsNullOrWhiteSpace(divisionName))
-                            errors.Add("Division is required");
-                        if (string.IsNullOrWhiteSpace(academicYearName))
-                            errors.Add("Academic Year is required");
+                            var student = existingStudents.GetValueOrDefault(enrollmentNo.ToLower());
+                            bool isNewStudent = student == null;
 
-                        // Special handling for semester
-                        if (semesterCell == null)
-                        {
-                            errors.Add("Semester is required");
-                        }
-                        else
-                        {
-                            // Try to parse semester value
-                            if (!int.TryParse(semesterCell.ToString(), out int semesterValue) || 
-                                semesterValue < 1 || semesterValue > 12)
+                            try
                             {
-                                errors.Add($"Invalid semester value: {semesterCell}. Must be between 1 and 12.");
+                                if (isNewStudent)
+                                {
+                                    student = new Student();
+                                    var lastStudent = await _context.Students
+                                        .OrderByDescending(s => s.Id)
+                                        .FirstOrDefaultAsync();
+
+                                    int nextNumber = (lastStudent?.Id ?? 0) + 1;
+                                    student.SSID = $"S{nextNumber:D3}";
+                                    student.EnrollmentNo = enrollmentNo;
+                                    student.IsActive = true;
+                                }
+
+                                // Update student properties
+                                student.Name = (worksheet.Cells[row, 3].Value?.ToString() ?? "").Trim();
+                                student.Email = (worksheet.Cells[row, 4].Value?.ToString() ?? "").Trim();
+                                student.Mobile = (worksheet.Cells[row, 5].Value?.ToString() ?? "").Trim();
+                                student.Cast = (worksheet.Cells[row, 6].Value?.ToString() ?? "").Trim();
+                                student.Semester = Convert.ToInt32(worksheet.Cells[row, 10].Value);
+
+                                var courseName = (worksheet.Cells[row, 7].Value?.ToString() ?? "").Trim();
+                                var className = (worksheet.Cells[row, 8].Value?.ToString() ?? "").Trim();
+                                var divisionName = (worksheet.Cells[row, 9].Value?.ToString() ?? "").Trim();
+                                var academicYearName = (worksheet.Cells[row, 11].Value?.ToString() ?? "").Trim();
+
+                                // Find related entities
+                                var course = await _context.Courses
+                                    .FirstOrDefaultAsync(c => c.Name.ToLower() == courseName.ToLower());
+                                var class_ = await _context.Classes
+                                    .FirstOrDefaultAsync(c => c.Name.ToLower() == className.ToLower());
+                                var division = await _context.Divisions
+                                    .FirstOrDefaultAsync(d => d.Name.ToLower() == divisionName.ToLower());
+                                var academicYear = await _context.AcademicYears
+                                    .FirstOrDefaultAsync(a => a.Name.ToLower() == academicYearName.ToLower());
+
+                                if (course == null || division == null || academicYear == null)
+                                {
+                                    importStats.ErrorCount++;
+                                    continue;
+                                }
+
+                                student.CourseId = course.Id;
+                                student.DivisionId = division.Id;
+                                student.AcademicYearId = academicYear.Id;
+                                student.ClassId = class_?.Id ?? 0;
+
+                                if (isNewStudent)
+                                {
+                                    await _context.Students.AddAsync(student);
+                                    importStats.NewCount++;
+                                }
+                                else
+                                {
+                                    _context.Students.Update(student);
+                                    importStats.UpdateCount++;
+                                }
+
+                                await _context.SaveChangesAsync();
+
+                                // Map subjects if class exists
+                                if (class_ != null)
+                                {
+                                    await MapStudentSubjects(student.Id, class_.Id, student.Semester);
+                                }
+
+                                importStats.SuccessCount++;
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "Error processing row {Row}", row);
+                                importStats.ErrorCount++;
                             }
                         }
 
-                        if (errors.Any())
+                        await transaction.CommitAsync();
+
+                        // Set appropriate message based on actual counts
+                        if (importStats.ErrorCount == 0)
                         {
-                            model.ImportErrors.Add($"Row {row}: {string.Join(", ", errors)}");
-                            model.ErrorCount++;
-                            continue;
+                            TempData["Success"] = $"Import completed successfully. Added {importStats.NewCount} new students and updated {importStats.UpdateCount} existing students.";
+                        }
+                        else
+                        {
+                            TempData["Warning"] = $"Import completed with {importStats.ErrorCount} errors. Successfully processed {importStats.SuccessCount} records (New: {importStats.NewCount}, Updated: {importStats.UpdateCount}).";
                         }
                     }
                     catch (Exception ex)
                     {
-                        model.ImportErrors.Add($"Row {row}: Validation error - {ex.Message}");
-                        model.ErrorCount++;
+                        await transaction.RollbackAsync();
+                        throw;
                     }
                 }
 
-                // If there are validation errors, return without processing
-                if (model.ImportErrors.Any())
-                {
-                    return View(model);
-                }
-
-                // Process the data if validation passed
-                for (int row = 2; row <= rowCount; row++)
-                {
-                    try
-                    {
-                        var enrollmentNo = worksheet.Cells[row, 2].Value?.ToString()?.Trim();
-                        if (string.IsNullOrWhiteSpace(enrollmentNo)) continue;
-
-                        bool isNewStudent = !existingStudents.ContainsKey(enrollmentNo);
-                        var student = isNewStudent ? new Student() : existingStudents[enrollmentNo];
-
-                        if (isNewStudent)
-                        {
-                            var lastStudent = await _context.Students
-                                .OrderByDescending(s => s.Id)
-                                .FirstOrDefaultAsync();
-                            
-                            int nextNumber = (lastStudent?.Id ?? 0) + 1;
-                            student.SSID = $"S{nextNumber:D3}";
-                            student.EnrollmentNo = enrollmentNo;
-                            student.IsActive = true;
-                            newStudentsCount++;
-                        }
-                        else
-                        {
-                            updatedStudentsCount++;
-                        }
-
-                        // Update student properties
-                        student.Name = worksheet.Cells[row, 3].Value?.ToString()?.Trim();
-                        student.Email = worksheet.Cells[row, 4].Value?.ToString()?.Trim();
-                        student.Mobile = worksheet.Cells[row, 5].Value?.ToString()?.Trim();
-                        student.Cast = worksheet.Cells[row, 6].Value?.ToString()?.Trim();
-                        student.Semester = Convert.ToInt32(worksheet.Cells[row, 10].Value);
-
-                        // Get related entities
-                        var courseName = worksheet.Cells[row, 7].Value?.ToString()?.Trim();
-                        var className = worksheet.Cells[row, 8].Value?.ToString()?.Trim();
-                        var divisionName = worksheet.Cells[row, 9].Value?.ToString()?.Trim();
-                        var academicYearName = worksheet.Cells[row, 11].Value?.ToString()?.Trim();
-
-                        // Find related entities - Fixed queries to avoid null propagation operator
-                        var course = await _context.Courses
-                            .Where(c => c.Name.ToLower() == (courseName != null ? courseName.ToLower() : ""))
-                            .FirstOrDefaultAsync();
-
-                        var class_ = className != null ? await _context.Classes
-                            .Where(c => c.Name.ToLower() == className.ToLower())
-                            .FirstOrDefaultAsync() : null;
-
-                        var division = await _context.Divisions
-                            .Where(d => d.Name.ToLower() == (divisionName != null ? divisionName.ToLower() : ""))
-                            .FirstOrDefaultAsync();
-
-                        var academicYear = await _context.AcademicYears
-                            .Where(a => a.Name.ToLower() == (academicYearName != null ? academicYearName.ToLower() : ""))
-                            .FirstOrDefaultAsync();
-
-                        if (course == null || division == null || academicYear == null)
-                        {
-                            throw new Exception($"Unable to find Course: {courseName}, Division: {divisionName}, or Academic Year: {academicYearName}");
-                        }
-
-                        student.CourseId = course.Id;
-                        student.DivisionId = division.Id;
-                        student.AcademicYearId = academicYear.Id;
-                        student.ClassId = class_?.Id ?? 0;
-
-                        if (isNewStudent)
-                        {
-                            _context.Students.Add(student);
-                        }
-                        else
-                        {
-                            _context.Students.Update(student);
-                        }
-
-                        await _context.SaveChangesAsync();
-                        model.SuccessCount++;
-
-                        // Update subject mappings if class exists
-                        if (class_ != null)
-                        {
-                            await MapStudentSubjects(student.Id, class_.Id, student.Semester);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        model.ImportErrors.Add($"Row {row}: {ex.Message}");
-                        model.ErrorCount++;
-                        _logger.LogError(ex, "Error processing row {Row}", row);
-                    }
-                }
-
-                model.NewStudentsCount = newStudentsCount;
-                model.UpdatedStudentsCount = updatedStudentsCount;
-
-                return View(model);
+                return RedirectToAction("Index");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during import");
-                model.ImportErrors.Add($"Import failed: {ex.Message}");
-                return View(model);
+                _logger.LogError(ex, "Error during import confirmation");
+                TempData["Error"] = $"Import failed: {ex.Message}";
+                return RedirectToAction("Import");
             }
+            finally
+            {
+                try
+                {
+                    if (System.IO.File.Exists(tempPath))
+                    {
+                        System.IO.File.Delete(tempPath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to delete temporary file: {TempPath}", tempPath);
+                }
+            }
+        }
+
+        private class ImportStats
+        {
+            public int NewCount { get; set; }
+            public int UpdateCount { get; set; }
+            public int ErrorCount { get; set; }
+            public int SuccessCount { get; set; }
         }
 
         private async Task MapStudentSubjects(int studentId, int classId, int semester)
