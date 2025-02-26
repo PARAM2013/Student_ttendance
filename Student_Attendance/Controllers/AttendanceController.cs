@@ -538,51 +538,81 @@ namespace Student_Attendance.Controllers
                     endDate = DateTime.Parse(model.AttendanceData.FirstOrDefault().Value.Keys.Last());
                 }
 
-                // Remove only existing records for dates that are being submitted
-                var datesBeingSubmitted = new HashSet<DateTime>();
-                foreach (var studentEntry in model.AttendanceData)
-                {
-                    foreach (var dateEntry in studentEntry.Value)
-                    {
-                        datesBeingSubmitted.Add(DateTime.Parse(dateEntry.Key).Date);
-                    }
-                }
-
+                // Get existing records for comparison and auditing
                 var existingRecords = await _context.AttendanceRecords
                     .Where(a => a.SubjectId == model.SubjectId &&
                                a.Date >= startDate &&
-                               a.Date <= endDate &&
-                               datesBeingSubmitted.Contains(a.Date.Date))
-                    .ToListAsync();
+                               a.Date <= endDate)
+                    .ToDictionaryAsync(r => (r.StudentId, r.Date.Date), r => r);
 
-                _context.AttendanceRecords.RemoveRange(existingRecords);
+                // Track changes and create audit records
+                var auditRecords = new List<AttendanceAudit>();
+                var updatedRecords = new List<AttendanceRecord>();
+                var newRecords = new List<AttendanceRecord>();
 
-                // Add new records only for dates where attendance was marked
                 foreach (var studentEntry in model.AttendanceData)
                 {
                     var studentId = int.Parse(studentEntry.Key);
                     foreach (var dateEntry in studentEntry.Value)
                     {
                         var date = DateTime.Parse(dateEntry.Key);
-                        // Only create record if explicitly marked (checkbox was clicked)
-                        if (dateEntry.Value.HasValue) // Check for HasValue since it's nullable
+                        if (!dateEntry.Value.HasValue) continue; // Skip if not marked
+
+                        var key = (studentId, date.Date);
+                        if (existingRecords.TryGetValue(key, out var existingRecord))
                         {
-                            var attendance = new AttendanceRecord
+                            // Update existing record if value changed
+                            if (existingRecord.IsPresent != dateEntry.Value.Value)
+                            {
+                                // Create audit record
+                                auditRecords.Add(new AttendanceAudit
+                                {
+                                    AttendanceRecordId = existingRecord.Id,
+                                    ModifiedById = CurrentUser.Id,
+                                    ModifiedOn = DateTime.Now,
+                                    OldValue = existingRecord.IsPresent,
+                                    NewValue = dateEntry.Value.Value
+                                });
+
+                                // Update existing record
+                                existingRecord.IsPresent = dateEntry.Value.Value;
+                                existingRecord.TimeStamp = DateTime.Now;
+                                updatedRecords.Add(existingRecord);
+                            }
+                        }
+                        else
+                        {
+                            // Create new record
+                            var newRecord = new AttendanceRecord
                             {
                                 StudentId = studentId,
                                 SubjectId = model.SubjectId,
                                 Date = date,
-                                IsPresent = dateEntry.Value.Value, // Use .Value to get the bool value
+                                IsPresent = dateEntry.Value.Value,
                                 TimeStamp = DateTime.Now,
-                                MarkedById = CurrentUser.Id // Change from string to int
+                                MarkedById = CurrentUser.Id
                             };
-                            _context.AttendanceRecords.Add(attendance);
+                            newRecords.Add(newRecord);
                         }
                     }
                 }
 
+                // Save changes to database
+                if (auditRecords.Any())
+                    _context.AttendanceAudits.AddRange(auditRecords);
+                if (updatedRecords.Any())
+                    _context.AttendanceRecords.UpdateRange(updatedRecords);
+                if (newRecords.Any())
+                    _context.AttendanceRecords.AddRange(newRecords);
+
                 await _context.SaveChangesAsync();
-                return Json(new { success = true, message = "Attendance saved successfully" });
+                return Json(new { 
+                    success = true, 
+                    message = "Attendance saved successfully",
+                    updated = updatedRecords.Count,
+                    new_records = newRecords.Count,
+                    audits = auditRecords.Count
+                });
             }
             catch (Exception ex)
             {
