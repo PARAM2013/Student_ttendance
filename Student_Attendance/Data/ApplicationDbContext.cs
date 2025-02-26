@@ -20,6 +20,7 @@ namespace Student_Attendance.Data
     public DbSet<StudentSubject> StudentSubjects { get; set; }
     public DbSet<TeacherSubject> TeacherSubjects { get; set; }
     public DbSet<Institute> Institutes { get; set; }
+    public DbSet<AttendanceAudit> AttendanceAudits { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -113,6 +114,18 @@ namespace Student_Attendance.Data
         .HasOne(ts => ts.AcademicYear)
         .WithMany()
         .HasForeignKey(ts => ts.AcademicYearId)
+        .OnDelete(DeleteBehavior.NoAction);
+
+      modelBuilder.Entity<AttendanceAudit>()
+        .HasOne(a => a.AttendanceRecord)
+        .WithMany()
+        .HasForeignKey(a => a.AttendanceRecordId)
+        .OnDelete(DeleteBehavior.NoAction);
+
+      modelBuilder.Entity<AttendanceAudit>()
+        .HasOne(a => a.ModifiedBy)
+        .WithMany()
+        .HasForeignKey(a => a.ModifiedById)
         .OnDelete(DeleteBehavior.NoAction);
 
       base.OnModelCreating(modelBuilder);

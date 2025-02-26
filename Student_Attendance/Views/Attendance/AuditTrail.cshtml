@@ -1,0 +1,76 @@
+@model IEnumerable<AttendanceAudit>
+@{
+    ViewData["Title"] = "Attendance Audit Trail";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-history me-2"></i>Attendance Audit Trail</h3>
+    </div>
+    <div class="card-body">
+        <form id="filterForm" class="row g-3 mb-4">
+            <div class="col-md-3">
+                <label class="form-label">Start Date</label>
+                <input type="date" id="startDate" name="startDate" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">End Date</label>
+                <input type="date" id="endDate" name="endDate" class="form-control" />
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter me-2"></i>Filter
+                </button>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-striped" id="auditTable">
+                <thead>
+                    <tr>
+                        <th>Modified On</th>
+                        <th>Modified By</th>
+                        <th>Student</th>
+                        <th>Subject</th>
+                        <th>Date</th>
+                        <th>Change</th>
+                        <th>Reason</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var audit in Model)
+                    {
+                        <tr>
+                            <td>@audit.ModifiedOn.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@audit.ModifiedBy.UserName</td>
+                            <td>@audit.AttendanceRecord.Student.Name (@audit.AttendanceRecord.Student.EnrollmentNo)</td>
+                            <td>@audit.AttendanceRecord.Subject.Name</td>
+                            <td>@audit.AttendanceRecord.Date.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                <span class="text-danger">@(audit.OldValue ? "Present" : "Absent")</span>
+                                <i class="fas fa-arrow-right mx-2"></i>
+                                <span class="text-success">@(audit.NewValue ? "Present" : "Absent")</span>
+                            </td>
+                            <td>@(audit.Reason ?? "-")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#auditTable').DataTable({
+                order: [[0, 'desc']]
+            });
+
+            $('#filterForm').on('submit', function(e) {
+                e.preventDefault();
+                window.location.href = `/Attendance/AuditTrail?startDate=${$('#startDate').val()}&endDate=${$('#endDate').val()}`;
+            });
+        });
+    </script>
+}

@@ -101,22 +101,51 @@ namespace Student_Attendance.Controllers
                                a.SubjectId == model.SubjectId)
                     .ToListAsync();
 
-                _context.AttendanceRecords.RemoveRange(existingRecords);
-
-                // Add new records with proper teacher attribution
+                // Create audit records for modifications and update existing records
                 foreach (var student in model.Students)
                 {
-                    var attendance = new AttendanceRecord
+                    var existingRecord = existingRecords.FirstOrDefault(r => r.StudentId == student.StudentId);
+                    
+                    if (existingRecord != null)
                     {
-                        StudentId = student.StudentId,
-                        SubjectId = model.SubjectId,
-                        Date = model.Date,
-                        IsPresent = student.IsPresent,
-                        TimeStamp = DateTime.Now,
-                        MarkedById = CurrentUser.Id, // Use the actual teacher ID
-                        DiscussionTopic = model.DiscussionTopic
-                    };
-                    _context.AttendanceRecords.Add(attendance);
+                        // If record exists and status changed, create audit and update record
+                        if (existingRecord.IsPresent != student.IsPresent)
+                        {
+                            var audit = new AttendanceAudit
+                            {
+                                AttendanceRecordId = existingRecord.Id,
+                                ModifiedById = CurrentUser.Id,
+                                ModifiedOn = DateTime.Now,
+                                OldValue = existingRecord.IsPresent,
+                                NewValue = student.IsPresent
+                            };
+                            _context.AttendanceAudits.Add(audit);
+                            
+                            // Update existing record
+                            existingRecord.IsPresent = student.IsPresent;
+                            existingRecord.TimeStamp = DateTime.Now;
+                        }
+                        // Update discussion topic if changed
+                        if (existingRecord.DiscussionTopic != model.DiscussionTopic)
+                        {
+                            existingRecord.DiscussionTopic = model.DiscussionTopic;
+                        }
+                    }
+                    else
+                    {
+                        // Create new record if it doesn't exist
+                        var attendance = new AttendanceRecord
+                        {
+                            StudentId = student.StudentId,
+                            SubjectId = model.SubjectId,
+                            Date = model.Date,
+                            IsPresent = student.IsPresent,
+                            TimeStamp = DateTime.Now,
+                            MarkedById = CurrentUser.Id,
+                            DiscussionTopic = model.DiscussionTopic
+                        };
+                        _context.AttendanceRecords.Add(attendance);
+                    }
                 }
 
                 await _context.SaveChangesAsync();
@@ -127,6 +156,28 @@ namespace Student_Attendance.Controllers
                 _logger.LogError(ex, "Error marking attendance");
                 return Json(new { success = false, message = "Error marking attendance" });
             }
+        }
+
+        // Add new method to view audit trail
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> AuditTrail(DateTime? startDate, DateTime? endDate)
+        {
+            var query = _context.AttendanceAudits
+                .Include(a => a.AttendanceRecord)
+                    .ThenInclude(ar => ar.Student)
+                .Include(a => a.AttendanceRecord)
+                    .ThenInclude(ar => ar.Subject)
+                .Include(a => a.ModifiedBy)
+                .OrderByDescending(a => a.ModifiedOn)
+                .AsQueryable();
+
+            if (startDate.HasValue)
+                query = query.Where(a => a.ModifiedOn.Date >= startDate.Value.Date);
+            if (endDate.HasValue)
+                query = query.Where(a => a.ModifiedOn.Date <= endDate.Value.Date);
+
+            var audits = await query.ToListAsync();
+            return View(audits);
         }
 
         [HttpGet]
