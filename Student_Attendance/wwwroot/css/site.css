@@ -624,3 +624,13 @@ input[type="month"] {
         min-width: 992px !important;
     }
 }
+
+/* Add these styles */
+.bg-light-yellow {
+    background-color: #fff3cd !important;
+    transition: background-color 0.5s ease;
+}
+
+.table-audit tr:hover {
+    background-color: #f8f9fa;
+}

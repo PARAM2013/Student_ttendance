@@ -1323,5 +1323,68 @@ namespace Student_Attendance.Controllers
                 .SetBackgroundColor(ColorConstants.LIGHT_GRAY)
                 .SetFont(PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD));
         }
+
+        // Add this new method
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ExportAuditTrail(DateTime? startDate, DateTime? endDate)
+        {
+            var audits = await _context.AttendanceAudits
+                .Include(a => a.AttendanceRecord)
+                    .ThenInclude(ar => ar.Student)
+                .Include(a => a.AttendanceRecord)
+                    .ThenInclude(ar => ar.Subject)
+                .Include(a => a.ModifiedBy)
+                .Where(a => (!startDate.HasValue || a.ModifiedOn.Date >= startDate.Value.Date) &&
+                            (!endDate.HasValue || a.ModifiedOn.Date <= endDate.Value.Date))
+                .OrderByDescending(a => a.ModifiedOn)
+                .ToListAsync();
+
+            using (var stream = new MemoryStream())
+            {
+                OfficeOpenXml.ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+                using (var package = new OfficeOpenXml.ExcelPackage(stream))
+                {
+                    var worksheet = package.Workbook.Worksheets.Add("Audit Trail");
+
+                    // Add headers
+                    worksheet.Cells[1, 1].Value = "Modified On";
+                    worksheet.Cells[1, 2].Value = "Modified By";
+                    worksheet.Cells[1, 3].Value = "Student";
+                    worksheet.Cells[1, 4].Value = "Enrollment No";
+                    worksheet.Cells[1, 5].Value = "Subject";
+                    worksheet.Cells[1, 6].Value = "Date";
+                    worksheet.Cells[1, 7].Value = "Old Value";
+                    worksheet.Cells[1, 8].Value = "New Value";
+
+                    // Add data rows
+                    int row = 2;
+                    foreach (var audit in audits)
+                    {
+                        worksheet.Cells[row, 1].Value = audit.ModifiedOn.ToString("dd/MM/yyyy HH:mm:ss");
+                        worksheet.Cells[row, 2].Value = audit.ModifiedBy.UserName;
+                        worksheet.Cells[row, 3].Value = audit.AttendanceRecord.Student.Name;
+                        worksheet.Cells[row, 4].Value = audit.AttendanceRecord.Student.EnrollmentNo;
+                        worksheet.Cells[row, 5].Value = audit.AttendanceRecord.Subject.Name;
+                        worksheet.Cells[row, 6].Value = audit.AttendanceRecord.Date.ToString("dd/MM/yyyy");
+                        worksheet.Cells[row, 7].Value = audit.OldValue ? "Present" : "Absent";
+                        worksheet.Cells[row, 8].Value = audit.NewValue ? "Present" : "Absent";
+                        row++;
+                    }
+
+                    // Auto-fit columns
+                    worksheet.Cells.AutoFitColumns();
+                    
+                    // Save the changes
+                    package.Save();
+                }
+
+                stream.Position = 0;
+                string fileName = $"audit-trail-{DateTime.Now:yyyyMMdd}.xlsx";
+                return File(stream.ToArray(), 
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
+                    fileName);
+            }
+        }
     }
 }

@@ -204,5 +204,12 @@
                 });
              });
         }
+
+        // Add this to your existing JavaScript section
+        $('.attendance-radio').change(function() {
+            var studentRow = $(this).closest('.student-row');
+            studentRow.addClass('bg-light-yellow'); // Add highlighting to changed rows
+            setTimeout(() => studentRow.removeClass('bg-light-yellow'), 1000); // Remove after 1 second
+        });
     </script>
 }
