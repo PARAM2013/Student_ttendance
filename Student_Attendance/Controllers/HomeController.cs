@@ -28,49 +28,40 @@ namespace Student_Attendance.Controllers
             ViewBag.TotalStudents = await _context.Students.CountAsync();
             ViewBag.TotalTeachers = await _context.Users.CountAsync(u => u.Role == "Teacher");
 
-            // Get course-wise statistics
-            var courseStats = await _context.Courses
+            // Get subject-wise attendance data with proper joins
+            var courseAttendance = await _context.Courses
                 .Select(c => new
                 {
+                    CourseId = c.Id,
                     CourseName = c.Name,
-                    TotalStudents = c.Students.Count(),
-                    TotalTeachers = c.Subjects.SelectMany(s => s.TeacherSubjects).Select(ts => ts.UserId).Distinct().Count(),
-                    TodayAttendance = c.Students
-                        .SelectMany(s => s.StudentSubjects)
-                        .SelectMany(ss => ss.Subject.AttendanceRecords)
-                        .Where(ar => ar.Date.Date == today)
-                        .GroupBy(ar => ar.StudentId)
-                        .Select(g => g.First())
-                        .Count(ar => ar.IsPresent),
-                    TodayAbsent = c.Students
-                        .SelectMany(s => s.StudentSubjects)
-                        .SelectMany(ss => ss.Subject.AttendanceRecords)
-                        .Where(ar => ar.Date.Date == today)
-                        .GroupBy(ar => ar.StudentId)
-                        .Select(g => g.First())
-                        .Count(ar => !ar.IsPresent)
+                    Subjects = c.Subjects
+                        .Select(s => new
+                        {
+                            SubjectName = s.Name,
+                            SubjectCode = s.Code,
+                            TotalStudents = s.StudentSubjects.Count(),
+                            AttendanceData = s.StudentSubjects
+                                .SelectMany(ss => ss.Student.AttendanceRecords
+                                    .Where(ar => ar.SubjectId == s.Id && ar.Date.Date == today)
+                                    .Select(ar => new { ar.IsPresent }))
+                                .ToList()
+                        })
+                        .Select(s => new
+                        {
+                            s.SubjectName,
+                            s.SubjectCode,
+                            s.TotalStudents,
+                            PresentCount = s.AttendanceData.Count(a => a.IsPresent),
+                            AbsentCount = s.AttendanceData.Count(a => !a.IsPresent)
+                        })
+                        .Where(s => s.PresentCount + s.AbsentCount > 0)
+                        .ToList()
                 })
+                .Where(c => c.Subjects.Any())
                 .ToListAsync();
 
-            // Get class-wise statistics
-            var classStats = await _context.Classes
-                .Select(c => new
-                {
-                    ClassName = c.Name,
-                    TotalStudents = c.Students.Count(),
-                    TodayAttendance = c.Students
-                        .SelectMany(s => s.StudentSubjects)
-                        .SelectMany(ss => ss.Subject.AttendanceRecords)
-                        .Where(ar => ar.Date.Date == today)
-                        .GroupBy(ar => ar.StudentId)
-                        .Select(g => g.First())
-                        .Count(ar => ar.IsPresent)
-                })
-                .ToListAsync();
-
-            ViewBag.CourseStats = courseStats;
-            ViewBag.ClassStats = classStats;
-
+            ViewBag.CourseAttendance = courseAttendance;
+            
             return View(institute);
         }
 

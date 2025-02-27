@@ -24,6 +24,39 @@ namespace Student_Attendance.Data
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+      // Configure Subject relationships
+      modelBuilder.Entity<Subject>()
+          .HasMany(s => s.StudentSubjects)
+          .WithOne(ss => ss.Subject)
+          .HasForeignKey(ss => ss.SubjectId)
+          .OnDelete(DeleteBehavior.NoAction);
+
+      modelBuilder.Entity<Subject>()
+          .HasMany(s => s.AttendanceRecords)
+          .WithOne(ar => ar.Subject)
+          .HasForeignKey(ar => ar.SubjectId)
+          .OnDelete(DeleteBehavior.NoAction);
+
+      // Configure Course relationships
+      modelBuilder.Entity<Course>()
+          .HasMany(c => c.Subjects)
+          .WithOne(s => s.Course)
+          .HasForeignKey(s => s.CourseId)
+          .OnDelete(DeleteBehavior.NoAction);
+
+      modelBuilder.Entity<Course>()
+          .HasMany(c => c.Students)
+          .WithOne(s => s.Course)
+          .HasForeignKey(s => s.CourseId)
+          .OnDelete(DeleteBehavior.NoAction);
+
+      // Configure Student relationships
+      modelBuilder.Entity<Student>()
+          .HasMany(s => s.StudentSubjects)
+          .WithOne(ss => ss.Student)
+          .HasForeignKey(ss => ss.StudentId)
+          .OnDelete(DeleteBehavior.NoAction);
+
       modelBuilder.Entity<AttendanceRecord>()
          .HasOne(ar => ar.Student)
          .WithMany()

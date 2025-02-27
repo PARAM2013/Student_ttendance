@@ -12,8 +12,8 @@ namespace Student_Attendance.Models
         public string Name { get; set; }
 
         // Navigation properties
-        public virtual ICollection<Student> Students { get; set; }
         public virtual ICollection<Subject> Subjects { get; set; }
+        public virtual ICollection<Student> Students { get; set; }
 
         public Course()
         {

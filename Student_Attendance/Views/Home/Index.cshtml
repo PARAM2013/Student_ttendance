@@ -2,8 +2,7 @@
 
 @{
     ViewData["Title"] = "Dashboard";
-    ViewBag.ShortName = Model?.ShortName ?? "SAS";
-    ViewBag.Logo = string.IsNullOrEmpty(Model?.Logo) ? "/images/default-logo.png" : Model.Logo;
+    var today = DateTime.Today;
 }
 
 <div class="container-fluid py-4">
@@ -13,24 +12,21 @@
             <div class="card shadow-sm">
                 <div class="card-body d-flex align-items-center">
                     <div class="institute-logo me-4">
-                        <img src="@(string.IsNullOrEmpty(Model?.Logo) ? "/images/default-logo.png" : Model.Logo)" 
-                             alt="Institute Logo" 
-                             class="rounded"
-                             style="max-width: 120px; height: auto;" />
+                        <img src="@ViewBag.Logo" alt="Institute Logo" class="rounded" style="max-width: 120px; height: auto;" />
                     </div>
                     <div class="welcome-text">
                         <h1 class="display-5 mb-0">Welcome to @(Model?.Name ?? "Student Attendance System")</h1>
-                        <p class="text-muted mb-0">@(Model?.ShortName ?? "SAS") - Student Attendance Management</p>
+                        <p class="text-muted mb-0">@ViewBag.ShortName - Student Attendance Management</p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Overall Stats -->
+    <!-- Stats Cards -->
     <div class="row mb-4">
         <div class="col-md-3 col-sm-6 mb-3">
-            <div class="card bg-primary text-white shadow-sm">
+            <div class="card text-white shadow-sm" style="background: linear-gradient(135deg, #667eea, #764ba2);">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -43,12 +39,12 @@
             </div>
         </div>
         <div class="col-md-3 col-sm-6 mb-3">
-            <div class="card bg-info text-white shadow-sm">
+            <div class="card text-white shadow-sm" style="background: linear-gradient(135deg, #38ef7d, #11998e);">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="card-title mb-0">Total Teachers</h6>
-                            <h2 class="mb-0">@ViewBag.TotalTeachers</h6>
+                            <h2 class="mb-0">@ViewBag.TotalTeachers</h2>
                         </div>
                         <i class="fas fa-chalkboard-teacher fa-2x opacity-50"></i>
                     </div>
@@ -57,97 +53,76 @@
         </div>
     </div>
 
-    <!-- Combined Course and Class Stats Row -->
+    <!-- Subject-wise Attendance -->
     <div class="row mb-4">
-        <!-- Course-wise Stats -->
-        <div class="col-md-6 mb-4 mb-md-0">
-            <div class="card shadow-sm h-100">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Course-wise Attendance</h5>
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">Subject-wise Attendance (Today)</h5>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                        <table class="table table-hover table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Course</th>
-                                    <th class="text-center">Students</th>
-                                    <th class="text-center">Present</th>
-                                    <th class="text-center">Absent</th>
-                                    <th class="text-center">%</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var stat in ViewBag.CourseStats)
-                                {
-                                    var totalStudents = stat.TotalStudents;
-                                    var attendancePercentage = totalStudents > 0 
-                                        ? (stat.TodayAttendance * 100.0 / totalStudents) 
-                                        : 0;
-                                    <tr>
-                                        <td>@stat.CourseName</td>
-                                        <td class="text-center">@totalStudents</td>
-                                        <td class="text-center text-success">@stat.TodayAttendance</td>
-                                        <td class="text-center text-danger">@stat.TodayAbsent</td>
-                                        <td class="text-center">
-                                            <div class="progress" style="height: 15px;">
-                                                <div class="progress-bar bg-success" 
-                                                     role="progressbar" 
-                                                     style="width: @attendancePercentage%">
-                                                    @attendancePercentage.ToString("F1")%
-                                                </div>
+                    @if (ViewBag.CourseAttendance != null && ((IEnumerable<dynamic>)ViewBag.CourseAttendance).Any())
+                    {
+                        <div class="accordion" id="courseAttendanceAccordion">
+                            @foreach (var course in ViewBag.CourseAttendance)
+                            {
+                                <div class="accordion-item mb-2">
+                                    <h2 class="accordion-header" id="heading@(course.CourseId)">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                                data-bs-target="#collapse@(course.CourseId)">
+                                            @course.CourseName
+                                        </button>
+                                    </h2>
+                                    <div id="collapse@(course.CourseId)" class="accordion-collapse collapse"
+                                         data-bs-parent="#courseAttendanceAccordion">
+                                        <div class="accordion-body p-0">
+                                            <div class="table-responsive">
+                                                <table class="table table-hover align-middle mb-0">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>Subject</th>
+                                                            <th class="text-center">Code</th>
+                                                            <th class="text-center">Present</th>
+                                                            <th class="text-center">Absent</th>
+                                                            <th class="text-center" style="width: 150px;">Attendance %</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var subject in course.Subjects)
+                                                        {
+                                                            var total = subject.PresentCount + subject.AbsentCount;
+                                                            var percentage = total > 0 ? (subject.PresentCount * 100.0 / total) : 0;
+                                                            <tr>
+                                                                <td>@subject.SubjectName</td>
+                                                                <td class="text-center">@subject.SubjectCode</td>
+                                                                <td class="text-center text-success">@subject.PresentCount</td>
+                                                                <td class="text-center text-danger">@subject.AbsentCount</td>
+                                                                <td>
+                                                                    <div class="progress" style="height: 20px;">
+                                                                        <div class="progress-bar bg-success" role="progressbar"
+                                                                             style="width: @percentage%">
+                                                                            @percentage.ToString("F1")%
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
                                             </div>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Class-wise Stats -->
-        <div class="col-md-6">
-            <div class="card shadow-sm h-100">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Class-wise Attendance</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                        <table class="table table-hover table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Class</th>
-                                    <th class="text-center">Students</th>
-                                    <th class="text-center">Present</th>
-                                    <th class="text-center">%</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var stat in ViewBag.ClassStats)
-                                {
-                                    var attendancePercentage = stat.TotalStudents > 0 
-                                        ? (stat.TodayAttendance * 100.0 / stat.TotalStudents) 
-                                        : 0;
-                                    <tr>
-                                        <td>@stat.ClassName</td>
-                                        <td class="text-center">@stat.TotalStudents</td>
-                                        <td class="text-center">@stat.TodayAttendance</td>
-                                        <td class="text-center">
-                                            <div class="progress" style="height: 15px;">
-                                                <div class="progress-bar bg-success" 
-                                                     role="progressbar" 
-                                                     style="width: @attendancePercentage%">
-                                                    @attendancePercentage.ToString("F1")%
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-info-circle fa-2x mb-3"></i>
+                            <p>No attendance records found for today.</p>
+                        </div>
+                    }
                 </div>
             </div>
         </div>
@@ -254,6 +229,7 @@
 }
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
     <script>
         $(document).ready(function() {
             // Add any dashboard-specific JavaScript here

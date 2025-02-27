@@ -35,11 +35,13 @@ namespace Student_Attendance.Models
         // Navigation properties
         public virtual ICollection<AttendanceRecord> AttendanceRecords { get; set; }
         public virtual ICollection<TeacherSubject> TeacherSubjects { get; set; }
+        public virtual ICollection<StudentSubject> StudentSubjects { get; set; }
 
         public Subject()
         {
             AttendanceRecords = new HashSet<AttendanceRecord>();
             TeacherSubjects = new HashSet<TeacherSubject>();
+            StudentSubjects = new HashSet<StudentSubject>();
         }
     }
 }
