@@ -2,13 +2,13 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Student_Attendance.Models;
 using Student_Attendance.Data;
-using Student_Attendance.ViewModels;  // Add this line
+using Student_Attendance.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Student_Attendance.Controllers
 {
-    [Authorize]  // Add this to require authentication for all actions
+    [Authorize]
     public class HomeController : BaseController
     {
         private readonly ILogger<HomeController> _logger;
@@ -101,6 +101,7 @@ namespace Student_Attendance.Controllers
                 {
                     Logo = institute?.Logo ?? "/images/default-logo.png",
                     ShortName = institute?.ShortName ?? "SA",
+                    Name = institute?.Name ?? "Student Attendance System",
                     TotalStudents = await _context.Students.CountAsync(s => s.IsActive),
                     TotalTeachers = await _context.Users.CountAsync(u => u.Role == "Teacher" && u.IsActive)
                 };
@@ -124,7 +125,7 @@ namespace Student_Attendance.Controllers
                                 CourseId = g.Key.Id,
                                 CourseName = g.Key.Name,
                                 Subjects = g.GroupBy(ar => new { ar.Subject.Id, ar.Subject.Name, ar.Subject.Code })
-                                    .Select(sg => new SubjectAttendance
+                                    .Select(sg => new SubjectAttendanceData
                                     {
                                         SubjectId = sg.Key.Id,
                                         SubjectName = sg.Key.Name,
@@ -152,8 +153,9 @@ namespace Student_Attendance.Controllers
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error fetching course-wise attendance");
+                    _logger.LogError(ex, "Error fetching course-wise attendance: {Message}", ex.Message);
                     model.CourseAttendance = new List<CourseAttendance>();
+                    ViewBag.AttendanceError = ex.Message;
                 }
 
                 return View(model);
@@ -165,10 +167,9 @@ namespace Student_Attendance.Controllers
             }
         }
 
-        [AllowAnonymous] // Add this attribute to allow access without authentication
+        [AllowAnonymous]
         public IActionResult Search_Attendance()
         {
-            // If user is already authenticated, redirect to Index
             if (User.Identity.IsAuthenticated)
             {
                 return RedirectToAction("Index");
@@ -180,11 +181,5 @@ namespace Student_Attendance.Controllers
         {
             return View();
         }
-
-        //[ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        //public IActionResult Error()
-        //{
-        //    return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-        //}
     }
 }
