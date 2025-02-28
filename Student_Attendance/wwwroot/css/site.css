@@ -634,3 +634,48 @@ input[type="month"] {
 .table-audit tr:hover {
     background-color: #f8f9fa;
 }
+
+/* Timeline Styles */
+.timeline-list {
+    position: relative;
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 1rem;
+    border-left: 2px solid #e9ecef;
+    padding-left: 20px;
+}
+
+.timeline-icon {
+    position: absolute;
+    left: -11px;
+    background: white;
+    padding: 2px;
+}
+
+.timeline-content {
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 0.25rem;
+}
+
+/* Chart Styles */
+.chart-container {
+    position: relative;
+    margin: auto;
+    height: 300px;
+}
+
+/* Alert Cards */
+.alert-card {
+    border-left: 4px solid;
+}
+
+.alert-card.danger {
+    border-left-color: #dc3545;
+}
+
+.alert-card.warning {
+    border-left-color: #ffc107;
+}

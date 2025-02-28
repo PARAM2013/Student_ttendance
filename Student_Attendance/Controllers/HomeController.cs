@@ -94,69 +94,41 @@ namespace Student_Attendance.Controllers
             try
             {
                 var today = DateTime.Today;
-                _logger.LogInformation($"Loading dashboard for date: {today}");
+                var model = new DashboardStatsViewModel();
 
+                // Basic setup
                 var institute = await _context.Institutes.FirstOrDefaultAsync();
-                var model = new DashboardViewModel
-                {
-                    Logo = institute?.Logo ?? "/images/default-logo.png",
-                    ShortName = institute?.ShortName ?? "SA",
-                    Name = institute?.Name ?? "Student Attendance System",
-                    TotalStudents = await _context.Students.CountAsync(s => s.IsActive),
-                    TotalTeachers = await _context.Users.CountAsync(u => u.Role == "Teacher" && u.IsActive)
-                };
+                model.Logo = institute?.Logo ?? "/images/default-logo.png";
+                model.ShortName = institute?.ShortName ?? "SA";
+                model.Name = institute?.Name ?? "Student Attendance System";
+                
+                // Get basic counts
+                model.TotalStudents = await _context.Students.CountAsync(s => s.IsActive);
+                model.TotalTeachers = await _context.Users.CountAsync(u => u.Role == "Teacher" && u.IsActive);
 
-                try
-                {
-                    var anyRecords = await _context.AttendanceRecords
-                        .AnyAsync(ar => ar.Date.Date == today);
-                    
-                    model.HasAttendanceData = anyRecords;
-
-                    if (anyRecords)
+                // Get recent activities
+                model.RecentActivities = await _context.AttendanceRecords
+                    .Include(ar => ar.MarkedBy)
+                    .Include(ar => ar.Subject)
+                    .OrderByDescending(ar => ar.TimeStamp)
+                    .Take(5)
+                    .Select(ar => new ActivityLog
                     {
-                        var courseAttendance = await _context.AttendanceRecords
-                            .Include(ar => ar.Subject)
-                                .ThenInclude(s => s.Course)
-                            .Where(ar => ar.Date.Date == today)
-                            .GroupBy(ar => new { ar.Subject.Course.Id, ar.Subject.Course.Name })
-                            .Select(g => new CourseAttendance
-                            {
-                                CourseId = g.Key.Id,
-                                CourseName = g.Key.Name,
-                                Subjects = g.GroupBy(ar => new { ar.Subject.Id, ar.Subject.Name, ar.Subject.Code })
-                                    .Select(sg => new SubjectAttendanceData
-                                    {
-                                        SubjectId = sg.Key.Id,
-                                        SubjectName = sg.Key.Name,
-                                        SubjectCode = sg.Key.Code,
-                                        PresentCount = sg.Count(ar => ar.IsPresent),
-                                        AbsentCount = sg.Count(ar => !ar.IsPresent)
-                                    })
-                                    .ToList()
-                            })
-                            .ToListAsync();
+                        Timestamp = ar.TimeStamp,
+                        Action = "Marked Attendance",
+                        UserName = ar.MarkedBy.UserName,
+                        Details = $"for {ar.Subject.Name}"
+                    })
+                    .ToListAsync();
 
-                        model.CourseAttendance = courseAttendance;
-                        model.DebugInfo = new DebugInfo
-                        {
-                            TotalRecords = await _context.AttendanceRecords
-                                .CountAsync(ar => ar.Date.Date == today),
-                            SubjectsWithAttendance = await _context.AttendanceRecords
-                                .Where(ar => ar.Date.Date == today)
-                                .Select(ar => ar.SubjectId)
-                                .Distinct()
-                                .CountAsync(),
-                            CoursesWithAttendance = courseAttendance.Count
-                        };
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error fetching course-wise attendance: {Message}", ex.Message);
-                    model.CourseAttendance = new List<CourseAttendance>();
-                    ViewBag.AttendanceError = ex.Message;
-                }
+                // Get low attendance students
+                model.LowAttendanceStudents = await GetLowAttendanceStudents();
+
+                // Get weekly trends
+                model.WeeklyTrends = await GetWeeklyTrends();
+
+                // Regular attendance data
+                await LoadTodayAttendanceData(model, today);
 
                 return View(model);
             }
@@ -164,6 +136,118 @@ namespace Student_Attendance.Controllers
             {
                 _logger.LogError(ex, "Error loading dashboard");
                 return View("Error");
+            }
+        }
+
+        private async Task<List<StudentAttendanceAlert>> GetLowAttendanceStudents()
+        {
+            var threshold = 75.0; // 75% attendance threshold
+            
+            return await _context.Students
+                .Where(s => s.IsActive)
+                .Select(s => new
+                {
+                    Student = s,
+                    AttendancePercent = s.AttendanceRecords.Count() > 0 
+                        ? s.AttendanceRecords.Count(ar => ar.IsPresent) * 100.0 / s.AttendanceRecords.Count() 
+                        : 0
+                })
+                .Where(x => x.AttendancePercent < threshold)
+                .OrderBy(x => x.AttendancePercent)
+                .Take(5)
+                .Select(x => new StudentAttendanceAlert
+                {
+                    StudentId = x.Student.Id,
+                    StudentName = x.Student.Name,
+                    Course = x.Student.Course.Name,
+                    AttendancePercentage = x.AttendancePercent
+                })
+                .ToListAsync();
+        }
+
+        private async Task<WeeklyAttendanceData> GetWeeklyTrends()
+        {
+            var last7Days = Enumerable.Range(0, 7)
+                .Select(i => DateTime.Today.AddDays(-i))
+                .Reverse()
+                .ToList();
+
+            var trends = await _context.AttendanceRecords
+                .Where(ar => last7Days.Contains(ar.Date.Date))
+                .GroupBy(ar => ar.Date.Date)
+                .Select(g => new
+                {
+                    Date = g.Key,
+                    Present = g.Count(ar => ar.IsPresent),
+                    Total = g.Count()
+                })
+                .ToListAsync();
+
+            return new WeeklyAttendanceData
+            {
+                Dates = last7Days.Select(d => d.ToString("MMM dd")).ToList(),
+                Percentages = last7Days.Select(d =>
+                {
+                    var dayTrend = trends.FirstOrDefault(t => t.Date == d);
+                    return dayTrend != null && dayTrend.Total > 0
+                        ? Math.Round(dayTrend.Present * 100.0 / dayTrend.Total, 1)
+                        : 0;
+                }).ToList()
+            };
+        }
+
+        private async Task LoadTodayAttendanceData(DashboardStatsViewModel model, DateTime today)
+        {
+            try
+            {
+                var anyRecords = await _context.AttendanceRecords
+                    .AnyAsync(ar => ar.Date.Date == today);
+                
+                model.HasAttendanceData = anyRecords;
+
+                if (anyRecords)
+                {
+                    var courseAttendance = await _context.AttendanceRecords
+                        .Include(ar => ar.Subject)
+                            .ThenInclude(s => s.Course)
+                        .Where(ar => ar.Date.Date == today)
+                        .GroupBy(ar => new { ar.Subject.Course.Id, ar.Subject.Course.Name })
+                        .Select(g => new CourseAttendance
+                        {
+                            CourseId = g.Key.Id,
+                            CourseName = g.Key.Name,
+                            Subjects = g.GroupBy(ar => new { ar.Subject.Id, ar.Subject.Name, ar.Subject.Code })
+                                .Select(sg => new SubjectAttendanceData
+                                {
+                                    SubjectId = sg.Key.Id,
+                                    SubjectName = sg.Key.Name,
+                                    SubjectCode = sg.Key.Code,
+                                    PresentCount = sg.Count(ar => ar.IsPresent),
+                                    AbsentCount = sg.Count(ar => !ar.IsPresent)
+                                })
+                                .ToList()
+                        })
+                        .ToListAsync();
+
+                    model.CourseAttendance = courseAttendance;
+                    model.DebugInfo = new DebugInfo
+                    {
+                        TotalRecords = await _context.AttendanceRecords
+                            .CountAsync(ar => ar.Date.Date == today),
+                        SubjectsWithAttendance = await _context.AttendanceRecords
+                            .Where(ar => ar.Date.Date == today)
+                            .Select(ar => ar.SubjectId)
+                            .Distinct()
+                            .CountAsync(),
+                        CoursesWithAttendance = courseAttendance.Count
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching course-wise attendance: {Message}", ex.Message);
+                model.CourseAttendance = new List<CourseAttendance>();
+                ViewBag.AttendanceError = ex.Message;
             }
         }
 
