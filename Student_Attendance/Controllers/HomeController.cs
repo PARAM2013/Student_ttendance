@@ -2,67 +2,167 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Student_Attendance.Models;
 using Student_Attendance.Data;
+using Student_Attendance.ViewModels;  // Add this line
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Student_Attendance.Controllers
 {
     [Authorize]  // Add this to require authentication for all actions
-    public class HomeController : Controller
+    public class HomeController : BaseController
     {
         private readonly ILogger<HomeController> _logger;
-        private readonly ApplicationDbContext _context;
 
-        public HomeController(ILogger<HomeController> logger, ApplicationDbContext context)
+        public HomeController(ApplicationDbContext context, ILogger<HomeController> logger)
+            : base(context)
         {
             _logger = logger;
-            _context = context;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> TestAttendanceData()
+        {
+            try
+            {
+                var today = DateTime.Today;
+                _logger.LogInformation($"Testing attendance data for {today}");
+
+                // Get all attendance records for today
+                var todayRecords = await _context.AttendanceRecords
+                    .Include(ar => ar.Subject)
+                    .Include(ar => ar.Student)
+                    .Where(ar => ar.Date.Date == today)
+                    .ToListAsync();
+
+                // Group by course for better debugging
+                var courseData = await _context.AttendanceRecords
+                    .Include(ar => ar.Subject)
+                        .ThenInclude(s => s.Course)
+                    .Where(ar => ar.Date.Date == today)
+                    .GroupBy(ar => ar.Subject.Course)
+                    .Select(g => new
+                    {
+                        CourseId = g.Key.Id,
+                        CourseName = g.Key.Name,
+                        SubjectsData = g.GroupBy(ar => ar.Subject)
+                            .Select(sg => new
+                            {
+                                SubjectId = sg.Key.Id,
+                                SubjectName = sg.Key.Name,
+                                SubjectCode = sg.Key.Code,
+                                AttendanceCount = sg.Count(),
+                                PresentCount = sg.Count(ar => ar.IsPresent),
+                                AbsentCount = sg.Count(ar => !ar.IsPresent),
+                                Students = sg.Select(ar => new 
+                                { 
+                                    StudentId = ar.StudentId,
+                                    StudentName = ar.Student.Name,
+                                    IsPresent = ar.IsPresent
+                                }).ToList()
+                            }).ToList()
+                    })
+                    .ToListAsync();
+
+                var debugData = new
+                {
+                    Date = today,
+                    TotalRecords = todayRecords.Count,
+                    CourseInfo = courseData,
+                    RawRecords = todayRecords.Select(r => new
+                    {
+                        RecordId = r.Id,
+                        StudentId = r.StudentId,
+                        StudentName = r.Student.Name,
+                        SubjectId = r.SubjectId,
+                        SubjectName = r.Subject.Name,
+                        IsPresent = r.IsPresent,
+                        Timestamp = r.TimeStamp
+                    }).ToList()
+                };
+
+                return Json(new { success = true, data = debugData });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in TestAttendanceData");
+                return Json(new { success = false, error = ex.Message, stackTrace = ex.StackTrace });
+            }
         }
 
         public async Task<IActionResult> Index()
         {
-            var institute = await _context.Institutes.FirstOrDefaultAsync();
-            var today = DateTime.Today;
+            try
+            {
+                var today = DateTime.Today;
+                _logger.LogInformation($"Loading dashboard for date: {today}");
 
-            // Basic stats
-            ViewBag.TotalStudents = await _context.Students.CountAsync();
-            ViewBag.TotalTeachers = await _context.Users.CountAsync(u => u.Role == "Teacher");
-
-            // Get subject-wise attendance data with proper joins
-            var courseAttendance = await _context.Courses
-                .Select(c => new
+                var institute = await _context.Institutes.FirstOrDefaultAsync();
+                var model = new DashboardViewModel
                 {
-                    CourseId = c.Id,
-                    CourseName = c.Name,
-                    Subjects = c.Subjects
-                        .Select(s => new
-                        {
-                            SubjectName = s.Name,
-                            SubjectCode = s.Code,
-                            TotalStudents = s.StudentSubjects.Count(),
-                            AttendanceData = s.StudentSubjects
-                                .SelectMany(ss => ss.Student.AttendanceRecords
-                                    .Where(ar => ar.SubjectId == s.Id && ar.Date.Date == today)
-                                    .Select(ar => new { ar.IsPresent }))
-                                .ToList()
-                        })
-                        .Select(s => new
-                        {
-                            s.SubjectName,
-                            s.SubjectCode,
-                            s.TotalStudents,
-                            PresentCount = s.AttendanceData.Count(a => a.IsPresent),
-                            AbsentCount = s.AttendanceData.Count(a => !a.IsPresent)
-                        })
-                        .Where(s => s.PresentCount + s.AbsentCount > 0)
-                        .ToList()
-                })
-                .Where(c => c.Subjects.Any())
-                .ToListAsync();
+                    Logo = institute?.Logo ?? "/images/default-logo.png",
+                    ShortName = institute?.ShortName ?? "SA",
+                    TotalStudents = await _context.Students.CountAsync(s => s.IsActive),
+                    TotalTeachers = await _context.Users.CountAsync(u => u.Role == "Teacher" && u.IsActive)
+                };
 
-            ViewBag.CourseAttendance = courseAttendance;
-            
-            return View(institute);
+                try
+                {
+                    var anyRecords = await _context.AttendanceRecords
+                        .AnyAsync(ar => ar.Date.Date == today);
+                    
+                    model.HasAttendanceData = anyRecords;
+
+                    if (anyRecords)
+                    {
+                        var courseAttendance = await _context.AttendanceRecords
+                            .Include(ar => ar.Subject)
+                                .ThenInclude(s => s.Course)
+                            .Where(ar => ar.Date.Date == today)
+                            .GroupBy(ar => new { ar.Subject.Course.Id, ar.Subject.Course.Name })
+                            .Select(g => new CourseAttendance
+                            {
+                                CourseId = g.Key.Id,
+                                CourseName = g.Key.Name,
+                                Subjects = g.GroupBy(ar => new { ar.Subject.Id, ar.Subject.Name, ar.Subject.Code })
+                                    .Select(sg => new SubjectAttendance
+                                    {
+                                        SubjectId = sg.Key.Id,
+                                        SubjectName = sg.Key.Name,
+                                        SubjectCode = sg.Key.Code,
+                                        PresentCount = sg.Count(ar => ar.IsPresent),
+                                        AbsentCount = sg.Count(ar => !ar.IsPresent)
+                                    })
+                                    .ToList()
+                            })
+                            .ToListAsync();
+
+                        model.CourseAttendance = courseAttendance;
+                        model.DebugInfo = new DebugInfo
+                        {
+                            TotalRecords = await _context.AttendanceRecords
+                                .CountAsync(ar => ar.Date.Date == today),
+                            SubjectsWithAttendance = await _context.AttendanceRecords
+                                .Where(ar => ar.Date.Date == today)
+                                .Select(ar => ar.SubjectId)
+                                .Distinct()
+                                .CountAsync(),
+                            CoursesWithAttendance = courseAttendance.Count
+                        };
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error fetching course-wise attendance");
+                    model.CourseAttendance = new List<CourseAttendance>();
+                }
+
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading dashboard");
+                return View("Error");
+            }
         }
 
         [AllowAnonymous] // Add this attribute to allow access without authentication

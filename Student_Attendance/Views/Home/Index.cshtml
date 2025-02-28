@@ -1,4 +1,4 @@
-﻿@model Student_Attendance.Models.Institute
+﻿@model Student_Attendance.ViewModels.DashboardViewModel
 
 @{
     ViewData["Title"] = "Dashboard";
@@ -31,7 +31,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="card-title mb-0">Total Students</h6>
-                            <h2 class="mb-0">@ViewBag.TotalStudents</h2>
+                            <h2 class="mb-0">@Model.TotalStudents</h2>
                         </div>
                         <i class="fas fa-user-graduate fa-2x opacity-50"></i>
                     </div>
@@ -44,7 +44,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="card-title mb-0">Total Teachers</h6>
-                            <h2 class="mb-0">@ViewBag.TotalTeachers</h2>
+                            <h2 class="mb-0">@Model.TotalTeachers</h2>
                         </div>
                         <i class="fas fa-chalkboard-teacher fa-2x opacity-50"></i>
                     </div>
@@ -52,6 +52,37 @@
             </div>
         </div>
     </div>
+
+    <!-- Debug Information -->
+    @if (User.IsInRole("Admin"))
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Debug Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Has Attendance Data:</strong> @Model.HasAttendanceData</p>
+                        <p><strong>Course Attendance Count:</strong> @(Model.CourseAttendance?.Count ?? 0)</p>
+                        @if (Model.DebugInfo != null)
+                        {
+                            <p><strong>Total Records Today:</strong> @Model.DebugInfo.TotalRecords</p>
+                            <p><strong>Subjects With Attendance:</strong> @Model.DebugInfo.SubjectsWithAttendance</p>
+                            <p><strong>Courses With Attendance:</strong> @Model.DebugInfo.CoursesWithAttendance</p>
+                        }
+                        @if (ViewBag.CourseAttendance != null)
+                        {
+                            <div class="mt-3">
+                                <strong>Raw Course Attendance Data:</strong>
+                                <pre class="mt-2 bg-light p-3 rounded">@System.Text.Json.JsonSerializer.Serialize(ViewBag.CourseAttendance)</pre>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 
     <!-- Subject-wise Attendance -->
     <div class="row mb-4">
@@ -61,66 +92,110 @@
                     <h5 class="card-title mb-0">Subject-wise Attendance (Today)</h5>
                 </div>
                 <div class="card-body">
-                    @if (ViewBag.CourseAttendance != null && ((IEnumerable<dynamic>)ViewBag.CourseAttendance).Any())
+                    @if (ViewBag.AttendanceError != null)
+                    {
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Error loading attendance data: @ViewBag.AttendanceError
+                            <br/>
+                            <small>Please check the logs for more details</small>
+                        </div>
+                    }
+                    else if (!Model.HasAttendanceData)
+                    {
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-calendar-day fa-2x mb-3"></i>
+                            <p>No attendance records found for today.</p>
+                            <small>Try taking attendance first</small>
+                        </div>
+                    }
+                    else if (Model.CourseAttendance == null || !Model.CourseAttendance.Any())
+                    {
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-info-circle fa-2x mb-3"></i>
+                            <p>No course attendance data available.</p>
+                            <small>Check if courses and subjects are properly configured</small>
+                        </div>
+                    }
+                    else
                     {
                         <div class="accordion" id="courseAttendanceAccordion">
-                            @foreach (var course in ViewBag.CourseAttendance)
+                            @foreach (var course in Model.CourseAttendance)
                             {
                                 <div class="accordion-item mb-2">
                                     <h2 class="accordion-header" id="heading@(course.CourseId)">
-                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                        <button class="accordion-button collapsed" type="button" 
+                                                data-bs-toggle="collapse" 
                                                 data-bs-target="#collapse@(course.CourseId)">
-                                            @course.CourseName
+                                            @course.CourseName 
+                                            @if (course.Subjects?.Any() ?? false)
+                                            {
+                                                <span class="badge bg-primary ms-2">
+                                                    @course.Subjects.Count subjects
+                                                </span>
+                                            }
                                         </button>
                                     </h2>
-                                    <div id="collapse@(course.CourseId)" class="accordion-collapse collapse"
+                                    <div id="collapse@(course.CourseId)" 
+                                         class="accordion-collapse collapse" 
                                          data-bs-parent="#courseAttendanceAccordion">
                                         <div class="accordion-body p-0">
-                                            <div class="table-responsive">
-                                                <table class="table table-hover align-middle mb-0">
-                                                    <thead class="table-light">
-                                                        <tr>
-                                                            <th>Subject</th>
-                                                            <th class="text-center">Code</th>
-                                                            <th class="text-center">Present</th>
-                                                            <th class="text-center">Absent</th>
-                                                            <th class="text-center" style="width: 150px;">Attendance %</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        @foreach (var subject in course.Subjects)
-                                                        {
-                                                            var total = subject.PresentCount + subject.AbsentCount;
-                                                            var percentage = total > 0 ? (subject.PresentCount * 100.0 / total) : 0;
+                                            @if (!course.Subjects?.Any() ?? true)
+                                            {
+                                                <div class="text-center text-muted py-3">
+                                                    <p>No attendance records for any subjects in this course today.</p>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="table-responsive">
+                                                    <table class="table table-hover align-middle mb-0">
+                                                        <thead class="table-light">
                                                             <tr>
-                                                                <td>@subject.SubjectName</td>
-                                                                <td class="text-center">@subject.SubjectCode</td>
-                                                                <td class="text-center text-success">@subject.PresentCount</td>
-                                                                <td class="text-center text-danger">@subject.AbsentCount</td>
-                                                                <td>
-                                                                    <div class="progress" style="height: 20px;">
-                                                                        <div class="progress-bar bg-success" role="progressbar"
-                                                                             style="width: @percentage%">
-                                                                            @percentage.ToString("F1")%
-                                                                        </div>
-                                                                    </div>
-                                                                </td>
+                                                                <th>Subject</th>
+                                                                <th class="text-center">Code</th>
+                                                                <th class="text-center">Present</th>
+                                                                <th class="text-center">Absent</th>
+                                                                <th class="text-center" style="width: 150px;">Attendance %</th>
                                                             </tr>
-                                                        }
-                                                    </tbody>
-                                                </table>
-                                            </div>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach (var subject in course.Subjects)
+                                                            {
+                                                                var total = subject.PresentCount + subject.AbsentCount;
+                                                                var percentage = total > 0 ? (subject.PresentCount * 100.0 / total) : 0;
+                                                                <tr>
+                                                                    <td>@subject.SubjectName</td>
+                                                                    <td class="text-center">@subject.SubjectCode</td>
+                                                                    <td class="text-center text-success">@subject.PresentCount</td>
+                                                                    <td class="text-center text-danger">@subject.AbsentCount</td>
+                                                                    <td>
+                                                                        <div class="progress" style="height: 20px;">
+                                                                            <div class="progress-bar bg-success" role="progressbar"
+                                                                                 style="width: @percentage%">
+                                                                                @percentage.ToString("F1")%
+                                                                            </div>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            }
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            }
                                         </div>
                                     </div>
                                 </div>
                             }
                         </div>
                     }
-                    else
+
+                    @if (User.IsInRole("Admin"))
                     {
-                        <div class="text-center text-muted py-4">
-                            <i class="fas fa-info-circle fa-2x mb-3"></i>
-                            <p>No attendance records found for today.</p>
+                        <div class="text-end mt-3">
+                            <a href="@Url.Action("TestAttendanceData")" target="_blank" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-bug me-1"></i>Test Attendance Data
+                            </a>
                         </div>
                     }
                 </div>
