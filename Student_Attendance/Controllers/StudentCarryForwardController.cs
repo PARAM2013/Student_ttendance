@@ -81,53 +81,85 @@ namespace Student_Attendance.Controllers
         {
             try
             {
-                if (!model.StudentsToPromote.Any())
+                if (!model.StudentsToPromote?.Any() ?? true)
+                {
                     return Json(new { success = false, message = "No students selected for promotion" });
+                }
 
-                // Start transaction
+                if (model.CurrentAcademicYearId == 0 || model.NextAcademicYearId == 0)
+                {
+                    return Json(new { success = false, message = "Invalid academic year selection" });
+                }
+
+                if (model.NextClassId == null)
+                {
+                    return Json(new { success = false, message = "Next class must be selected" });
+                }
+
                 using var transaction = await _context.Database.BeginTransactionAsync();
-
                 try
                 {
-                    // Archive attendance records
-                    await ArchiveAttendanceRecords(model.CurrentAcademicYearId, model.StudentsToPromote.Select(s => s.StudentId).ToList());
-
-                    // Prepare students for next year
-                    foreach (var student in model.StudentsToPromote.Where(s => s.Selected))
+                    var modifiedCount = 0;
+                    foreach (var studentData in model.StudentsToPromote.Where(s => s.Selected))
                     {
-                        var existingStudent = await _context.Students.FindAsync(student.StudentId);
-                        if (existingStudent != null)
+                        var student = await _context.Students
+                            .FirstOrDefaultAsync(s => s.Id == studentData.StudentId && s.IsActive);
+
+                        if (student != null)
                         {
-                            // Update student record
-                            existingStudent.AcademicYearId = model.NextAcademicYearId;
-                            existingStudent.Semester = student.NextSemester;
+                            _logger.LogInformation($"Updating student {student.Id}: {student.Name}");
                             
-                            // Update class if needed
-                            var nextClass = await _context.Classes
-                                .FirstOrDefaultAsync(c => c.Name == student.NextClass && 
-                                                        c.CourseId == existingStudent.CourseId);
-                            if (nextClass != null)
+                            // Update student record
+                            student.AcademicYearId = model.NextAcademicYearId;
+                            student.Semester = studentData.NextSemester;
+                            student.ClassId = model.NextClassId.Value;
+                            
+                            // Only update division if specified
+                            if (model.NextDivisionId.HasValue)
                             {
-                                existingStudent.ClassId = nextClass.Id;
+                                student.DivisionId = model.NextDivisionId.Value;
                             }
+
+                            _context.Students.Update(student);
+                            modifiedCount++;
+                        }
+                        else
+                        {
+                            _logger.LogWarning($"Student with ID {studentData.StudentId} not found or not active");
                         }
                     }
+
+                    if (modifiedCount == 0)
+                    {
+                        throw new Exception("No students were updated");
+                    }
+
+                    // Archive attendance records
+                    await ArchiveAttendanceRecords(model.CurrentAcademicYearId, 
+                        model.StudentsToPromote.Select(s => s.StudentId).ToList());
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
-                    return Json(new { success = true, message = "Data moved successfully" });
+                    return Json(new { 
+                        success = true, 
+                        message = $"Successfully moved {modifiedCount} students to next year" 
+                    });
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    _logger.LogError(ex, "Error while moving students");
                     await transaction.RollbackAsync();
                     throw;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error moving data");
-                return Json(new { success = false, message = "Error moving data" });
+                _logger.LogError(ex, "Error moving students to next year");
+                return Json(new { 
+                    success = false, 
+                    message = "Failed to move students: " + ex.Message 
+                });
             }
         }
 

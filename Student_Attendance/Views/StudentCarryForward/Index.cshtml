@@ -156,6 +156,14 @@
                     loadNextYearDivisions($(this).val());
                 }
             });
+
+            // Configure toastr options
+            toastr.options = {
+                "closeButton": true,
+                "progressBar": true,
+                "positionClass": "toast-top-right",
+                "timeOut": "3000"
+            };
         });
 
         function loadClasses(courseId) {
@@ -285,27 +293,85 @@
         }
 
         function moveData() {
-            var data = {
-                currentAcademicYearId: $('#CurrentAcademicYearId').val(),
-                nextAcademicYearId: $('#NextAcademicYearId').val(),
-                courseId: $('#CourseId').val(),
-                studentsToPromote: getSelectedStudents()
-            };
+            try {
+                // Validate selections
+                var currentYearId = $('#CurrentAcademicYearId').val();
+                var nextYearId = $('#NextAcademicYearId').val();
+                var courseId = $('#CourseId').val();
+                var nextClassId = $('#NextClassId').val();
+                var nextDivisionId = $('#NextDivisionId').val() || null;
 
-            $.ajax({
-                url: '/StudentCarryForward/MoveData',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(data),
-                success: function (result) {
-                    if (result.success) {
-                        toastr.success(result.message);
-                        $('#btnPublish').show();
-                    } else {
-                        toastr.error(result.message);
-                    }
+                if (!currentYearId || !nextYearId) {
+                    Swal.fire('Error', 'Please select both current and next academic years', 'error');
+                    return;
                 }
-            });
+
+                if (!courseId) {
+                    Swal.fire('Error', 'Please select course', 'error');
+                    return;
+                }
+
+                if (!nextClassId) {
+                    Swal.fire('Error', 'Please select next class', 'error');
+                    return;
+                }
+
+                var selectedStudents = getSelectedStudents();
+                if (selectedStudents.length === 0) {
+                    Swal.fire('Error', 'Please select at least one student to move', 'error');
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: "You want to move the selected students to the next academic year?",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Yes, move them!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $('#btnMove').prop('disabled', true)
+                            .html('<i class="fas fa-spinner fa-spin"></i> Processing...');
+
+                        var data = {
+                            currentAcademicYearId: parseInt(currentYearId),
+                            nextAcademicYearId: parseInt(nextYearId),
+                            courseId: parseInt(courseId),
+                            nextClassId: parseInt(nextClassId),
+                            nextDivisionId: nextDivisionId ? parseInt(nextDivisionId) : null,
+                            studentsToPromote: selectedStudents
+                        };
+
+                        $.ajax({
+                            url: '/StudentCarryForward/MoveData',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify(data),
+                            success: function(result) {
+                                if (result.success) {
+                                    Swal.fire('Success', result.message, 'success');
+                                    $('#btnPublish').show();
+                                } else {
+                                    Swal.fire('Error', result.message || 'Failed to move students', 'error');
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                console.error('Ajax error:', xhr.responseText);
+                                Swal.fire('Error', 'Error moving students: ' + (error || 'Unknown error occurred'), 'error');
+                            },
+                            complete: function() {
+                                $('#btnMove').prop('disabled', false)
+                                    .html('<i class="fas fa-arrow-right"></i> Move Data');
+                            }
+                        });
+                    }
+                });
+            } catch (error) {
+                console.error('Error in moveData:', error);
+                Swal.fire('Error', 'An unexpected error occurred', 'error');
+            }
         }
 
         function publishData() {
@@ -340,8 +406,8 @@
                         studentId: $(this).data('student-id'),
                         enrollmentNo: $(this).data('enrollment'),
                         name: $(this).data('name'),
-                        currentSemester: $(this).data('current-sem'),
-                        nextSemester: $(this).data('next-sem'),
+                        currentSemester: parseInt($(this).data('current-sem')),
+                        nextSemester: parseInt($(this).data('next-sem')),
                         currentClass: $(this).data('current-class'),
                         nextClass: $(this).data('next-class'),
                         selected: true
