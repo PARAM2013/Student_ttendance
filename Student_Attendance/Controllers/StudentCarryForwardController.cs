@@ -27,10 +27,21 @@ namespace Student_Attendance.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetPreviewData(int currentYearId, int nextYearId, int courseId, int? classId, int? divisionId)
+        public async Task<IActionResult> GetPreviewData(int currentYearId, int nextYearId, int courseId, int? classId, int? divisionId, int nextCourseId, int? nextClassId, int? nextDivisionId)
         {
             try
             {
+                // Validate next year configurations
+                var nextClassExists = await _context.Classes
+                    .AnyAsync(c => c.Id == nextClassId && 
+                                  c.AcademicYearId == nextYearId && 
+                                  c.CourseId == nextCourseId);
+
+                if (!nextClassExists)
+                {
+                    return Json(new { success = false, message = "Selected next class configuration is invalid" });
+                }
+
                 var query = _context.Students
                     .Include(s => s.Class)
                     .Where(s => s.AcademicYearId == currentYearId && 
@@ -182,15 +193,62 @@ namespace Student_Attendance.Controllers
             }
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetClassesByCourse(int courseId, int academicYearId)
+        {
+            try
+            {
+                var classes = await _context.Classes
+                    .Where(c => c.CourseId == courseId && c.AcademicYearId == academicYearId)
+                    .Select(c => new { id = c.Id, name = c.Name })
+                    .ToListAsync();
+                return Json(classes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting classes by course");
+                return Json(new List<object>());
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetDivisionsByClass(int classId)
+        {
+            try
+            {
+                var divisions = await _context.Divisions
+                    .Where(d => d.ClassId == classId)
+                    .Select(d => new { id = d.Id, name = d.Name })
+                    .ToListAsync();
+
+                _logger.LogInformation($"Found {divisions.Count} divisions for class {classId}");
+                return Json(divisions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting divisions by class");
+                return Json(new List<object>());
+            }
+        }
+
         private async Task LoadDropdowns(StudentCarryForwardViewModel model)
         {
             var years = await _context.AcademicYears
                 .OrderByDescending(y => y.StartDate)
                 .ToListAsync();
 
+            var courses = await _context.Courses.ToListAsync();
+
             model.AcademicYears = new SelectList(years, "Id", "Name");
             model.NextAcademicYears = new SelectList(years, "Id", "Name");
-            model.Courses = new SelectList(await _context.Courses.ToListAsync(), "Id", "Name");
+            model.Courses = new SelectList(courses, "Id", "Name");
+            model.NextCourses = new SelectList(courses, "Id", "Name");
+
+            // Classes and Divisions will be populated via AJAX
+            model.Classes = new SelectList(Enumerable.Empty<SelectListItem>());
+            model.NextClasses = new SelectList(Enumerable.Empty<SelectListItem>());
+            model.Divisions = new SelectList(Enumerable.Empty<SelectListItem>());
+            model.NextDivisions = new SelectList(Enumerable.Empty<SelectListItem>());
         }
 
         private string GetNextClassName(string currentClass)

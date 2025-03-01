@@ -9,12 +9,18 @@ namespace Student_Attendance.ViewModels
         public int CourseId { get; set; }
         public int? ClassId { get; set; }
         public int? DivisionId { get; set; }
+        public int NextCourseId { get; set; }
+        public int? NextClassId { get; set; }
+        public int? NextDivisionId { get; set; }
 
         public SelectList AcademicYears { get; set; }
         public SelectList NextAcademicYears { get; set; }
         public SelectList Courses { get; set; }
         public SelectList Classes { get; set; }
         public SelectList Divisions { get; set; }
+        public SelectList NextCourses { get; set; }
+        public SelectList NextClasses { get; set; }
+        public SelectList NextDivisions { get; set; }
 
         public bool DataMoved { get; set; }
         public List<StudentPromotionData> StudentsToPromote { get; set; } = new();

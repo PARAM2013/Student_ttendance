@@ -42,6 +42,18 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.MapControllerRoute(
+    name: "getClassesByCourse",
+    pattern: "StudentCarryForward/GetClassesByCourse",
+    defaults: new { controller = "StudentCarryForward", action = "GetClassesByCourse" }
+);
+
+app.MapControllerRoute(
+    name: "getDivisionsByClass",
+    pattern: "StudentCarryForward/GetDivisionsByClass/{classId}",
+    defaults: new { controller = "StudentCarryForward", action = "GetDivisionsByClass" }
+);
+
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 

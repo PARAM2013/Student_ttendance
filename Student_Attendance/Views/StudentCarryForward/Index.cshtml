@@ -5,45 +5,70 @@
 
 <div class="container-fluid p-4">
     <h2 class="mb-4">Student Carry Forward</h2>
-
     <div class="card">
         <div class="card-header">
             <h5 class="card-title mb-0">Selection Criteria</h5>
         </div>
         <div class="card-body">
             <form id="carryForwardForm">
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <label asp-for="CurrentAcademicYearId" class="form-label">Current Academic Year</label>
-                        <select asp-for="CurrentAcademicYearId" asp-items="Model.AcademicYears" class="form-select">
-                            <option value="">Select Year</option>
-                        </select>
+                <div class="row">
+                    <div class="col-md-6">
+                        <!-- Left column: Current Year & related dropdowns -->
+                        <div class="mb-3">
+                            <label asp-for="CurrentAcademicYearId" class="form-label">Current Academic Year</label>
+                            <select asp-for="CurrentAcademicYearId" asp-items="Model.AcademicYears" class="form-select">
+                                <option value="">Select Year</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="CourseId" class="form-label">Course</label>
+                            <select asp-for="CourseId" asp-items="Model.Courses" class="form-select">
+                                <option value="">Select Course</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="ClassId" class="form-label">Class</label>
+                            <select asp-for="ClassId" asp-items="Model.Classes" class="form-select">
+                                <option value="">All Classes</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="DivisionId" class="form-label">Division</label>
+                            <select asp-for="DivisionId" asp-items="Model.Divisions" class="form-select">
+                                <option value="">All Divisions</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="col-md-4">
-                        <label asp-for="NextAcademicYearId" class="form-label">Next Academic Year</label>
-                        <select asp-for="NextAcademicYearId" asp-items="Model.NextAcademicYears" class="form-select">
-                            <option value="">Select Year</option>
-                        </select>
+                    <div class="col-md-6">
+                        <!-- Right column: Next Year dropdown -->
+                        <div class="mb-3">
+                            <label asp-for="NextAcademicYearId" class="form-label">Next Academic Year</label>
+                            <select asp-for="NextAcademicYearId" asp-items="Model.NextAcademicYears" class="form-select">
+                                <option value="">Select Year</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="NextCourseId" class="form-label">Next Course</label>
+                            <select asp-for="NextCourseId" asp-items="Model.NextCourses" class="form-select">
+                                <option value="">Select Course</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="NextClassId" class="form-label">Next Class</label>
+                            <select asp-for="NextClassId" asp-items="Model.NextClasses" class="form-select">
+                                <option value="">Select Class</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="NextDivisionId" class="form-label">Next Division</label>
+                            <select asp-for="NextDivisionId" asp-items="Model.NextDivisions" class="form-select">
+                                <option value="">Select Division</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="col-md-4">
-                        <label asp-for="CourseId" class="form-label">Course</label>
-                        <select asp-for="CourseId" asp-items="Model.Courses" class="form-select">
-                            <option value="">Select Course</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label asp-for="ClassId" class="form-label">Class</label>
-                        <select asp-for="ClassId" asp-items="Model.Classes" class="form-select">
-                            <option value="">All Classes</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label asp-for="DivisionId" class="form-label">Division</label>
-                        <select asp-for="DivisionId" asp-items="Model.Divisions" class="form-select">
-                            <option value="">All Divisions</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4 d-flex align-items-end">
+                </div>
+                <div class="row">
+                    <div class="col-md-12 d-flex justify-content-end">
                         <button type="button" id="btnPreview" class="btn btn-primary">
                             Preview Students
                         </button>
@@ -70,7 +95,11 @@
         $(document).ready(function () {
             // Handle course change
             $('#CourseId').change(function () {
-                loadClasses($(this).val());
+                $('#ClassId').empty().append('<option value="">All Classes</option>');
+                $('#DivisionId').empty().append('<option value="">All Divisions</option>');
+                if ($(this).val() && $('#CurrentAcademicYearId').val()) {
+                    loadClasses($(this).val());
+                }
             });
 
             // Handle class change
@@ -96,11 +125,50 @@
                     publishData();
                 }
             });
+
+            // Handle next year change
+            $('#NextAcademicYearId').change(function () {
+                if ($('#NextCourseId').val()) {
+                    loadNextYearClasses($('#NextCourseId').val());
+                }
+            });
+
+            // Handle next course change
+            $('#NextCourseId').change(function () {
+                $('#NextClassId').empty().append('<option value="">Select Class</option>');
+                $('#NextDivisionId').empty().append('<option value="">Select Division</option>');
+                if ($(this).val() && $('#NextAcademicYearId').val()) {
+                    loadNextYearClasses($(this).val());
+                }
+            });
+
+            // Add handlers for academic year changes
+            $('#CurrentAcademicYearId').change(function() {
+                if ($('#CourseId').val()) {
+                    loadClasses($('#CourseId').val());
+                }
+            });
+
+            // Handle next class change
+            $('#NextClassId').change(function() {
+                $('#NextDivisionId').empty().append('<option value="">Select Division</option>');
+                if ($(this).val()) {
+                    loadNextYearDivisions($(this).val());
+                }
+            });
         });
 
         function loadClasses(courseId) {
-            if (!courseId) return;
-            $.get(`/Students/GetClassesByCourse/${courseId}`, function (data) {
+            if (!courseId) {
+                $('#ClassId').empty().append('<option value="">All Classes</option>');
+                return;
+            }
+            var yearId = $('#CurrentAcademicYearId').val();
+            if (!yearId) {
+                toastr.error('Please select current academic year first');
+                return;
+            }
+            $.get(`/StudentCarryForward/GetClassesByCourse?courseId=${courseId}&academicYearId=${yearId}`, function (data) {
                 $('#ClassId').empty().append('<option value="">All Classes</option>');
                 $.each(data, function (i, item) {
                     $('#ClassId').append($('<option>', { value: item.id, text: item.name }));
@@ -109,12 +177,65 @@
         }
 
         function loadDivisions(classId) {
-            if (!classId) return;
-            $.get(`/Students/GetDivisionsByClass/${classId}`, function (data) {
+            if (!classId) {
+                $('#DivisionId').empty().append('<option value="">All Divisions</option>');
+                return;
+            }
+            $.get(`/StudentCarryForward/GetDivisionsByClass/${classId}`, function (data) {
                 $('#DivisionId').empty().append('<option value="">All Divisions</option>');
                 $.each(data, function (i, item) {
                     $('#DivisionId').append($('<option>', { value: item.id, text: item.name }));
                 });
+            });
+        }
+
+        function loadNextYearCourses(yearId) {
+            if (!yearId) {
+                $('#NextCourseId').empty().append('<option value="">Select Course</option>');
+                return;
+            }
+            $.get(`/Students/GetCoursesByYear/${yearId}`, function (data) {
+                $('#NextCourseId').empty().append('<option value="">Select Course</option>');
+                $.each(data, function (i, item) {
+                    $('#NextCourseId').append($('<option>', { value: item.id, text: item.name }));
+                });
+            });
+        }
+
+        function loadNextYearClasses(courseId) {
+            if (!courseId) {
+                $('#NextClassId').empty().append('<option value="">Select Class</option>');
+                return;
+            }
+            var yearId = $('#NextAcademicYearId').val();
+            if (!yearId) {
+                toastr.error('Please select next academic year first');
+                return;
+            }
+            $.get(`/StudentCarryForward/GetClassesByCourse?courseId=${courseId}&academicYearId=${yearId}`, function (data) {
+                $('#NextClassId').empty().append('<option value="">Select Class</option>');
+                $.each(data, function (i, item) {
+                    $('#NextClassId').append($('<option>', { value: item.id, text: item.name }));
+                });
+            });
+        }
+
+        function loadNextYearDivisions(classId) {
+            if (!classId) {
+                $('#NextDivisionId').empty().append('<option value="">Select Division</option>');
+                return;
+            }
+            $.get(`/StudentCarryForward/GetDivisionsByClass/${classId}`, function (data) {
+                $('#NextDivisionId').empty().append('<option value="">Select Division</option>');
+                if (data && data.length > 0) {
+                    $.each(data, function (i, item) {
+                        $('#NextDivisionId').append($('<option>', { value: item.id, text: item.name }));
+                    });
+                } else {
+                    toastr.warning('No divisions found for selected class');
+                }
+            }).fail(function() {
+                toastr.error('Error loading divisions');
             });
         }
 
@@ -124,9 +245,27 @@
             var courseId = $('#CourseId').val();
             var classId = $('#ClassId').val();
             var divisionId = $('#DivisionId').val();
+            var nextCourseId = $('#NextCourseId').val();
+            var nextClassId = $('#NextClassId').val();
+            var nextDivisionId = $('#NextDivisionId').val();
 
-            if (!currentYearId || !nextYearId || !courseId) {
-                alert('Please select required fields');
+            if (!currentYearId || !nextYearId) {
+                toastr.error('Please select both current and next academic years');
+                return;
+            }
+
+            if (!courseId) {
+                toastr.error('Please select current course');
+                return;
+            }
+
+            if (!nextCourseId) {
+                toastr.error('Please select next course');
+                return;
+            }
+
+            if (!nextClassId) {
+                toastr.error('Please select next class');
                 return;
             }
 
@@ -135,7 +274,10 @@
                 nextYearId: nextYearId,
                 courseId: courseId,
                 classId: classId,
-                divisionId: divisionId
+                divisionId: divisionId,
+                nextCourseId: nextCourseId,
+                nextClassId: nextClassId,
+                nextDivisionId: nextDivisionId
             }, function (data) {
                 $('#previewData').html(data);
                 $('#actionButtons').show();
