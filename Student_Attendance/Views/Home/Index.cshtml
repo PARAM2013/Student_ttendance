@@ -54,88 +54,7 @@
         </div>
     </div>
 
-    <!-- Recent Activities Section -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-white">
-                    <h5 class="card-title mb-0"><i class="fas fa-history me-2"></i>Recent Activities</h5>
-                </div>
-                <div class="card-body p-0">
-                    <div class="timeline-list p-3">
-                        @foreach (var activity in Model.RecentActivities)
-                        {
-                            <div class="timeline-item mb-3">
-                                <div class="d-flex">
-                                    <div class="timeline-icon me-3">
-                                        <i class="fas fa-check-circle text-success"></i>
-                                    </div>
-                                    <div class="timeline-content">
-                                        <div class="d-flex justify-content-between">
-                                            <strong>@activity.UserName</strong>
-                                            <small class="text-muted">@activity.Timestamp.ToString("HH:mm")</small>
-                                        </div>
-                                        <p class="mb-0">@activity.Action @activity.Details</p>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-6">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-white">
-                    <h5 class="card-title mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Low Attendance Alerts</h5>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Student</th>
-                                    <th>Course</th>
-                                    <th class="text-center">Attendance</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var alert in Model.LowAttendanceStudents)
-                                {
-                                    <tr>
-                                        <td>@alert.StudentName</td>
-                                        <td>@alert.Course</td>
-                                        <td class="text-center">
-                                            <span class="badge bg-danger">
-                                                @alert.AttendancePercentage.ToString("F1")%
-                                            </span>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Weekly Trends Chart -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-white">
-                    <h5 class="card-title mb-0"><i class="fas fa-chart-line me-2"></i>Weekly Attendance Trends</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="weeklyTrendChart" height="100"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Subject-wise Attendance -->
+ <!-- Subject-wise Attendance -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card shadow-sm">
@@ -252,6 +171,88 @@
         </div>
     </div>
 
+    <!-- Recent Activities Section -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0"><i class="fas fa-history me-2"></i>Recent Activities</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="timeline-list p-3">
+                        @foreach (var activity in Model.RecentActivities)
+                        {
+                            <div class="timeline-item mb-3">
+                                <div class="d-flex">
+                                    <div class="timeline-icon me-3">
+                                        <i class="fas fa-check-circle text-success"></i>
+                                    </div>
+                                    <div class="timeline-content">
+                                        <div class="d-flex justify-content-between">
+                                            <strong>@activity.UserName</strong>
+                                            <small class="text-muted">@activity.Timestamp.ToString("HH:mm")</small>
+                                        </div>
+                                        <p class="mb-0">@activity.Action @activity.Details</p>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Low Attendance Alerts</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Course</th>
+                                    <th class="text-center">Attendance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var alert in Model.LowAttendanceStudents)
+                                {
+                                    <tr>
+                                        <td>@alert.StudentName</td>
+                                        <td>@alert.Course</td>
+                                        <td class="text-center">
+                                            <span class="badge bg-danger">
+                                                @alert.AttendancePercentage.ToString("F1")%
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weekly Trends Chart -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0"><i class="fas fa-chart-line me-2"></i>Weekly Attendance Trends</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="weeklyTrendChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+   
     <!-- Quick Actions -->
     <div class="row">
         <div class="col-12">
