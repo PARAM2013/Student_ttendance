@@ -12,8 +12,8 @@ using Student_Attendance.Data;
 namespace Student_Attendance.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250227103805_FixNavigationProperties")]
-    partial class FixNavigationProperties
+    [Migration("20250301103443_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -361,6 +361,52 @@ namespace Student_Attendance.Migrations
                     b.ToTable("Students");
                 });
 
+            modelBuilder.Entity("Student_Attendance.Models.StudentAttendanceArchive", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AcademicYearId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ArchivedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("EnrollmentNo")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsPresent")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("MarkedById")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StudentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StudentName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SubjectId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SubjectName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("StudentAttendanceArchives");
+                });
+
             modelBuilder.Entity("Student_Attendance.Models.StudentSubject", b =>
                 {
                     b.Property<int>("Id")
@@ -397,7 +443,7 @@ namespace Student_Attendance.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("ClassId")
+                    b.Property<int?>("ClassId")
                         .HasColumnType("int");
 
                     b.Property<string>("Code")
@@ -677,10 +723,9 @@ namespace Student_Attendance.Migrations
             modelBuilder.Entity("Student_Attendance.Models.Subject", b =>
                 {
                     b.HasOne("Student_Attendance.Models.Class", "Class")
-                        .WithMany()
+                        .WithMany("Subjects")
                         .HasForeignKey("ClassId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("Student_Attendance.Models.Course", "Course")
                         .WithMany()
@@ -737,6 +782,8 @@ namespace Student_Attendance.Migrations
             modelBuilder.Entity("Student_Attendance.Models.Class", b =>
                 {
                     b.Navigation("Students");
+
+                    b.Navigation("Subjects");
                 });
 
             modelBuilder.Entity("Student_Attendance.Models.Course", b =>

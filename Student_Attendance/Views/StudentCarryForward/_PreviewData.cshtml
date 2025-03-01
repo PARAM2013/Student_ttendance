@@ -1,0 +1,63 @@
+@model List<StudentPromotionData>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Students Preview</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>
+                            <input type="checkbox" id="selectAll" checked>
+                        </th>
+                        <th>Enrollment No</th>
+                        <th>Name</th>
+                        <th>Current Semester</th>
+                        <th>Next Semester</th>
+                        <th>Current Class</th>
+                        <th>Next Class</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var student in Model)
+                    {
+                        <tr class="student-row" 
+                            data-student-id="@student.StudentId"
+                            data-enrollment="@student.EnrollmentNo"
+                            data-name="@student.Name"
+                            data-current-sem="@student.CurrentSemester"
+                            data-next-sem="@student.NextSemester"
+                            data-current-class="@student.CurrentClass"
+                            data-next-class="@student.NextClass">
+                            <td>
+                                <input type="checkbox" class="student-select" checked>
+                            </td>
+                            <td>@student.EnrollmentNo</td>
+                            <td>@student.Name</td>
+                            <td>@student.CurrentSemester</td>
+                            <td>@student.NextSemester</td>
+                            <td>@student.CurrentClass</td>
+                            <td>@student.NextClass</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        $('#selectAll').change(function() {
+            $('.student-select').prop('checked', $(this).prop('checked'));
+        });
+
+        $('.student-select').change(function() {
+            if (!$(this).prop('checked')) {
+                $('#selectAll').prop('checked', false);
+            }
+        });
+    });
+</script>

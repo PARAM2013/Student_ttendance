@@ -21,9 +21,12 @@ namespace Student_Attendance.Data
     public DbSet<TeacherSubject> TeacherSubjects { get; set; }
     public DbSet<Institute> Institutes { get; set; }
     public DbSet<AttendanceAudit> AttendanceAudits { get; set; }
+    public DbSet<StudentAttendanceArchive> StudentAttendanceArchives { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+      base.OnModelCreating(modelBuilder);
+
       // Configure Subject relationships
       modelBuilder.Entity<Subject>()
           .HasMany(s => s.StudentSubjects)
@@ -161,11 +164,17 @@ namespace Student_Attendance.Data
         .HasForeignKey(a => a.ModifiedById)
         .OnDelete(DeleteBehavior.NoAction);
 
-      base.OnModelCreating(modelBuilder);
+      // Configure Class-Subject relationship
+      modelBuilder.Entity<Class>()
+        .HasMany(c => c.Subjects)
+        .WithOne(s => s.Class)
+        .HasForeignKey(s => s.ClassId)
+        .OnDelete(DeleteBehavior.NoAction);
+
       modelBuilder.Entity<StudentSubject>()
-  .HasOne(ss => ss.Student)
-  .WithMany(s => s.StudentSubjects)
-  .HasForeignKey(ss => ss.StudentId);
+        .HasOne(ss => ss.Student)
+        .WithMany(s => s.StudentSubjects)
+        .HasForeignKey(ss => ss.StudentId);
 
       modelBuilder.Entity<StudentSubject>()
           .HasOne(ss => ss.Subject)

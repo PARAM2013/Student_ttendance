@@ -1,0 +1,212 @@
+@model StudentCarryForwardViewModel
+@{
+    ViewData["Title"] = "Student Carry Forward";
+}
+
+<div class="container-fluid p-4">
+    <h2 class="mb-4">Student Carry Forward</h2>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Selection Criteria</h5>
+        </div>
+        <div class="card-body">
+            <form id="carryForwardForm">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label asp-for="CurrentAcademicYearId" class="form-label">Current Academic Year</label>
+                        <select asp-for="CurrentAcademicYearId" asp-items="Model.AcademicYears" class="form-select">
+                            <option value="">Select Year</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="NextAcademicYearId" class="form-label">Next Academic Year</label>
+                        <select asp-for="NextAcademicYearId" asp-items="Model.NextAcademicYears" class="form-select">
+                            <option value="">Select Year</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="CourseId" class="form-label">Course</label>
+                        <select asp-for="CourseId" asp-items="Model.Courses" class="form-select">
+                            <option value="">Select Course</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="ClassId" class="form-label">Class</label>
+                        <select asp-for="ClassId" asp-items="Model.Classes" class="form-select">
+                            <option value="">All Classes</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="DivisionId" class="form-label">Division</label>
+                        <select asp-for="DivisionId" asp-items="Model.Divisions" class="form-select">
+                            <option value="">All Divisions</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="button" id="btnPreview" class="btn btn-primary">
+                            Preview Students
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="previewData" class="mt-4"></div>
+
+    <div id="actionButtons" class="mt-4" style="display: none;">
+        <button type="button" id="btnMove" class="btn btn-warning">
+            <i class="fas fa-arrow-right"></i> Move Data
+        </button>
+        <button type="button" id="btnPublish" class="btn btn-success" style="display: none;">
+            <i class="fas fa-check"></i> Publish
+        </button>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Handle course change
+            $('#CourseId').change(function () {
+                loadClasses($(this).val());
+            });
+
+            // Handle class change
+            $('#ClassId').change(function () {
+                loadDivisions($(this).val());
+            });
+
+            // Preview button click
+            $('#btnPreview').click(function () {
+                loadPreviewData();
+            });
+
+            // Move data button click
+            $('#btnMove').click(function () {
+                if (confirm('Are you sure you want to move the selected students to the next academic year?')) {
+                    moveData();
+                }
+            });
+
+            // Publish button click
+            $('#btnPublish').click(function () {
+                if (confirm('Are you sure you want to publish the changes? This action cannot be undone.')) {
+                    publishData();
+                }
+            });
+        });
+
+        function loadClasses(courseId) {
+            if (!courseId) return;
+            $.get(`/Students/GetClassesByCourse/${courseId}`, function (data) {
+                $('#ClassId').empty().append('<option value="">All Classes</option>');
+                $.each(data, function (i, item) {
+                    $('#ClassId').append($('<option>', { value: item.id, text: item.name }));
+                });
+            });
+        }
+
+        function loadDivisions(classId) {
+            if (!classId) return;
+            $.get(`/Students/GetDivisionsByClass/${classId}`, function (data) {
+                $('#DivisionId').empty().append('<option value="">All Divisions</option>');
+                $.each(data, function (i, item) {
+                    $('#DivisionId').append($('<option>', { value: item.id, text: item.name }));
+                });
+            });
+        }
+
+        function loadPreviewData() {
+            var currentYearId = $('#CurrentAcademicYearId').val();
+            var nextYearId = $('#NextAcademicYearId').val();
+            var courseId = $('#CourseId').val();
+            var classId = $('#ClassId').val();
+            var divisionId = $('#DivisionId').val();
+
+            if (!currentYearId || !nextYearId || !courseId) {
+                alert('Please select required fields');
+                return;
+            }
+
+            $.get('/StudentCarryForward/GetPreviewData', {
+                currentYearId: currentYearId,
+                nextYearId: nextYearId,
+                courseId: courseId,
+                classId: classId,
+                divisionId: divisionId
+            }, function (data) {
+                $('#previewData').html(data);
+                $('#actionButtons').show();
+            });
+        }
+
+        function moveData() {
+            var data = {
+                currentAcademicYearId: $('#CurrentAcademicYearId').val(),
+                nextAcademicYearId: $('#NextAcademicYearId').val(),
+                courseId: $('#CourseId').val(),
+                studentsToPromote: getSelectedStudents()
+            };
+
+            $.ajax({
+                url: '/StudentCarryForward/MoveData',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function (result) {
+                    if (result.success) {
+                        toastr.success(result.message);
+                        $('#btnPublish').show();
+                    } else {
+                        toastr.error(result.message);
+                    }
+                }
+            });
+        }
+
+        function publishData() {
+            var data = {
+                currentAcademicYearId: $('#CurrentAcademicYearId').val(),
+                nextAcademicYearId: $('#NextAcademicYearId').val(),
+                courseId: $('#CourseId').val(),
+                studentsToPromote: getSelectedStudents()
+            };
+
+            $.ajax({
+                url: '/StudentCarryForward/PublishData',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function (result) {
+                    if (result.success) {
+                        toastr.success(result.message);
+                        setTimeout(() => window.location.reload(), 2000);
+                    } else {
+                        toastr.error(result.message);
+                    }
+                }
+            });
+        }
+
+        function getSelectedStudents() {
+            var students = [];
+            $('.student-row').each(function () {
+                if ($(this).find('.student-select').prop('checked')) {
+                    students.push({
+                        studentId: $(this).data('student-id'),
+                        enrollmentNo: $(this).data('enrollment'),
+                        name: $(this).data('name'),
+                        currentSemester: $(this).data('current-sem'),
+                        nextSemester: $(this).data('next-sem'),
+                        currentClass: $(this).data('current-class'),
+                        nextClass: $(this).data('next-class'),
+                        selected: true
+                    });
+                }
+            });
+            return students;
+        }
+    </script>
+}

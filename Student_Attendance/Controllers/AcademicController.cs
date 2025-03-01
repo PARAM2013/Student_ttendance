@@ -474,7 +474,7 @@ namespace Student_Attendance.Controllers
                 if (!ModelState.IsValid)
                 {
                     await LoadDivisionDropDowns(model);
-                    var errors = string.Join(", ", ModelState.Values
+                    var errors = String.Join(", ", ModelState.Values
                         .SelectMany(v => v.Errors)
                         .Select(e => e.ErrorMessage));
                     return Json(new { success = false, message = errors });
@@ -592,7 +592,7 @@ namespace Student_Attendance.Controllers
                 if (!ModelState.IsValid)
                 {
                     await LoadSpecializationDropDowns(model);
-                    var errors = string.Join(", ", ModelState.Values
+                    var errors = String.Join(", ", ModelState.Values
                         .SelectMany(v => v.Errors)
                         .Select(e => e.ErrorMessage));
                     return Json(new { success = false, message = errors });
@@ -627,7 +627,7 @@ namespace Student_Attendance.Controllers
                 if (!ModelState.IsValid)
                 {
                     await LoadSpecializationDropDowns(model);
-                    var errors = string.Join(", ", ModelState.Values
+                    var errors = String.Join(", ", ModelState.Values
                         .SelectMany(v => v.Errors)
                         .Select(e => e.ErrorMessage));
                     return Json(new { success = false, message = errors });
@@ -732,7 +732,7 @@ namespace Student_Attendance.Controllers
                 SpecializationId = subject.SpecializationId,
                 Semester = subject.Semester,
                 CourseId = subject.CourseId,
-                ClassId = subject.ClassId
+                ClassId = subject.ClassId ?? 0
             };
 
             await LoadSubjectDropDowns(model);
@@ -747,7 +747,7 @@ namespace Student_Attendance.Controllers
                 if (!ModelState.IsValid)
                 {
                     await LoadSubjectDropDowns(model);
-                    var errors = string.Join(", ", ModelState.Values
+                    var errors = String.Join(", ", ModelState.Values
                         .SelectMany(v => v.Errors)
                         .Select(e => e.ErrorMessage));
                     return Json(new { success = false, message = errors });
@@ -786,7 +786,7 @@ namespace Student_Attendance.Controllers
                 if (!ModelState.IsValid)
                 {
                     await LoadSubjectDropDowns(model);
-                    var errors = string.Join(", ", ModelState.Values
+                    var errors = String.Join(", ", ModelState.Values
                         .SelectMany(v => v.Errors)
                         .Select(e => e.ErrorMessage));
                     return Json(new { success = false, message = errors });
@@ -897,9 +897,9 @@ namespace Student_Attendance.Controllers
                     Name = s.Name,
                     Code = s.Code,
                     CourseId = model.CourseId,
-                    ClassId = model.ClassId,
-                    Semester = model.Semester,
-                    SpecializationId = model.SpecializationId
+                    ClassId = model.ClassId,  // This is already nullable in Subject model
+                    SpecializationId = model.SpecializationId,  // This is already nullable in Subject model
+                    Semester = model.Semester  // Now non-nullable in model
                 }).ToList();
 
                 await _context.Subjects.AddRangeAsync(subjects);

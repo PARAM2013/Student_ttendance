@@ -21,10 +21,9 @@ namespace Student_Attendance.Models
         [ForeignKey("CourseId")]
         public Course Course { get; set; }
 
-        [Required]
-        public int ClassId { get; set; }
+        public int? ClassId { get; set; }
         [ForeignKey("ClassId")]
-        public Class Class { get; set; }
+        public virtual Class Class { get; set; }
 
         public int? SpecializationId { get; set; }
         [ForeignKey("SpecializationId")]

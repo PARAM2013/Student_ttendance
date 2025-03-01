@@ -29,5 +29,14 @@ namespace Student_Attendance.Models
         public bool IsActive { get; set; } = true;
 
         public ICollection<Student> Students { get; set; }
+
+        // Fix the navigation property
+        public virtual ICollection<Subject> Subjects { get; set; }
+
+        public Class()
+        {
+            Students = new HashSet<Student>();
+            Subjects = new HashSet<Subject>();
+        }
     }
 }

@@ -60,6 +60,28 @@ namespace Student_Attendance.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "StudentAttendanceArchives",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StudentId = table.Column<int>(type: "int", nullable: false),
+                    EnrollmentNo = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    StudentName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    SubjectId = table.Column<int>(type: "int", nullable: false),
+                    SubjectName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Date = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IsPresent = table.Column<bool>(type: "bit", nullable: false),
+                    AcademicYearId = table.Column<int>(type: "int", nullable: false),
+                    MarkedById = table.Column<int>(type: "int", nullable: false),
+                    ArchivedOn = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StudentAttendanceArchives", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Users",
                 columns: table => new
                 {
@@ -155,7 +177,7 @@ namespace Student_Attendance.Migrations
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Code = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     CourseId = table.Column<int>(type: "int", nullable: false),
-                    ClassId = table.Column<int>(type: "int", nullable: false),
+                    ClassId = table.Column<int>(type: "int", nullable: true),
                     SpecializationId = table.Column<int>(type: "int", nullable: true),
                     Semester = table.Column<int>(type: "int", nullable: false),
                     CourseId1 = table.Column<int>(type: "int", nullable: true)
@@ -167,8 +189,7 @@ namespace Student_Attendance.Migrations
                         name: "FK_Subjects_Classes_ClassId",
                         column: x => x.ClassId,
                         principalTable: "Classes",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Subjects_Courses_CourseId",
                         column: x => x.CourseId,
@@ -333,7 +354,8 @@ namespace Student_Attendance.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     StudentId = table.Column<int>(type: "int", nullable: false),
-                    SubjectId = table.Column<int>(type: "int", nullable: false)
+                    SubjectId = table.Column<int>(type: "int", nullable: false),
+                    SubjectId1 = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -348,7 +370,50 @@ namespace Student_Attendance.Migrations
                         column: x => x.SubjectId,
                         principalTable: "Subjects",
                         principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_StudentSubjects_Subjects_SubjectId1",
+                        column: x => x.SubjectId1,
+                        principalTable: "Subjects",
+                        principalColumn: "Id");
                 });
+
+            migrationBuilder.CreateTable(
+                name: "AttendanceAudits",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    AttendanceRecordId = table.Column<int>(type: "int", nullable: false),
+                    ModifiedById = table.Column<int>(type: "int", nullable: false),
+                    ModifiedOn = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    OldValue = table.Column<bool>(type: "bit", nullable: false),
+                    NewValue = table.Column<bool>(type: "bit", nullable: false),
+                    Reason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AttendanceAudits", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AttendanceAudits_AttendanceRecords_AttendanceRecordId",
+                        column: x => x.AttendanceRecordId,
+                        principalTable: "AttendanceRecords",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_AttendanceAudits_Users_ModifiedById",
+                        column: x => x.ModifiedById,
+                        principalTable: "Users",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AttendanceAudits_AttendanceRecordId",
+                table: "AttendanceAudits",
+                column: "AttendanceRecordId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AttendanceAudits_ModifiedById",
+                table: "AttendanceAudits",
+                column: "ModifiedById");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AttendanceRecords_MarkedById",
@@ -441,6 +506,11 @@ namespace Student_Attendance.Migrations
                 column: "SubjectId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_StudentSubjects_SubjectId1",
+                table: "StudentSubjects",
+                column: "SubjectId1");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Subjects_ClassId",
                 table: "Subjects",
                 column: "ClassId");
@@ -485,16 +555,22 @@ namespace Student_Attendance.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "AttendanceRecords");
+                name: "AttendanceAudits");
 
             migrationBuilder.DropTable(
                 name: "Institutes");
+
+            migrationBuilder.DropTable(
+                name: "StudentAttendanceArchives");
 
             migrationBuilder.DropTable(
                 name: "StudentSubjects");
 
             migrationBuilder.DropTable(
                 name: "TeacherSubjects");
+
+            migrationBuilder.DropTable(
+                name: "AttendanceRecords");
 
             migrationBuilder.DropTable(
                 name: "Students");
