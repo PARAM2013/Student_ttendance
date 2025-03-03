@@ -517,45 +517,48 @@
             };
 
             Swal.fire({
-                title: 'Publish Changes?',
-                text: 'This action cannot be undone. Are you sure you want to proceed?',
-                icon: 'question',
+                title: 'Confirm Publication',
+                text: 'This will finalize student promotions and subject mappings. This action cannot be undone. Are you sure?',
+                icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#28a745',
-                cancelButtonColor: '#dc3545',
-                confirmButtonText: 'Yes, Publish!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $('#btnPublish').prop('disabled', true)
-                        .html('<i class="fas fa-spinner fa-spin me-1"></i> Publishing...');
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, publish!',
+                cancelButtonText: 'Cancel',
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    return new Promise((resolve) => {
+                        $('#btnPublish').prop('disabled', true)
+                            .html('<i class="fas fa-spinner fa-spin me-1"></i> Publishing...');
 
-                    $.ajax({
-                        url: '/StudentCarryForward/PublishData',
-                        type: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify(data),
-                        success: function (result) {
-                            if (result.success) {
-                                Swal.fire({
-                                    title: 'Published!',
-                                    text: result.message,
-                                    icon: 'success',
-                                    timer: 2000,
-                                    showConfirmButton: false
-                                }).then(() => {
-                                    window.location.reload();
-                                });
-                            } else {
-                                Swal.fire('Error', result.message, 'error');
+                        $.ajax({
+                            url: '/StudentCarryForward/PublishData',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify(data),
+                            success: function (result) {
+                                if (result.success) {
+                                    Swal.fire({
+                                        title: 'Published!',
+                                        text: result.message,
+                                        icon: 'success',
+                                        timer: 2000,
+                                        showConfirmButton: false
+                                    }).then(() => {
+                                        window.location.reload();
+                                    });
+                                } else {
+                                    Swal.fire('Error', result.message, 'error');
+                                    $('#btnPublish').prop('disabled', false)
+                                        .html('<i class="fas fa-check me-1"></i> Publish Changes');
+                                }
+                            },
+                            error: function() {
+                                Swal.fire('Error', 'Failed to publish changes', 'error');
                                 $('#btnPublish').prop('disabled', false)
                                     .html('<i class="fas fa-check me-1"></i> Publish Changes');
                             }
-                        },
-                        error: function() {
-                            Swal.fire('Error', 'Failed to publish changes', 'error');
-                            $('#btnPublish').prop('disabled', false)
-                                .html('<i class="fas fa-check me-1"></i> Publish Changes');
-                        }
+                        });
                     });
                 }
             });

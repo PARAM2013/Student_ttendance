@@ -79,10 +79,13 @@ namespace Student_Attendance.Controllers
         {
             try
             {
-                _logger.LogInformation("Received request for MoveData");
-                string requestBody = await new StreamReader(Request.Body).ReadToEndAsync();
-                _logger.LogInformation($"Raw request body: {requestBody}");
-                
+                // Only validate same class check
+                if (model.CourseId == model.NextCourseId && model.NextClassId == model.ClassId)
+                {
+                    return Json(new { success = false, message = "Cannot promote to same class" });
+                }
+
+                // Check for valid data
                 if (model == null)
                 {
                     _logger.LogError("Model is null");
