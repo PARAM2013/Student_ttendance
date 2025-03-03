@@ -1,4 +1,6 @@
-﻿@model Student_Attendance.ViewModels.StudentViewModel
+﻿@using Student_Attendance.ViewModels
+@using Student_Attendance.Models
+@model Student_Attendance.ViewModels.StudentViewModel
 
 @{
     ViewData["Title"] = "Add Student";
@@ -217,8 +219,17 @@
                     }
                 },
                 error: function (xhr, status, error) {
-                    console.error('Error:', xhr.responseText);
-                    showAlert("An error occurred while creating the student. Check console for details.", "danger");
+                    console.error('Error:', error);
+                    var errorMessage = "An error occurred while saving.";
+                    try {
+                        var response = JSON.parse(xhr.responseText);
+                        if (response.message) {
+                            errorMessage = response.message;
+                        }
+                    } catch (e) {
+                        console.error('Error parsing response:', e);
+                    }
+                    showAlert(errorMessage, "danger");
                 }
             });
         }

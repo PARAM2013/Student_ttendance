@@ -1,0 +1,82 @@
+@model SubjectMappingViewModel
+@{
+    ViewData["Title"] = "Map Student Subjects via Excel";
+}
+
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h3 class="card-title">
+                <i class="fas fa-file-import me-2"></i>Map Student Subjects via Excel
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <h5 class="alert-heading">Instructions</h5>
+                <hr>
+                <ol class="mb-0">
+                    <li>Download the template with current mappings</li>
+                    <li>Update the subject codes in the excel file</li>
+                    <li>Save the file and upload it back</li>
+                    <li>Review the changes before confirming</li>
+                </ol>
+            </div>
+
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    @TempData["Error"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            Download Template
+                        </div>
+                        <div class="card-body">
+                            <form id="downloadForm" method="get" asp-action="DownloadSubjectTemplate">
+                                <div class="mb-3">
+                                    <label asp-for="ClassId" class="form-label">Class (Optional)</label>
+                                    <select asp-for="ClassId" asp-items="Model.Classes" class="form-select">
+                                        <option value="">-- All Classes --</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label asp-for="DivisionId" class="form-label">Division (Optional)</label>
+                                    <select asp-for="DivisionId" asp-items="Model.Divisions" class="form-select">
+                                        <option value="">-- All Divisions --</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-download me-2"></i>Download Template
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            Upload Mapped Data
+                        </div>
+                        <div class="card-body">
+                            <form method="post" enctype="multipart/form-data" asp-action="ImportSubjects">
+                                <div class="mb-3">
+                                    <label class="form-label">Select Excel File</label>
+                                    <input type="file" name="File" class="form-control" accept=".xlsx" required />
+                                </div>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-upload me-2"></i>Upload and Preview
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

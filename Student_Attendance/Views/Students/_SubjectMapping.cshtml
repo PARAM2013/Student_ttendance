@@ -1,3 +1,4 @@
+@using Microsoft.AspNetCore.Mvc.Rendering
 @model int
 
 <div class="modal-content">
@@ -6,8 +7,9 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
     </div>
     <div class="modal-body">
-        <form id="subjectMappingForm" onsubmit="return saveSubjectMapping(this)">
+        <form id="subjectMappingForm" method="post">
             <input type="hidden" name="studentId" value="@Model" />
+            @Html.AntiForgeryToken()
             <div class="form-group">
                 <label class="form-label">Select Subjects:</label>
                 <div class="subject-list mt-3">
@@ -16,7 +18,7 @@
                         foreach (var subject in ViewBag.AvailableSubjects)
                         {
                             <div class="form-check mb-2">
-                                <input class="form-check-input" type="checkbox" 
+                                <input class="form-check-input" type="checkbox"
                                        name="subjectIds" value="@subject.Id"
                                        @(ViewBag.MappedSubjects?.Contains(subject.Id) ? "checked" : "") />
                                 <label class="form-check-label">
@@ -38,3 +40,31 @@
         </form>
     </div>
 </div>
+
+<script>
+$(document).ready(function() {
+    $('#subjectMappingForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        var formData = $(this).serialize();
+        
+        $.ajax({
+            url: '@Url.Action("SaveSubjectMapping", "Students")',
+            type: 'POST',
+            data: formData,
+            success: function(response) {
+                if (response.success) {
+                    $('#modal').modal('hide');
+                    showAlert(response.message, 'success');
+                } else {
+                    showAlert(response.message || 'Error saving changes', 'danger');
+                }
+            },
+            error: function(xhr) {
+                showAlert('Error saving subject mapping', 'danger');
+                console.error('Ajax error:', xhr);
+            }
+        });
+    });
+});
+</script>

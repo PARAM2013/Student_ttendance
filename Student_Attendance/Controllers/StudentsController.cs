@@ -10,6 +10,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using OfficeOpenXml; // Add this at the top
+using OfficeOpenXml.Style;
+using System.Drawing;
 
 namespace Student_Attendance.Controllers
 {
@@ -527,31 +529,53 @@ namespace Student_Attendance.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> SaveSubjectMapping(int studentId, List<int> subjectIds)
         {
             try
             {
-                // Remove existing mappings
-                var existingMappings = await _context.StudentSubjects
-                    .Where(ss => ss.StudentId == studentId)
-                    .ToListAsync();
-                
-                _context.StudentSubjects.RemoveRange(existingMappings);
-
-                // Add new mappings
-                if (subjectIds != null && subjectIds.Any())
+                if (!ModelState.IsValid)
                 {
-                    var newMappings = subjectIds.Select(subjectId => new StudentSubject
-                    {
-                        StudentId = studentId,
-                        SubjectId = subjectId
-                    });
-
-                    await _context.StudentSubjects.AddRangeAsync(newMappings);
+                    return Json(new { success = false, message = "Invalid data submitted" });
                 }
 
-                await _context.SaveChangesAsync();
-                return Json(new { success = true, message = "Subject mapping updated successfully" });
+                // Get student to verify it exists
+                var student = await _context.Students
+                    .Include(s => s.StudentSubjects)
+                    .FirstOrDefaultAsync(s => s.Id == studentId);
+
+                if (student == null)
+                {
+                    return Json(new { success = false, message = "Student not found" });
+                }
+
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    // Remove existing mappings
+                    _context.StudentSubjects.RemoveRange(student.StudentSubjects);
+
+                    // Add new mappings
+                    if (subjectIds?.Any() == true)
+                    {
+                        var newMappings = subjectIds.Select(subjectId => new StudentSubject
+                        {
+                            StudentId = studentId,
+                            SubjectId = subjectId
+                        });
+                        await _context.StudentSubjects.AddRangeAsync(newMappings);
+                    }
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return Json(new { success = true, message = "Subject mapping updated successfully" });
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
             }
             catch (Exception ex)
             {
@@ -1085,6 +1109,331 @@ namespace Student_Attendance.Controllers
                 .Select(c => new { id = c.Id, name = c.Name })
                 .ToListAsync();
             return Json(classes);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> SubjectsViaExcel()
+        {
+            var model = new SubjectMappingViewModel
+            {
+                Classes = await _context.Classes
+                    .Select(c => new SelectListItem
+                    {
+                        Value = c.Id.ToString(),
+                        Text = c.Name
+                    }).ToListAsync(),
+                Divisions = await _context.Divisions
+                    .Select(d => new SelectListItem
+                    {
+                        Value = d.Id.ToString(),
+                        Text = d.Name
+                    }).ToListAsync()
+            };
+            return View(model);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> DownloadSubjectTemplate(int? classId = null, int? divisionId = null)
+        {
+            using (var package = new ExcelPackage())
+            {
+                var worksheet = package.Workbook.Worksheets.Add("Students");
+                
+                // Add headers
+                worksheet.Cells[1, 1].Value = "Enrollment No";
+                worksheet.Cells[1, 2].Value = "Student Name";
+                worksheet.Cells[1, 3].Value = "Class";
+                worksheet.Cells[1, 4].Value = "Division";
+                worksheet.Cells[1, 5].Value = "Subject Codes (comma-separated)";
+
+                // Style headers
+                var headerRange = worksheet.Cells[1, 1, 1, 5];
+                headerRange.Style.Font.Bold = true;
+                headerRange.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                headerRange.Style.Fill.BackgroundColor.SetColor(Color.LightGray);
+
+                // Query students based on filters
+                var query = _context.Students
+                    .Include(s => s.Class)
+                    .Include(s => s.Division)
+                    .Include(s => s.StudentSubjects)
+                        .ThenInclude(ss => ss.Subject)
+                    .AsQueryable();
+
+                if (classId.HasValue)
+                    query = query.Where(s => s.ClassId == classId);
+                if (divisionId.HasValue)
+                    query = query.Where(s => s.DivisionId == divisionId);
+
+                var students = await query.ToListAsync();
+
+                // Add data
+                int row = 2;
+                foreach (var student in students)
+                {
+                    worksheet.Cells[row, 1].Value = student.EnrollmentNo;
+                    worksheet.Cells[row, 2].Value = student.Name;
+                    worksheet.Cells[row, 3].Value = student.Class?.Name;
+                    worksheet.Cells[row, 4].Value = student.Division?.Name;
+                    worksheet.Cells[row, 5].Value = string.Join(",", student.StudentSubjects
+                        .Select(ss => ss.Subject.Code));
+                    row++;
+                }
+
+                // Add validation info in a new sheet
+                var validationSheet = package.Workbook.Worksheets.Add("SubjectCodes");
+                var subjects = await _context.Subjects.ToListAsync();
+                row = 1;
+                foreach (var subject in subjects)
+                {
+                    validationSheet.Cells[row, 1].Value = subject.Code;
+                    validationSheet.Cells[row, 2].Value = subject.Name;
+                    row++;
+                }
+
+                worksheet.Cells.AutoFitColumns();
+                
+                var content = package.GetAsByteArray();
+                string fileName = $"StudentSubjects_{DateTime.Now:yyyyMMdd}.xlsx";
+                return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ImportSubjects(SubjectMappingViewModel model)
+        {
+            if (model.File == null || model.File.Length == 0)
+            {
+                TempData["Error"] = "Please select a file to import";
+                return RedirectToAction(nameof(SubjectsViaExcel));
+            }
+
+            string tempPath = "";
+            try
+            {
+                var previewModel = await ValidateAndPreviewSubjectMapping(model.File);
+                
+                var fileId = Guid.NewGuid().ToString();
+                tempPath = Path.Combine(Path.GetTempPath(), fileId + ".xlsx");
+                using (var fileStream = new FileStream(tempPath, FileMode.Create))
+                {
+                    await model.File.CopyToAsync(fileStream);
+                }
+                
+                previewModel.FileId = fileId;
+                return View("SubjectsPreview", previewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during subject mapping preview");
+                if (!string.IsNullOrEmpty(tempPath) && System.IO.File.Exists(tempPath))
+                {
+                    try
+                    {
+                        System.IO.File.Delete(tempPath);
+                    }
+                    catch (Exception deleteEx)
+                    {
+                        _logger.LogWarning(deleteEx, "Failed to delete temporary file");
+                    }
+                }
+                
+                TempData["Error"] = $"Error previewing import: {ex.Message}";
+                return RedirectToAction(nameof(SubjectsViaExcel));
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ConfirmSubjectMapping(string fileId)
+        {
+            var tempPath = Path.Combine(Path.GetTempPath(), fileId + ".xlsx");
+            
+            try
+            {
+                if (!System.IO.File.Exists(tempPath))
+                {
+                    TempData["Error"] = "Import file not found. Please try again.";
+                    return RedirectToAction(nameof(SubjectsViaExcel));
+                }
+
+                using var package = new ExcelPackage(new FileInfo(tempPath));
+                var worksheet = package.Workbook.Worksheets[0];
+
+                if (worksheet?.Dimension == null)
+                    throw new Exception("The Excel file is empty or invalid");
+
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    var subjectsCache = await _context.Subjects
+                        .ToDictionaryAsync(s => s.Code.ToLower());
+
+                    for (int row = 2; row <= worksheet.Dimension.Rows; row++)
+                    {
+                        var enrollmentNo = worksheet.Cells[row, 1].Value?.ToString()?.Trim();
+                        if (string.IsNullOrEmpty(enrollmentNo)) continue;
+
+                        var student = await _context.Students
+                            .Include(s => s.StudentSubjects)
+                            .FirstOrDefaultAsync(s => s.EnrollmentNo == enrollmentNo);
+
+                        if (student == null) continue;
+
+                        var subjectCodes = (worksheet.Cells[row, 5].Value?.ToString() ?? "")
+                            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(s => s.Trim().ToLower())
+                            .ToList();
+
+                        // Remove existing mappings
+                        _context.StudentSubjects.RemoveRange(student.StudentSubjects);
+
+                        // Add new mappings
+                        foreach (var code in subjectCodes)
+                        {
+                            if (subjectsCache.TryGetValue(code, out var subject))
+                            {
+                                await _context.StudentSubjects.AddAsync(new StudentSubject
+                                {
+                                    StudentId = student.Id,
+                                    SubjectId = subject.Id
+                                });
+                            }
+                        }
+                    }
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    
+                    TempData["Success"] = "Subject mappings updated successfully";
+                    return RedirectToAction(nameof(Index));
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error updating subject mappings: {ex.Message}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during subject mapping confirmation");
+                TempData["Error"] = $"Import failed: {ex.Message}";
+                return RedirectToAction(nameof(SubjectsViaExcel));
+            }
+            finally
+            {
+                if (System.IO.File.Exists(tempPath))
+                {
+                    try
+                    {
+                        System.IO.File.Delete(tempPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to delete temporary file");
+                    }
+                }
+            }
+        }
+
+        private async Task<SubjectMappingPreviewModel> ValidateAndPreviewSubjectMapping(IFormFile file)
+        {
+            var preview = new SubjectMappingPreviewModel();
+            
+            using var stream = file.OpenReadStream();
+            using var package = new ExcelPackage(stream);
+            var worksheet = package.Workbook.Worksheets[0];
+            
+            if (worksheet?.Dimension == null)
+                throw new Exception("The Excel file is empty or invalid");
+
+            preview.TotalRows = worksheet.Dimension.Rows - 1; // Excluding header
+
+            var subjectsCache = await _context.Subjects.ToDictionaryAsync(s => s.Code.ToLower());
+            var studentsCache = await _context.Students
+                .Include(s => s.StudentSubjects)
+                .Include(s => s.Class)
+                .Include(s => s.Division)
+                .ToDictionaryAsync(s => s.EnrollmentNo.ToLower());
+
+            for (int row = 2; row <= worksheet.Dimension.Rows; row++)
+            {
+                var mappingRow = new SubjectMappingRow { RowNumber = row };
+
+                try
+                {
+                    mappingRow.EnrollmentNo = worksheet.Cells[row, 1].Value?.ToString()?.Trim();
+                    mappingRow.StudentName = worksheet.Cells[row, 2].Value?.ToString()?.Trim();
+                    mappingRow.Class = worksheet.Cells[row, 3].Value?.ToString()?.Trim();
+                    mappingRow.Division = worksheet.Cells[row, 4].Value?.ToString()?.Trim();
+                    
+                    var subjectCodes = (worksheet.Cells[row, 5].Value?.ToString() ?? "")
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(s => s.Trim())
+                        .ToList();
+
+                    mappingRow.SubjectCodes = subjectCodes;
+
+                    if (string.IsNullOrEmpty(mappingRow.EnrollmentNo))
+                    {
+                        mappingRow.Status = MappingStatus.Invalid;
+                        mappingRow.StatusMessage = "Enrollment number is required";
+                        continue;
+                    }
+
+                    if (!studentsCache.TryGetValue(mappingRow.EnrollmentNo.ToLower(), out var student))
+                    {
+                        mappingRow.Status = MappingStatus.Invalid;
+                        mappingRow.StatusMessage = "Student not found";
+                        continue;
+                    }
+
+                    // Validate subject codes
+                    var invalidCodes = subjectCodes
+                        .Where(code => !subjectsCache.ContainsKey(code.ToLower()))
+                        .ToList();
+
+                    if (invalidCodes.Any())
+                    {
+                        mappingRow.Status = MappingStatus.Invalid;
+                        mappingRow.StatusMessage = $"Invalid subject codes: {string.Join(", ", invalidCodes)}";
+                        continue;
+                    }
+
+                    var existingSubjectIds = student.StudentSubjects
+                        .Select(ss => ss.SubjectId)
+                        .ToList();
+
+                    var newSubjectIds = subjectCodes
+                        .Select(code => subjectsCache[code.ToLower()].Id)
+                        .ToList();
+
+                    if (!existingSubjectIds.Any() && newSubjectIds.Any())
+                    {
+                        mappingRow.Status = MappingStatus.Valid;
+                        preview.NewMappings++;
+                    }
+                    else if (!existingSubjectIds.SequenceEqual(newSubjectIds))
+                    {
+                        mappingRow.Status = MappingStatus.Valid;
+                        preview.UpdatedMappings++;
+                    }
+                    else
+                    {
+                        mappingRow.Status = MappingStatus.NoChange;
+                        mappingRow.StatusMessage = "No changes needed";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    mappingRow.Status = MappingStatus.Invalid;
+                    mappingRow.StatusMessage = ex.Message;
+                    preview.ValidationErrors.Add($"Row {row}: {ex.Message}");
+                }
+
+                preview.Rows.Add(mappingRow);
+            }
+
+            return preview;
         }
     }
 }

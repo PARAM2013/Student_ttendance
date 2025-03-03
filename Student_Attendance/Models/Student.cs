@@ -14,11 +14,11 @@ namespace Student_Attendance.Models
 
         [Required]
         [StringLength(20)]
-        public string EnrollmentNo { get; set; }
+        public string EnrollmentNo { get; set; } = "";
 
         [Required]
         [StringLength(100)]
-        public string Name { get; set; }
+        public string Name { get; set; } = "";
 
         [StringLength(50)]
         public string? Cast { get; set; }

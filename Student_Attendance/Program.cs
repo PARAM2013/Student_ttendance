@@ -4,18 +4,16 @@ using Student_Attendance.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using OfficeOpenXml; // Add this line
-using Student_Attendance.Services; // Add this line at the top with other using statements
+using OfficeOpenXml;
+using Student_Attendance.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Change your logging configuration to this:
-builder.Logging.ClearProviders(); // Clear first
-builder.Logging.AddConsole()     // Then add providers
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole()
     .AddDebug()
-    .SetMinimumLevel(LogLevel.Debug); // Set minimum level to see more details
+    .SetMinimumLevel(LogLevel.Debug);
 
-// Add services to the container.
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -29,16 +27,13 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 builder.Services.AddDbContext<Student_Attendance.Data.ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Add this line to register SSIDGenerator
 builder.Services.AddScoped<SSIDGenerator>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -74,21 +69,19 @@ app.MapControllerRoute(
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
     try
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
+        await context.Database.MigrateAsync();
 
-        // Ensure database is created and up-to-date.
-        context.Database.Migrate();
-
-        // Seed default users if they don't exist.
         if (!context.Users.Any())
         {
             var adminUser = new User
             {
                 UserName = "admin",
                 Email = "admin@example.com",
-                Password = BCrypt.Net.BCrypt.HashPassword("admin"), // Default password: Admin@123
+                Password = BCrypt.Net.BCrypt.HashPassword("admin"),
                 Role = "Admin"
             };
             context.Users.Add(adminUser);
@@ -97,7 +90,7 @@ using (var scope = app.Services.CreateScope())
             {
                 UserName = "teacher",
                 Email = "teacher@example.com",
-                Password = BCrypt.Net.BCrypt.HashPassword("teacher"), // Default password: Teacher@123
+                Password = BCrypt.Net.BCrypt.HashPassword("teacher"),
                 Role = "Teacher"
             };
             context.Users.Add(teacherUser);
@@ -106,7 +99,7 @@ using (var scope = app.Services.CreateScope())
             {
                 UserName = "student",
                 Email = "student@example.com",
-                Password = BCrypt.Net.BCrypt.HashPassword("Student@123"), // Default password: Student@123
+                Password = BCrypt.Net.BCrypt.HashPassword("Student@123"),
                 Role = "Student"
             };
             context.Users.Add(studentUser);
@@ -114,14 +107,14 @@ using (var scope = app.Services.CreateScope())
             context.SaveChanges();
         }
 
-        // Seed dummy related data if not exists.
         if (!context.Courses.Any())
         {
             var course = new Course { Name = "MBA" };
             context.Courses.Add(course);
             context.SaveChanges();
         }
-        var dummyCourse = context.Courses.First();
+        var dummyCourse = await context.Courses.FirstOrDefaultAsync() 
+            ?? throw new InvalidOperationException("No courses found");
 
         if (!context.AcademicYears.Any())
         {
@@ -147,7 +140,6 @@ using (var scope = app.Services.CreateScope())
         }
         var dummyDivisionExisting = context.Divisions.First();
 
-        // Seed dummy Students if not exists.
         if (!context.Students.Any())
         {
             for (int i = 1; i <= 10; i++)
@@ -173,7 +165,6 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        var logger = services.GetRequiredService<ILogger<Program>>();
         logger.LogError(ex, "An error occurred while seeding the database.");
     }
 }

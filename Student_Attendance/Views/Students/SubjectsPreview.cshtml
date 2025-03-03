@@ -1,0 +1,102 @@
+@model SubjectMappingPreviewModel
+@{
+    ViewData["Title"] = "Preview Subject Mappings";
+}
+
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Preview Subject Mappings</h3>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="alert alert-info">
+                        <h6>Total Rows</h6>
+                        <p class="mb-0">@Model.TotalRows</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="alert alert-success">
+                        <h6>New Mappings</h6>
+                        <p class="mb-0">@Model.NewMappings</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="alert alert-warning">
+                        <h6>Updated Mappings</h6>
+                        <p class="mb-0">@Model.UpdatedMappings</p>
+                    </div>
+                </div>
+            </div>
+
+            @if (Model.ValidationErrors.Any())
+            {
+                <div class="alert alert-danger">
+                    <h5>Validation Errors</h5>
+                    <ul>
+                        @foreach (var error in Model.ValidationErrors)
+                        {
+                            <li>@error</li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            <form method="post" asp-action="ConfirmSubjectMapping">
+                <input type="hidden" name="FileId" value="@Model.FileId" />
+                
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>Row</th>
+                                <th>Status</th>
+                                <th>Enrollment No</th>
+                                <th>Name</th>
+                                <th>Class</th>
+                                <th>Division</th>
+                                <th>Subject Codes</th>
+                                <th>Message</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in Model.Rows)
+                            {
+                                <tr class="@GetRowClass(row.Status)">
+                                    <td>@row.RowNumber</td>
+                                    <td>@row.Status</td>
+                                    <td>@row.EnrollmentNo</td>
+                                    <td>@row.StudentName</td>
+                                    <td>@row.Class</td>
+                                    <td>@row.Division</td>
+                                    <td>@string.Join(", ", row.SubjectCodes)</td>
+                                    <td>@row.StatusMessage</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary" @(Model.ValidationErrors.Any() ? "disabled" : "")>
+                        <i class="fas fa-check"></i> Confirm Mapping
+                    </button>
+                    <a href="@Url.Action("SubjectsViaExcel")" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@functions {
+    private string GetRowClass(MappingStatus status) => status switch
+    {
+        MappingStatus.Valid => "table-success",
+        MappingStatus.Invalid => "table-danger",
+        MappingStatus.NoChange => "table-warning",
+        _ => ""
+    };
+}
