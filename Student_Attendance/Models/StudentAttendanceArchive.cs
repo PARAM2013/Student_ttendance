@@ -34,5 +34,7 @@ namespace Student_Attendance.Models
         public int MarkedById { get; set; }
 
         public DateTime ArchivedOn { get; set; }
+
+        public virtual AcademicYear AcademicYear { get; set; }
     }
 }

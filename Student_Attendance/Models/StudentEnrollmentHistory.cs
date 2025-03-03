@@ -18,5 +18,9 @@ namespace Student_Attendance.Models
         public bool IsActive { get; set; }
 
         public virtual Student Student { get; set; }
+        public virtual AcademicYear AcademicYear { get; set; }
+        public virtual Course Course { get; set; }
+        public virtual Class Class { get; set; }
+        public virtual Division Division { get; set; }
     }
 }

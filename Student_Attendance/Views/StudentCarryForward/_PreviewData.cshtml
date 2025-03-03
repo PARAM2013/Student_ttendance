@@ -38,7 +38,15 @@
                                 </div>
                             </td>
                             <td>@student.EnrollmentNo</td>
-                            <td>@student.Name</td>
+                            <td>
+                                @student.Name
+                                <div class="mt-1">
+                                    <a href="@Url.Action("ViewHistory", new { studentId = student.StudentId })" 
+                                       class="btn btn-sm btn-info">
+                                        <i class="fas fa-history"></i> History
+                                    </a>
+                                </div>
+                            </td>
                             <td>
                                 <small class="d-block">Class: @student.CurrentClass</small>
                                 <small class="d-block">Div: @student.CurrentDivision</small>

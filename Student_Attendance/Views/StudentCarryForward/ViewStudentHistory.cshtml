@@ -1,0 +1,112 @@
+@model StudentHistoryViewModel
+@{
+    ViewData["Title"] = "Student History";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-history me-2"></i>Student History
+        </h3>
+    </div>
+    <div class="card-body">
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h4>Student Information</h4>
+                <table class="table table-sm">
+                    <tr>
+                        <th>Name:</th>
+                        <td>@Model.StudentName</td>
+                    </tr>
+                    <tr>
+                        <th>Enrollment No:</th>
+                        <td>@Model.EnrollmentNo</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <h4>Enrollment History</h4>
+                <div class="table-responsive">
+                    <table class="table table-striped" id="enrollmentTable">
+                        <thead>
+                            <tr>
+                                <th>Academic Year</th>
+                                <th>Course</th>
+                                <th>Class</th>
+                                <th>Division</th>
+                                <th>Semester</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var record in Model.EnrollmentHistory)
+                            {
+                                <tr>
+                                    <td>@record.AcademicYear</td>
+                                    <td>@record.Course</td>
+                                    <td>@record.Class</td>
+                                    <td>@record.Division</td>
+                                    <td>@record.Semester</td>
+                                    <td>@record.CreatedOn.ToString("dd/MM/yyyy")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        @if (Model.AttendanceHistory.Any())
+        {
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <h4>Attendance History</h4>
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="attendanceTable">
+                            <thead>
+                                <tr>
+                                    <th>Academic Year</th>
+                                    <th>Subject</th>
+                                    <th>Total Classes</th>
+                                    <th>Present</th>
+                                    <th>Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var record in Model.AttendanceHistory)
+                                {
+                                    <tr>
+                                        <td>@record.AcademicYear</td>
+                                        <td>@record.SubjectName</td>
+                                        <td>@record.TotalClasses</td>
+                                        <td>@record.Present</td>
+                                        <td>
+                                            <span class="badge bg-@(record.Percentage >= 75 ? "success" : "danger")">
+                                                @record.Percentage.ToString("F1")%
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#enrollmentTable').DataTable({
+                "order": [[5, "desc"]]  // Sort by date descending
+            });
+            
+            $('#attendanceTable').DataTable();
+        });
+    </script>
+}

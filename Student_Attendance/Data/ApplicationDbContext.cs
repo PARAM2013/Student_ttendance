@@ -187,6 +187,37 @@ namespace Student_Attendance.Data
         .WithMany()
         .HasForeignKey(s => s.StudentId)
         .OnDelete(DeleteBehavior.NoAction);
+
+      // Add these configurations
+      modelBuilder.Entity<StudentEnrollmentHistory>()
+        .HasOne(s => s.AcademicYear)
+        .WithMany()
+        .HasForeignKey(s => s.AcademicYearId)
+        .OnDelete(DeleteBehavior.NoAction);
+
+      modelBuilder.Entity<StudentEnrollmentHistory>()
+        .HasOne(s => s.Course)
+        .WithMany()
+        .HasForeignKey(s => s.CourseId)
+        .OnDelete(DeleteBehavior.NoAction);
+
+      modelBuilder.Entity<StudentEnrollmentHistory>()
+        .HasOne(s => s.Class)
+        .WithMany()
+        .HasForeignKey(s => s.ClassId)
+        .OnDelete(DeleteBehavior.NoAction);
+
+      modelBuilder.Entity<StudentEnrollmentHistory>()
+        .HasOne(s => s.Division)
+        .WithMany()
+        .HasForeignKey(s => s.DivisionId)
+        .OnDelete(DeleteBehavior.NoAction);
+
+      modelBuilder.Entity<StudentAttendanceArchive>()
+        .HasOne(s => s.AcademicYear)
+        .WithMany()
+        .HasForeignKey(s => s.AcademicYearId)
+        .OnDelete(DeleteBehavior.NoAction);
     }
 
   }

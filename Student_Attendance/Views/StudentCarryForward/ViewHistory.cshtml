@@ -1,0 +1,59 @@
+@model StudentHistoryViewModel
+@{
+    ViewData["Title"] = "Promotion History";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">
+            <i class="fas fa-history me-2"></i>Promotion History
+        </h3>
+        <a href="@Url.Action("ExportPromotionHistory")" class="btn btn-success">
+            <i class="fas fa-file-excel me-1"></i> Export to Excel
+        </a>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped" id="historyTable">
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Enrollment No</th>
+                        <th>Academic Year</th>
+                        <th>Course</th>
+                        <th>Class</th>
+                        <th>Division</th>
+                        <th>Semester</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var record in Model.EnrollmentHistory)
+                    {
+                        <tr>
+                            <td>@record.StudentName</td>
+                            <td>@record.EnrollmentNo</td>
+                            <td>@record.AcademicYear</td>
+                            <td>@record.Course</td>
+                            <td>@record.Class</td>
+                            <td>@record.Division</td>
+                            <td>@record.Semester</td>
+                            <td>@record.CreatedOn.ToString("dd/MM/yyyy")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#historyTable').DataTable({
+                "order": [[7, "desc"]], // Sort by date descending
+                "pageLength": 25
+            });
+        });
+    </script>
+}

@@ -328,6 +328,101 @@ namespace Student_Attendance.Controllers
             }
         }
 
+        [HttpGet]
+        public async Task<IActionResult> ViewHistory(int? studentId = null)
+        {
+            try
+            {
+                if (studentId.HasValue)
+                {
+                    // Single student history view
+                    var student = await _context.Students
+                        .Include(s => s.Class)
+                        .FirstOrDefaultAsync(s => s.Id == studentId.Value);
+
+                    if (student == null)
+                        return NotFound();
+
+                    var model = new StudentHistoryViewModel
+                    {
+                        StudentId = student.Id,
+                        StudentName = student.Name,
+                        EnrollmentNo = student.EnrollmentNo
+                    };
+
+                    // Get enrollment history for single student
+                    model.EnrollmentHistory = await _context.StudentEnrollmentHistories
+                        .Where(h => h.StudentId == studentId)
+                        .OrderByDescending(h => h.CreatedOn)
+                        .Select(h => new EnrollmentHistoryRecord
+                        {
+                            StudentName = h.Student.Name,
+                            EnrollmentNo = h.EnrollmentNo,
+                            AcademicYear = h.AcademicYear.Name,
+                            Course = h.Course.Name,
+                            Class = h.Class.Name,
+                            Division = h.Division != null ? h.Division.Name : "N/A",
+                            Semester = h.Semester,
+                            CreatedOn = h.CreatedOn
+                        })
+                        .ToListAsync();
+
+                    // Get attendance history for single student
+                    var archivedAttendance = await _context.StudentAttendanceArchives
+                        .Where(a => a.StudentId == studentId)
+                        .GroupBy(a => new { a.AcademicYearId, a.SubjectId })
+                        .Select(g => new AttendanceHistoryRecord
+                        {
+                            AcademicYear = g.First().AcademicYear.Name,
+                            SubjectName = g.First().SubjectName,
+                            TotalClasses = g.Count(),
+                            Present = g.Count(a => a.IsPresent),
+                            Percentage = g.Count(a => a.IsPresent) * 100M / g.Count()
+                        })
+                        .ToListAsync();
+
+                    model.AttendanceHistory = archivedAttendance;
+
+                    return View("ViewStudentHistory", model);  // Create a separate view for single student
+                }
+                else
+                {
+                    // All students history view
+                    var enrollmentHistory = await _context.StudentEnrollmentHistories
+                        .Include(h => h.Student)
+                        .Include(h => h.AcademicYear)
+                        .Include(h => h.Course)
+                        .Include(h => h.Class)
+                        .Include(h => h.Division)
+                        .OrderByDescending(h => h.CreatedOn)
+                        .Select(h => new EnrollmentHistoryRecord
+                        {
+                            StudentName = h.Student.Name,
+                            EnrollmentNo = h.EnrollmentNo,
+                            AcademicYear = h.AcademicYear.Name,
+                            Course = h.Course.Name,
+                            Class = h.Class.Name,
+                            Division = h.Division != null ? h.Division.Name : "N/A",
+                            Semester = h.Semester,
+                            CreatedOn = h.CreatedOn
+                        })
+                        .ToListAsync();
+
+                    var model = new StudentHistoryViewModel
+                    {
+                        EnrollmentHistory = enrollmentHistory
+                    };
+
+                    return View(model);  // Use default view for all students
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading promotion history");
+                return View("Error");
+            }
+        }
+
         private async Task LoadDropdowns(StudentCarryForwardViewModel model)
         {
             var years = await _context.AcademicYears
