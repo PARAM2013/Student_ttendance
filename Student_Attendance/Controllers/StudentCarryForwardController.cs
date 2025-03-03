@@ -27,23 +27,13 @@ namespace Student_Attendance.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetPreviewData(int currentYearId, int nextYearId, int courseId, int? classId, int? divisionId, int nextCourseId, int? nextClassId, int? nextDivisionId)
+        public async Task<IActionResult> GetPreviewData(int currentYearId, int nextYearId, int courseId, int? classId, int? divisionId, int nextCourseId, int? nextClassId)
         {
             try
             {
-                // Validate next year configurations
-                var nextClassExists = await _context.Classes
-                    .AnyAsync(c => c.Id == nextClassId && 
-                                  c.AcademicYearId == nextYearId && 
-                                  c.CourseId == nextCourseId);
-
-                if (!nextClassExists)
-                {
-                    return Json(new { success = false, message = "Selected next class configuration is invalid" });
-                }
-
                 var query = _context.Students
                     .Include(s => s.Class)
+                    .Include(s => s.Division)
                     .Where(s => s.AcademicYearId == currentYearId && 
                                s.CourseId == courseId && 
                                s.IsActive);
@@ -55,6 +45,13 @@ namespace Student_Attendance.Controllers
 
                 var students = await query.ToListAsync();
 
+                var nextClass = nextClassId.HasValue 
+                    ? await _context.Classes.FirstOrDefaultAsync(c => c.Id == nextClassId.Value)
+                    : null;
+
+                if (nextClassId.HasValue && nextClass == null)
+                    return Json(new { success = false, message = "Next class configuration not found" });
+
                 var promotionData = students.Select(s => new StudentPromotionData
                 {
                     StudentId = s.Id,
@@ -63,7 +60,8 @@ namespace Student_Attendance.Controllers
                     CurrentSemester = s.Semester,
                     NextSemester = s.Semester + 1,
                     CurrentClass = s.Class?.Name ?? "N/A",
-                    NextClass = GetNextClassName(s.Class?.Name ?? ""),
+                    NextClass = nextClass?.Name ?? "Not Set",
+                    CurrentDivision = s.Division?.Name ?? "N/A",
                     Selected = true
                 }).ToList();
 
@@ -81,84 +79,130 @@ namespace Student_Attendance.Controllers
         {
             try
             {
-                if (!model.StudentsToPromote?.Any() ?? true)
+                _logger.LogInformation("Received request for MoveData");
+                string requestBody = await new StreamReader(Request.Body).ReadToEndAsync();
+                _logger.LogInformation($"Raw request body: {requestBody}");
+                
+                if (model == null)
                 {
-                    return Json(new { success = false, message = "No students selected for promotion" });
+                    _logger.LogError("Model is null");
+                    return Json(new { success = false, message = "Invalid request data", details = "Model is null" });
                 }
 
-                if (model.CurrentAcademicYearId == 0 || model.NextAcademicYearId == 0)
+                if (model.StudentsToPromote == null || !model.StudentsToPromote.Any())
                 {
-                    return Json(new { success = false, message = "Invalid academic year selection" });
+                    _logger.LogError("StudentsToPromote is null or empty");
+                    return Json(new { success = false, message = "No students selected" });
                 }
 
-                if (model.NextClassId == null)
+                _logger.LogInformation($"Processing {model.StudentsToPromote.Count} students");
+                
+                var debugInfo = new
                 {
+                    HasModel = model != null,
+                    StudentsCount = model?.StudentsToPromote?.Count ?? 0,
+                    CurrentYear = model?.CurrentAcademicYearId,
+                    NextYear = model?.NextAcademicYearId,
+                    NextClass = model?.NextClassId
+                };
+                _logger.LogInformation("Debug Info: {@DebugInfo}", debugInfo);
+
+                if (model.StudentsToPromote == null)
+                {
+                    _logger.LogError("StudentsToPromote is null");
+                    return Json(new { success = false, message = "No students data received" });
+                }
+
+                if (!model.StudentsToPromote.Any())
+                {
+                    _logger.LogError("StudentsToPromote is empty");
+                    return Json(new { success = false, message = "No students selected" });
+                }
+
+                if (!model.NextClassId.HasValue)
+                {
+                    _logger.LogError("NextClassId is null");
                     return Json(new { success = false, message = "Next class must be selected" });
                 }
+
+                // Log the data being sent
+                _logger.LogInformation($"Moving {model.StudentsToPromote.Count} students");
+                _logger.LogInformation($"From Year: {model.CurrentAcademicYearId} to Year: {model.NextAcademicYearId}");
+                _logger.LogInformation($"From Course: {model.CourseId} to Course: {model.NextCourseId}");
+                _logger.LogInformation($"To Class: {model.NextClassId} Division: {model.NextDivisionId}");
 
                 using var transaction = await _context.Database.BeginTransactionAsync();
                 try
                 {
-                    var modifiedCount = 0;
-                    foreach (var studentData in model.StudentsToPromote.Where(s => s.Selected))
+                    var userName = User.Identity?.Name ?? "System";
+                    var processedCount = 0;
+
+                    foreach (var studentData in model.StudentsToPromote.Where(s => s?.Selected == true))
                     {
                         var student = await _context.Students
+                            .Include(s => s.Class)
+                            .Include(s => s.Division)
                             .FirstOrDefaultAsync(s => s.Id == studentData.StudentId && s.IsActive);
 
                         if (student != null)
                         {
-                            _logger.LogInformation($"Updating student {student.Id}: {student.Name}");
-                            
+                            // Create enrollment history record
+                            var history = new StudentEnrollmentHistory
+                            {
+                                StudentId = student.Id,
+                                EnrollmentNo = student.EnrollmentNo ?? "",
+                                AcademicYearId = student.AcademicYearId,
+                                CourseId = student.CourseId,
+                                ClassId = student.ClassId,
+                                DivisionId = student.DivisionId,
+                                Semester = student.Semester,
+                                CreatedBy = userName,
+                                IsActive = false
+                            };
+                            await _context.StudentEnrollmentHistories.AddAsync(history);
+
+                            // Archive attendance records
+                            await ArchiveAttendanceRecords(student.Id, student.AcademicYearId, userName);
+
                             // Update student record
                             student.AcademicYearId = model.NextAcademicYearId;
-                            student.Semester = studentData.NextSemester;
+                            student.CourseId = model.NextCourseId;
                             student.ClassId = model.NextClassId.Value;
-                            
-                            // Only update division if specified
-                            if (model.NextDivisionId.HasValue)
-                            {
-                                student.DivisionId = model.NextDivisionId.Value;
-                            }
+                            student.DivisionId = model.NextDivisionId;
+                            student.Semester = studentData.NextSemester;
 
                             _context.Students.Update(student);
-                            modifiedCount++;
-                        }
-                        else
-                        {
-                            _logger.LogWarning($"Student with ID {studentData.StudentId} not found or not active");
+                            processedCount++;
                         }
                     }
 
-                    if (modifiedCount == 0)
+                    if (processedCount > 0)
                     {
-                        throw new Exception("No students were updated");
+                        await _context.SaveChangesAsync();
+                        await transaction.CommitAsync();
+                        return Json(new { 
+                            success = true, 
+                            message = $"Successfully processed {processedCount} students",
+                            processedCount = processedCount 
+                        });
                     }
 
-                    // Archive attendance records
-                    await ArchiveAttendanceRecords(model.CurrentAcademicYearId, 
-                        model.StudentsToPromote.Select(s => s.StudentId).ToList());
-
-                    await _context.SaveChangesAsync();
-                    await transaction.CommitAsync();
-
-                    return Json(new { 
-                        success = true, 
-                        message = $"Successfully moved {modifiedCount} students to next year" 
-                    });
+                    throw new Exception("No students were processed");
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error while moving students");
                     await transaction.RollbackAsync();
+                    _logger.LogError(ex, "Transaction failed");
                     throw;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error moving students to next year");
+                _logger.LogError(ex, "Error in student carry forward");
                 return Json(new { 
                     success = false, 
-                    message = "Failed to move students: " + ex.Message 
+                    message = $"Error: {ex.Message}", 
+                    details = ex.StackTrace 
                 });
             }
         }
@@ -263,6 +307,24 @@ namespace Student_Attendance.Controllers
             }
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetCoursesByYear(int yearId)
+        {
+            try
+            {
+                var courses = await _context.Courses
+                    .Select(c => new { id = c.Id, name = c.Name })
+                    .ToListAsync();
+
+                return Json(courses);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting courses by year");
+                return Json(new List<object>());
+            }
+        }
+
         private async Task LoadDropdowns(StudentCarryForwardViewModel model)
         {
             var years = await _context.AcademicYears
@@ -296,12 +358,12 @@ namespace Student_Attendance.Controllers
             }
         }
 
-        private async Task ArchiveAttendanceRecords(int academicYearId, List<int> studentIds)
+        private async Task ArchiveAttendanceRecords(int studentId, int academicYearId, string userName)
         {
             var records = await _context.AttendanceRecords
                 .Include(ar => ar.Student)
                 .Include(ar => ar.Subject)
-                .Where(ar => studentIds.Contains(ar.StudentId))
+                .Where(ar => ar.StudentId == studentId)
                 .ToListAsync();
 
             var archiveRecords = records.Select(r => new StudentAttendanceArchive
@@ -318,6 +380,8 @@ namespace Student_Attendance.Controllers
                 ArchivedOn = DateTime.Now
             });
 
+            // Remove old records and add archive records
+            _context.AttendanceRecords.RemoveRange(records);
             await _context.StudentAttendanceArchives.AddRangeAsync(archiveRecords);
         }
     }

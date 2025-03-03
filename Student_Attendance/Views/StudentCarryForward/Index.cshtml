@@ -207,7 +207,7 @@
 
             // Move data button click
             $('#btnMove').click(function () {
-                moveData();
+                moveStudents();
             });
 
             // Publish button click
@@ -325,7 +325,8 @@
 
             $('#NextCourseId').prop('disabled', true).append('<option value="">Loading...</option>');
 
-            $.get(`/Students/GetCoursesByYear/${yearId}`, function (data) {
+            // Updated endpoint to use StudentCarryForward controller instead of Students
+            $.get(`/StudentCarryForward/GetCoursesByYear/${yearId}`, function (data) {
                 $('#NextCourseId').empty().append('<option value="">Select Course</option>');
                 $.each(data, function (i, item) {
                     $('#NextCourseId').append($('<option>', { value: item.id, text: item.name }));
@@ -440,90 +441,70 @@
             });
         }
 
-        function moveData() {
+        function moveStudents() {
             try {
-                // Validate selections
-                var currentYearId = $('#CurrentAcademicYearId').val();
-                var nextYearId = $('#NextAcademicYearId').val();
-                var courseId = $('#CourseId').val();
-                var nextClassId = $('#NextClassId').val();
-                var nextDivisionId = $('#NextDivisionId').val() || null;
-
-                if (!currentYearId || !nextYearId) {
-                    Swal.fire('Error', 'Please select both current and next academic years', 'error');
-                    return;
-                }
-
-                if (!courseId) {
-                    Swal.fire('Error', 'Please select course', 'error');
-                    return;
-                }
-
-                if (!nextClassId) {
-                    Swal.fire('Error', 'Please select next class', 'error');
-                    return;
-                }
-
-                var selectedStudents = getSelectedStudents();
-                if (selectedStudents.length === 0) {
-                    Swal.fire('Error', 'Please select at least one student to move', 'error');
-                    return;
-                }
-
-                Swal.fire({
-                    title: 'Are you sure?',
-                    text: `You are about to move ${selectedStudents.length} students to the next academic year.`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Yes, move them!'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $('#btnMove').prop('disabled', true)
-                            .html('<i class="fas fa-spinner fa-spin me-1"></i> Processing...');
-
-                        var data = {
-                            currentAcademicYearId: parseInt(currentYearId),
-                            nextAcademicYearId: parseInt(nextYearId),
-                            courseId: parseInt(courseId),
-                            nextClassId: parseInt(nextClassId),
-                            nextDivisionId: nextDivisionId ? parseInt(nextDivisionId) : null,
-                            studentsToPromote: selectedStudents
-                        };
-
-                        $.ajax({
-                            url: '/StudentCarryForward/MoveData',
-                            type: 'POST',
-                            contentType: 'application/json',
-                            data: JSON.stringify(data),
-                            success: function(result) {
-                                if (result.success) {
-                                    Swal.fire({
-                                        title: 'Success!',
-                                        text: result.message,
-                                        icon: 'success',
-                                        timer: 3000
-                                    });
-                                    $('#btnPublish').show();
-                                } else {
-                                    Swal.fire('Error', result.message || 'Failed to move students', 'error');
-                                }
-                            },
-                            error: function(xhr, status, error) {
-                                console.error('Ajax error:', xhr.responseText);
-                                Swal.fire('Error', 'Error moving students: ' + (error || 'Unknown error occurred'), 'error');
-                            },
-                            complete: function() {
-                                $('#btnMove').prop('disabled', false)
-                                    .html('<i class="fas fa-arrow-right me-1"></i> Move Students');
-                            }
+                var selectedStudents = [];
+                $('.student-row').each(function() {
+                    if ($(this).find('.student-select').prop('checked')) {
+                        selectedStudents.push({
+                            studentId: parseInt($(this).data('student-id')),
+                            enrollmentNo: $(this).data('enrollment').toString(),
+                            name: $(this).data('name'),
+                            currentSemester: parseInt($(this).data('current-sem')),
+                            nextSemester: parseInt($(this).data('next-sem')),
+                            currentClass: $(this).data('current-class'),
+                            nextClass: $(this).data('next-class'),
+                            selected: true
                         });
                     }
                 });
+
+                var requestData = {
+                    currentAcademicYearId: parseInt($('#CurrentAcademicYearId').val()),
+                    nextAcademicYearId: parseInt($('#NextAcademicYearId').val()),
+                    courseId: parseInt($('#CourseId').val()),
+                    nextCourseId: parseInt($('#NextCourseId').val()),
+                    nextClassId: parseInt($('#NextClassId').val()),
+                    nextDivisionId: $('#NextDivisionId').val() ? parseInt($('#NextDivisionId').val()) : null,
+                    studentsToPromote: selectedStudents
+                };
+
+                console.log('Request data:', JSON.stringify(requestData, null, 2));
+
+                $.ajax({
+                    url: '/StudentCarryForward/MoveData',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(requestData),
+                    success: function(response) {
+                        console.log('Response:', response);
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Success!',
+                                text: response.message,
+                                icon: 'success'
+                            }).then(() => {
+                                $('#actionButtons').show();
+                                $('#btnPublish').show();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error',
+                                text: response.message,
+                                icon: 'error',
+                                html: response.details ? `<pre>${response.details}</pre>` : undefined
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Ajax error:', { xhr, status, error });
+                        console.error('Response Text:', xhr.responseText);
+                        Swal.fire('Error', 'An error occurred while processing your request', 'error');
+                    }
+                });
             } catch (error) {
-                console.error('Error in moveData:', error);
-                Swal.fire('Error', 'An unexpected error occurred', 'error');
+                console.error('Error in moveStudents:', error);
+                Swal.fire('Error', 'An error occurred while preparing the data', 'error');
             }
         }
 

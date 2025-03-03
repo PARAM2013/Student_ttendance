@@ -1,29 +1,30 @@
 @model List<StudentPromotionData>
 
 <div class="card">
-    <div class="card-header">
-        <h5 class="card-title mb-0">Students Preview</h5>
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Students Preview</h5>
+        <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="selectAll" checked>
+            <label class="form-check-label text-white" for="selectAll">Select All</label>
+        </div>
     </div>
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-striped">
+            <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th>
-                            <input type="checkbox" id="selectAll" checked>
-                        </th>
+                        <th width="5%"><i class="fas fa-check-square"></i></th>
                         <th>Enrollment No</th>
                         <th>Name</th>
-                        <th>Current Semester</th>
-                        <th>Next Semester</th>
-                        <th>Current Class</th>
-                        <th>Next Class</th>
+                        <th>Current Status</th>
+                        <th>Next Status</th>
+                        <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var student in Model)
                     {
-                        <tr class="student-row" 
+                        <tr class="student-row @(student.HasWarnings ? "table-warning" : "")"
                             data-student-id="@student.StudentId"
                             data-enrollment="@student.EnrollmentNo"
                             data-name="@student.Name"
@@ -32,14 +33,36 @@
                             data-current-class="@student.CurrentClass"
                             data-next-class="@student.NextClass">
                             <td>
-                                <input type="checkbox" class="student-select" checked>
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input student-select" checked>
+                                </div>
                             </td>
                             <td>@student.EnrollmentNo</td>
                             <td>@student.Name</td>
-                            <td>@student.CurrentSemester</td>
-                            <td>@student.NextSemester</td>
-                            <td>@student.CurrentClass</td>
-                            <td>@student.NextClass</td>
+                            <td>
+                                <small class="d-block">Class: @student.CurrentClass</small>
+                                <small class="d-block">Div: @student.CurrentDivision</small>
+                                <small class="d-block">Sem: @student.CurrentSemester</small>
+                            </td>
+                            <td>
+                                <small class="d-block">Class: @student.NextClass</small>
+                                <small class="d-block">Div: @student.NextDivision</small>
+                                <small class="d-block">Sem: @student.NextSemester</small>
+                            </td>
+                            <td>
+                                @if (student.HasWarnings)
+                                {
+                                    <button type="button" class="btn btn-sm btn-warning" 
+                                            data-bs-toggle="tooltip" 
+                                            title="@string.Join(", ", student.Warnings)">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <i class="fas fa-check-circle text-success"></i>
+                                }
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -48,16 +71,10 @@
     </div>
 </div>
 
-<script>
-    $(document).ready(function() {
-        $('#selectAll').change(function() {
-            $('.student-select').prop('checked', $(this).prop('checked'));
+@section Scripts {
+    <script>
+        $(function () {
+            $('[data-bs-toggle="tooltip"]').tooltip();
         });
-
-        $('.student-select').change(function() {
-            if (!$(this).prop('checked')) {
-                $('#selectAll').prop('checked', false);
-            }
-        });
-    });
-</script>
+    </script>
+}

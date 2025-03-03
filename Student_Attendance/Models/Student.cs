@@ -45,10 +45,9 @@ namespace Student_Attendance.Models
         [ForeignKey("AcademicYearId")]
         public AcademicYear AcademicYear { get; set; }
 
-        [Required]
-        public int DivisionId { get; set; }
+        public int? DivisionId { get; set; }  // Make DivisionId nullable
         [ForeignKey("DivisionId")]
-        public Division Division { get; set; }       
+        public virtual Division Division { get; set; }       
 
         public int ClassId { get; set; }
         public Class Class { get; set; }

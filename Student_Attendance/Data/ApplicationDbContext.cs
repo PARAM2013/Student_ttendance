@@ -22,6 +22,7 @@ namespace Student_Attendance.Data
     public DbSet<Institute> Institutes { get; set; }
     public DbSet<AttendanceAudit> AttendanceAudits { get; set; }
     public DbSet<StudentAttendanceArchive> StudentAttendanceArchives { get; set; }
+    public DbSet<StudentEnrollmentHistory> StudentEnrollmentHistories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -180,6 +181,12 @@ namespace Student_Attendance.Data
           .HasOne(ss => ss.Subject)
           .WithMany()
           .HasForeignKey(ss => ss.SubjectId);
+
+      modelBuilder.Entity<StudentEnrollmentHistory>()
+        .HasOne(s => s.Student)
+        .WithMany()
+        .HasForeignKey(s => s.StudentId)
+        .OnDelete(DeleteBehavior.NoAction);
     }
 
   }

@@ -11,6 +11,8 @@ namespace Student_Attendance.Models
         [StringLength(100)]
         public string Name { get; set; }
 
+        public bool IsActive { get; set; } = true;  // Add this property
+
         // Navigation properties
         public virtual ICollection<Subject> Subjects { get; set; }
         public virtual ICollection<Student> Students { get; set; }
