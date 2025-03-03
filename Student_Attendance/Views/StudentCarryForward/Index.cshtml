@@ -4,95 +4,160 @@
 }
 
 <div class="container-fluid p-4">
-    <h2 class="mb-4">Student Carry Forward</h2>
-    <div class="card">
-        <div class="card-header">
-            <h5 class="card-title mb-0">Selection Criteria</h5>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-user-graduate me-2"></i>Student Carry Forward</h2>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="/">Home</a></li>
+                <li class="breadcrumb-item"><a href="/Students">Students</a></li>
+                <li class="breadcrumb-item active">Carry Forward</li>
+            </ol>
+        </nav>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0"><i class="fas fa-filter me-2"></i>Selection Criteria</h5>
+            <button class="btn btn-light btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#selectionCriteria">
+                <i class="fas fa-chevron-down"></i>
+            </button>
         </div>
-        <div class="card-body">
+        <div class="card-body collapse show" id="selectionCriteria">
             <form id="carryForwardForm">
-                <div class="row">
+                <div class="row g-3">
+                    <!-- Current Year Section -->
                     <div class="col-md-6">
-                        <!-- Left column: Current Year & related dropdowns -->
-                        <div class="mb-3">
-                            <label asp-for="CurrentAcademicYearId" class="form-label">Current Academic Year</label>
-                            <select asp-for="CurrentAcademicYearId" asp-items="Model.AcademicYears" class="form-select">
-                                <option value="">Select Year</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label asp-for="CourseId" class="form-label">Course</label>
-                            <select asp-for="CourseId" asp-items="Model.Courses" class="form-select">
-                                <option value="">Select Course</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label asp-for="ClassId" class="form-label">Class</label>
-                            <select asp-for="ClassId" asp-items="Model.Classes" class="form-select">
-                                <option value="">All Classes</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label asp-for="DivisionId" class="form-label">Division</label>
-                            <select asp-for="DivisionId" asp-items="Model.Divisions" class="form-select">
-                                <option value="">All Divisions</option>
-                            </select>
+                        <div class="card h-100 border-success">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Current Academic Information</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label asp-for="CurrentAcademicYearId" class="form-label">Academic Year <span class="text-danger">*</span></label>
+                                    <select asp-for="CurrentAcademicYearId" asp-items="Model.AcademicYears" class="form-select" required>
+                                        <option value="">Select Year</option>
+                                    </select>
+                                    <div class="invalid-feedback">Please select current academic year</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label asp-for="CourseId" class="form-label">Course <span class="text-danger">*</span></label>
+                                    <select asp-for="CourseId" asp-items="Model.Courses" class="form-select" required>
+                                        <option value="">Select Course</option>
+                                    </select>
+                                    <div class="invalid-feedback">Please select a course</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label asp-for="ClassId" class="form-label">Class</label>
+                                    <select asp-for="ClassId" asp-items="Model.Classes" class="form-select">
+                                        <option value="">All Classes</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label asp-for="DivisionId" class="form-label">Division</label>
+                                    <select asp-for="DivisionId" asp-items="Model.Divisions" class="form-select">
+                                        <option value="">All Divisions</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- Next Year Section -->
                     <div class="col-md-6">
-                        <!-- Right column: Next Year dropdown -->
-                        <div class="mb-3">
-                            <label asp-for="NextAcademicYearId" class="form-label">Next Academic Year</label>
-                            <select asp-for="NextAcademicYearId" asp-items="Model.NextAcademicYears" class="form-select">
-                                <option value="">Select Year</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label asp-for="NextCourseId" class="form-label">Next Course</label>
-                            <select asp-for="NextCourseId" asp-items="Model.NextCourses" class="form-select">
-                                <option value="">Select Course</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label asp-for="NextClassId" class="form-label">Next Class</label>
-                            <select asp-for="NextClassId" asp-items="Model.NextClasses" class="form-select">
-                                <option value="">Select Class</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label asp-for="NextDivisionId" class="form-label">Next Division</label>
-                            <select asp-for="NextDivisionId" asp-items="Model.NextDivisions" class="form-select">
-                                <option value="">Select Division</option>
-                            </select>
+                        <div class="card h-100 border-warning">
+                            <div class="card-header bg-warning text-dark">
+                                <h6 class="mb-0"><i class="fas fa-calendar-plus me-2"></i>Next Academic Information</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label asp-for="NextAcademicYearId" class="form-label">Academic Year <span class="text-danger">*</span></label>
+                                    <select asp-for="NextAcademicYearId" asp-items="Model.NextAcademicYears" class="form-select" required>
+                                        <option value="">Select Year</option>
+                                    </select>
+                                    <div class="invalid-feedback">Please select next academic year</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label asp-for="NextCourseId" class="form-label">Course <span class="text-danger">*</span></label>
+                                    <select asp-for="NextCourseId" asp-items="Model.NextCourses" class="form-select" required>
+                                        <option value="">Select Course</option>
+                                    </select>
+                                    <div class="invalid-feedback">Please select next course</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label asp-for="NextClassId" class="form-label">Class <span class="text-danger">*</span></label>
+                                    <select asp-for="NextClassId" asp-items="Model.NextClasses" class="form-select" required>
+                                        <option value="">Select Class</option>
+                                    </select>
+                                    <div class="invalid-feedback">Please select next class</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label asp-for="NextDivisionId" class="form-label">Division</label>
+                                    <select asp-for="NextDivisionId" asp-items="Model.NextDivisions" class="form-select">
+                                        <option value="">Select Division</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="row">
-                    <div class="col-md-12 d-flex justify-content-end">
-                        <button type="button" id="btnPreview" class="btn btn-primary">
-                            Preview Students
-                        </button>
-                    </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="reset" class="btn btn-secondary">
+                        <i class="fas fa-undo me-1"></i> Reset
+                    </button>
+                    <button type="button" id="btnPreview" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i> Preview Students
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 
+    <!-- Loading Indicator -->
+    <div id="loadingIndicator" class="text-center my-4" style="display: none;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Loading student data...</p>
+    </div>
+
+    <!-- Preview Data Section -->
     <div id="previewData" class="mt-4"></div>
 
-    <div id="actionButtons" class="mt-4" style="display: none;">
-        <button type="button" id="btnMove" class="btn btn-warning">
-            <i class="fas fa-arrow-right"></i> Move Data
-        </button>
-        <button type="button" id="btnPublish" class="btn btn-success" style="display: none;">
-            <i class="fas fa-check"></i> Publish
-        </button>
+    <!-- Action Buttons Section -->
+    <div id="actionButtons" class="card mt-4 shadow-sm" style="display: none;">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span id="selectedCount" class="badge bg-info rounded-pill me-2">0</span> students selected
+                </div>
+                <div class="btn-group">
+                    <button type="button" id="btnMove" class="btn btn-warning">
+                        <i class="fas fa-arrow-right me-1"></i> Move Students
+                    </button>
+                    <button type="button" id="btnPublish" class="btn btn-success" style="display: none;">
+                        <i class="fas fa-check me-1"></i> Publish Changes
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 @section Scripts {
     <script>
         $(document).ready(function () {
+            // Form validation
+            const form = document.getElementById('carryForwardForm');
+
+            // Update required fields visual indication
+            $('select[required]').on('change', function() {
+                $(this).removeClass('is-invalid');
+                if (!$(this).val()) {
+                    $(this).addClass('is-invalid');
+                }
+            });
+
             // Handle course change
             $('#CourseId').change(function () {
                 $('#ClassId').empty().append('<option value="">All Classes</option>');
@@ -109,27 +174,52 @@
 
             // Preview button click
             $('#btnPreview').click(function () {
+                // Basic form validation
+                let isValid = true;
+
+                $('select[required]').each(function() {
+                    if (!$(this).val()) {
+                        $(this).addClass('is-invalid');
+                        isValid = false;
+                    } else {
+                        $(this).removeClass('is-invalid');
+                    }
+                });
+
+                if (!isValid) {
+                    toastr.error('Please fill all required fields');
+                    return;
+                }
+
+                $('#loadingIndicator').show();
+                $('#previewData').empty();
+                $('#actionButtons').hide();
+
                 loadPreviewData();
+            });
+
+            // Reset button functionality
+            $('button[type="reset"]').click(function() {
+                $('#previewData').empty();
+                $('#actionButtons').hide();
+                $('select').removeClass('is-invalid');
             });
 
             // Move data button click
             $('#btnMove').click(function () {
-                if (confirm('Are you sure you want to move the selected students to the next academic year?')) {
-                    moveData();
-                }
+                moveData();
             });
 
             // Publish button click
             $('#btnPublish').click(function () {
-                if (confirm('Are you sure you want to publish the changes? This action cannot be undone.')) {
-                    publishData();
-                }
+                publishData();
             });
 
             // Handle next year change
             $('#NextAcademicYearId').change(function () {
-                if ($('#NextCourseId').val()) {
-                    loadNextYearClasses($('#NextCourseId').val());
+                $('#NextCourseId').val('').trigger('change');
+                if ($(this).val()) {
+                    loadNextYearCourses($(this).val());
                 }
             });
 
@@ -144,9 +234,7 @@
 
             // Add handlers for academic year changes
             $('#CurrentAcademicYearId').change(function() {
-                if ($('#CourseId').val()) {
-                    loadClasses($('#CourseId').val());
-                }
+                $('#CourseId').val('').trigger('change');
             });
 
             // Handle next class change
@@ -164,7 +252,25 @@
                 "positionClass": "toast-top-right",
                 "timeOut": "3000"
             };
+
+            // Update selected count when checkboxes are clicked
+            $(document).on('change', '.select-all', function() {
+                const isChecked = $(this).prop('checked');
+                $('.student-select').prop('checked', isChecked);
+                updateSelectedCount();
+            });
+
+            $(document).on('change', '.student-select', function() {
+                updateSelectedCount();
+                const allChecked = $('.student-select:checked').length === $('.student-select').length;
+                $('.select-all').prop('checked', allChecked);
+            });
         });
+
+        function updateSelectedCount() {
+            const count = $('.student-select:checked').length;
+            $('#selectedCount').text(count);
+        }
 
         function loadClasses(courseId) {
             if (!courseId) {
@@ -176,11 +282,18 @@
                 toastr.error('Please select current academic year first');
                 return;
             }
+
+            $('#ClassId').prop('disabled', true).append('<option value="">Loading...</option>');
+
             $.get(`/StudentCarryForward/GetClassesByCourse?courseId=${courseId}&academicYearId=${yearId}`, function (data) {
                 $('#ClassId').empty().append('<option value="">All Classes</option>');
                 $.each(data, function (i, item) {
                     $('#ClassId').append($('<option>', { value: item.id, text: item.name }));
                 });
+            }).fail(function() {
+                toastr.error('Error loading classes');
+            }).always(function() {
+                $('#ClassId').prop('disabled', false);
             });
         }
 
@@ -189,11 +302,18 @@
                 $('#DivisionId').empty().append('<option value="">All Divisions</option>');
                 return;
             }
+
+            $('#DivisionId').prop('disabled', true).append('<option value="">Loading...</option>');
+
             $.get(`/StudentCarryForward/GetDivisionsByClass/${classId}`, function (data) {
                 $('#DivisionId').empty().append('<option value="">All Divisions</option>');
                 $.each(data, function (i, item) {
                     $('#DivisionId').append($('<option>', { value: item.id, text: item.name }));
                 });
+            }).fail(function() {
+                toastr.error('Error loading divisions');
+            }).always(function() {
+                $('#DivisionId').prop('disabled', false);
             });
         }
 
@@ -202,11 +322,18 @@
                 $('#NextCourseId').empty().append('<option value="">Select Course</option>');
                 return;
             }
+
+            $('#NextCourseId').prop('disabled', true).append('<option value="">Loading...</option>');
+
             $.get(`/Students/GetCoursesByYear/${yearId}`, function (data) {
                 $('#NextCourseId').empty().append('<option value="">Select Course</option>');
                 $.each(data, function (i, item) {
                     $('#NextCourseId').append($('<option>', { value: item.id, text: item.name }));
                 });
+            }).fail(function() {
+                toastr.error('Error loading courses');
+            }).always(function() {
+                $('#NextCourseId').prop('disabled', false);
             });
         }
 
@@ -220,11 +347,18 @@
                 toastr.error('Please select next academic year first');
                 return;
             }
+
+            $('#NextClassId').prop('disabled', true).append('<option value="">Loading...</option>');
+
             $.get(`/StudentCarryForward/GetClassesByCourse?courseId=${courseId}&academicYearId=${yearId}`, function (data) {
                 $('#NextClassId').empty().append('<option value="">Select Class</option>');
                 $.each(data, function (i, item) {
                     $('#NextClassId').append($('<option>', { value: item.id, text: item.name }));
                 });
+            }).fail(function() {
+                toastr.error('Error loading classes');
+            }).always(function() {
+                $('#NextClassId').prop('disabled', false);
             });
         }
 
@@ -233,6 +367,9 @@
                 $('#NextDivisionId').empty().append('<option value="">Select Division</option>');
                 return;
             }
+
+            $('#NextDivisionId').prop('disabled', true).append('<option value="">Loading...</option>');
+
             $.get(`/StudentCarryForward/GetDivisionsByClass/${classId}`, function (data) {
                 $('#NextDivisionId').empty().append('<option value="">Select Division</option>');
                 if (data && data.length > 0) {
@@ -244,6 +381,8 @@
                 }
             }).fail(function() {
                 toastr.error('Error loading divisions');
+            }).always(function() {
+                $('#NextDivisionId').prop('disabled', false);
             });
         }
 
@@ -259,21 +398,25 @@
 
             if (!currentYearId || !nextYearId) {
                 toastr.error('Please select both current and next academic years');
+                $('#loadingIndicator').hide();
                 return;
             }
 
             if (!courseId) {
                 toastr.error('Please select current course');
+                $('#loadingIndicator').hide();
                 return;
             }
 
             if (!nextCourseId) {
                 toastr.error('Please select next course');
+                $('#loadingIndicator').hide();
                 return;
             }
 
             if (!nextClassId) {
                 toastr.error('Please select next class');
+                $('#loadingIndicator').hide();
                 return;
             }
 
@@ -289,6 +432,11 @@
             }, function (data) {
                 $('#previewData').html(data);
                 $('#actionButtons').show();
+                updateSelectedCount();
+            }).fail(function() {
+                toastr.error('Error loading preview data');
+            }).always(function() {
+                $('#loadingIndicator').hide();
             });
         }
 
@@ -324,7 +472,7 @@
 
                 Swal.fire({
                     title: 'Are you sure?',
-                    text: "You want to move the selected students to the next academic year?",
+                    text: `You are about to move ${selectedStudents.length} students to the next academic year.`,
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#3085d6',
@@ -333,7 +481,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $('#btnMove').prop('disabled', true)
-                            .html('<i class="fas fa-spinner fa-spin"></i> Processing...');
+                            .html('<i class="fas fa-spinner fa-spin me-1"></i> Processing...');
 
                         var data = {
                             currentAcademicYearId: parseInt(currentYearId),
@@ -351,7 +499,12 @@
                             data: JSON.stringify(data),
                             success: function(result) {
                                 if (result.success) {
-                                    Swal.fire('Success', result.message, 'success');
+                                    Swal.fire({
+                                        title: 'Success!',
+                                        text: result.message,
+                                        icon: 'success',
+                                        timer: 3000
+                                    });
                                     $('#btnPublish').show();
                                 } else {
                                     Swal.fire('Error', result.message || 'Failed to move students', 'error');
@@ -363,7 +516,7 @@
                             },
                             complete: function() {
                                 $('#btnMove').prop('disabled', false)
-                                    .html('<i class="fas fa-arrow-right"></i> Move Data');
+                                    .html('<i class="fas fa-arrow-right me-1"></i> Move Students');
                             }
                         });
                     }
@@ -382,18 +535,47 @@
                 studentsToPromote: getSelectedStudents()
             };
 
-            $.ajax({
-                url: '/StudentCarryForward/PublishData',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(data),
-                success: function (result) {
-                    if (result.success) {
-                        toastr.success(result.message);
-                        setTimeout(() => window.location.reload(), 2000);
-                    } else {
-                        toastr.error(result.message);
-                    }
+            Swal.fire({
+                title: 'Publish Changes?',
+                text: 'This action cannot be undone. Are you sure you want to proceed?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#dc3545',
+                confirmButtonText: 'Yes, Publish!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $('#btnPublish').prop('disabled', true)
+                        .html('<i class="fas fa-spinner fa-spin me-1"></i> Publishing...');
+
+                    $.ajax({
+                        url: '/StudentCarryForward/PublishData',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify(data),
+                        success: function (result) {
+                            if (result.success) {
+                                Swal.fire({
+                                    title: 'Published!',
+                                    text: result.message,
+                                    icon: 'success',
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                            } else {
+                                Swal.fire('Error', result.message, 'error');
+                                $('#btnPublish').prop('disabled', false)
+                                    .html('<i class="fas fa-check me-1"></i> Publish Changes');
+                            }
+                        },
+                        error: function() {
+                            Swal.fire('Error', 'Failed to publish changes', 'error');
+                            $('#btnPublish').prop('disabled', false)
+                                .html('<i class="fas fa-check me-1"></i> Publish Changes');
+                        }
+                    });
                 }
             });
         }
@@ -418,3 +600,46 @@
         }
     </script>
 }
+
+<!-- Added new template for preview data -->
+<script id="previewTemplate" type="text/x-template">
+    <div class="card shadow-sm">
+        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0"><i class="fas fa-users me-2"></i>Student Preview</h5>
+            <div class="form-check form-switch">
+                <input class="form-check-input select-all" type="checkbox" id="selectAllStudents" checked>
+                <label class="form-check-label text-white" for="selectAllStudents">Select All</label>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="5%" class="text-center">#</th>
+                            <th width="5%">Select</th>
+                            <th width="10%">Enrollment</th>
+                            <th width="20%">Student Name</th>
+                            <th width="20%">Current Information</th>
+                            <th width="20%">Next Information</th>
+                            <th width="20%">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentsList">
+                        <!-- Student rows will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+                <span><strong>Total:</strong> <span id="totalCount">0</span> students</span>
+                <nav aria-label="Page navigation">
+                    <ul class="pagination pagination-sm mb-0">
+                        <!-- Pagination will be added here if needed -->
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</script>
