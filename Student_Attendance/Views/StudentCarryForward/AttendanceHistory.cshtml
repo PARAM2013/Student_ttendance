@@ -1,0 +1,103 @@
+@model AttendanceHistoryViewModel
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Archived Attendance Records</h3>
+    </div>
+    <div class="card-body">
+        <form method="get" class="mb-4">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Academic Year</label>
+                    <select name="academicYearId" asp-for="SelectedAcademicYearId" asp-items="Model.AcademicYears" class="form-select">
+                        <option value="">All Years</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Class</label>
+                    <select name="classId" asp-for="SelectedClassId" asp-items="Model.Classes" class="form-select">
+                        <option value="">All Classes</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Division</label>
+                    <select name="divisionId" asp-for="SelectedDivisionId" asp-items="Model.Divisions" class="form-select">
+                        <option value="">All Divisions</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Teacher</label>
+                    <select name="teacherId" asp-for="SelectedTeacherId" asp-items="Model.Teachers" class="form-select">
+                        <option value="">All Teachers</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Subject</label>
+                    <select name="subjectId" asp-for="SelectedSubjectId" asp-items="Model.Subjects" class="form-select">
+                        <option value="">All Subjects</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Student</label>
+                    <select name="studentId" asp-for="SelectedStudentId" asp-items="Model.Students" class="form-select">
+                        <option value="">All Students</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">From Date</label>
+                    <input type="date" name="fromDate" asp-for="FromDate" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">To Date</label>
+                    <input type="date" name="toDate" asp-for="ToDate" class="form-control">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Filter</button>
+                </div>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-striped" id="attendanceTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Student</th>
+                        <th>Enrollment</th>
+                        <th>Subject</th>
+                        <th>Status</th>
+                        <th>Academic Year</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var record in Model.Records)
+                    {
+                        <tr>
+                            <td>@record.Date.ToString("dd/MM/yyyy")</td>
+                            <td>@record.StudentName</td>
+                            <td>@record.EnrollmentNo</td>
+                            <td>@record.SubjectName</td>
+                            <td>
+                                <span class="badge bg-@(record.IsPresent ? "success" : "danger")">
+                                    @(record.IsPresent ? "Present" : "Absent")
+                                </span>
+                            </td>
+                            <td>@record.AcademicYear</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#attendanceTable').DataTable({
+                "order": [[0, "desc"]],
+                "pageLength": 25
+            });
+        });
+    </script>
+}

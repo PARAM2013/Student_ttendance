@@ -218,6 +218,18 @@ namespace Student_Attendance.Data
         .WithMany()
         .HasForeignKey(s => s.AcademicYearId)
         .OnDelete(DeleteBehavior.NoAction);
+
+      modelBuilder.Entity<StudentAttendanceArchive>()
+        .HasOne(sa => sa.Student)
+        .WithMany()
+        .HasForeignKey(sa => sa.StudentId)
+        .OnDelete(DeleteBehavior.NoAction);
+
+      modelBuilder.Entity<StudentAttendanceArchive>()
+        .HasOne(sa => sa.AcademicYear)
+        .WithMany()
+        .HasForeignKey(sa => sa.AcademicYearId)
+        .OnDelete(DeleteBehavior.NoAction);
     }
 
   }

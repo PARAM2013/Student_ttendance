@@ -423,6 +423,90 @@ namespace Student_Attendance.Controllers
             }
         }
 
+        [HttpGet]
+        public async Task<IActionResult> AttendanceHistory(
+            int? studentId = null, 
+            int? academicYearId = null,
+            int? classId = null,
+            int? teacherId = null,
+            int? subjectId = null,
+            int? divisionId = null,
+            DateTime? fromDate = null,
+            DateTime? toDate = null)
+        {
+            try
+            {
+                var query = _context.StudentAttendanceArchives
+                    .Include(a => a.AcademicYear)
+                    .Include(a => a.Student)
+                        .ThenInclude(s => s.Class)
+                    .Include(a => a.Student)
+                        .ThenInclude(s => s.Division)
+                    .AsQueryable();
+
+                if (studentId.HasValue)
+                    query = query.Where(a => a.StudentId == studentId);
+                if (academicYearId.HasValue)
+                    query = query.Where(a => a.AcademicYearId == academicYearId);
+                if (classId.HasValue)
+                    query = query.Where(a => a.Student.ClassId == classId);
+                if (teacherId.HasValue)
+                    query = query.Where(a => a.MarkedById == teacherId);
+                if (subjectId.HasValue)
+                    query = query.Where(a => a.SubjectId == subjectId);
+                if (divisionId.HasValue)
+                    query = query.Where(a => a.Student.DivisionId == divisionId);
+                if (fromDate.HasValue)
+                    query = query.Where(a => a.Date >= fromDate.Value);
+                if (toDate.HasValue)
+                    query = query.Where(a => a.Date <= toDate.Value);
+
+                var records = await query
+                    .OrderByDescending(a => a.Date)
+                    .Select(a => new ArchivedAttendanceViewModel
+                    {
+                        StudentName = a.StudentName,
+                        EnrollmentNo = a.EnrollmentNo,
+                        SubjectName = a.SubjectName,
+                        Date = a.Date,
+                        IsPresent = a.IsPresent,
+                        AcademicYear = a.AcademicYear.Name
+                    })
+                    .ToListAsync();
+
+                var model = new AttendanceHistoryViewModel
+                {
+                    Records = records,
+                    AcademicYears = new SelectList(await _context.AcademicYears.OrderByDescending(y => y.StartDate).ToListAsync(), "Id", "Name"),
+                    Students = new SelectList(await _context.Students.OrderBy(s => s.Name).Select(s => new { Id = s.Id, Name = $"{s.EnrollmentNo} - {s.Name}" }).ToListAsync(), "Id", "Name"),
+                    Classes = new SelectList(await _context.Classes.OrderBy(c => c.Name).ToListAsync(), "Id", "Name"),
+                    // Fix the Teachers SelectList to use UserName instead of Name
+                    Teachers = new SelectList(await _context.Users
+                        .Where(u => u.Role == "Teacher")
+                        .OrderBy(u => u.UserName)
+                        .Select(u => new { Id = u.Id, Name = u.UserName })
+                        .ToListAsync(), "Id", "Name"),
+                    Subjects = new SelectList(await _context.Subjects.OrderBy(s => s.Name).ToListAsync(), "Id", "Name"),
+                    Divisions = new SelectList(await _context.Divisions.OrderBy(d => d.Name).ToListAsync(), "Id", "Name"),
+                    SelectedStudentId = studentId,
+                    SelectedAcademicYearId = academicYearId,
+                    SelectedClassId = classId,
+                    SelectedTeacherId = teacherId,
+                    SelectedSubjectId = subjectId,
+                    SelectedDivisionId = divisionId,
+                    FromDate = fromDate,
+                    ToDate = toDate
+                };
+
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading attendance history");
+                return View("Error");
+            }
+        }
+
         private async Task LoadDropdowns(StudentCarryForwardViewModel model)
         {
             var years = await _context.AcademicYears
