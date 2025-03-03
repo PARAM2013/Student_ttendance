@@ -8,6 +8,9 @@ public class ArchivedAttendanceViewModel
     public DateTime Date { get; set; }
     public bool IsPresent { get; set; }
     public string AcademicYear { get; set; }
+    public DateTime ArchivedOn { get; set; }
+    public string MarkedByName { get; set; }
+    public string ClassName { get; set; }
 }
 
 public class AttendanceHistoryViewModel
@@ -28,4 +31,13 @@ public class AttendanceHistoryViewModel
     public int? SelectedDivisionId { get; set; }
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
+
+    // Add pagination properties
+    public int TotalRecords { get; set; }
+    public int CurrentPage { get; set; }
+    public int PageSize { get; set; }
+
+    public int TotalPages => (int)Math.Ceiling(TotalRecords / (double)PageSize);
+    public bool HasPreviousPage => CurrentPage > 1;
+    public bool HasNextPage => CurrentPage < TotalPages;
 }

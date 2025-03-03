@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Student_Attendance.Data;
 using Student_Attendance.Models;
 using Student_Attendance.ViewModels;
+using OfficeOpenXml;
 
 namespace Student_Attendance.Controllers
 {
@@ -44,7 +45,6 @@ namespace Student_Attendance.Controllers
                     query = query.Where(s => s.DivisionId == divisionId.Value);
 
                 var students = await query.ToListAsync();
-
                 var nextClass = nextClassId.HasValue 
                     ? await _context.Classes.FirstOrDefaultAsync(c => c.Id == nextClassId.Value)
                     : null;
@@ -99,7 +99,7 @@ namespace Student_Attendance.Controllers
                 }
 
                 _logger.LogInformation($"Processing {model.StudentsToPromote.Count} students");
-                
+
                 var debugInfo = new
                 {
                     HasModel = model != null,
@@ -108,6 +108,7 @@ namespace Student_Attendance.Controllers
                     NextYear = model?.NextAcademicYearId,
                     NextClass = model?.NextClassId
                 };
+
                 _logger.LogInformation("Debug Info: {@DebugInfo}", debugInfo);
 
                 if (model.StudentsToPromote == null)
@@ -162,6 +163,7 @@ namespace Student_Attendance.Controllers
                                 CreatedBy = userName,
                                 IsActive = false
                             };
+
                             await _context.StudentEnrollmentHistories.AddAsync(history);
 
                             // Archive attendance records
@@ -248,7 +250,6 @@ namespace Student_Attendance.Controllers
                                         StudentId = student.StudentId,
                                         SubjectId = s.Id
                                     });
-
                                 await _context.StudentSubjects.AddRangeAsync(newSubjects);
                             }
                         }
@@ -256,7 +257,6 @@ namespace Student_Attendance.Controllers
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
-
                     return Json(new { success = true, message = "Data published successfully" });
                 }
                 catch (Exception)
@@ -299,7 +299,6 @@ namespace Student_Attendance.Controllers
                     .Where(d => d.ClassId == classId)
                     .Select(d => new { id = d.Id, name = d.Name })
                     .ToListAsync();
-
                 _logger.LogInformation($"Found {divisions.Count} divisions for class {classId}");
                 return Json(divisions);
             }
@@ -318,7 +317,6 @@ namespace Student_Attendance.Controllers
                 var courses = await _context.Courses
                     .Select(c => new { id = c.Id, name = c.Name })
                     .ToListAsync();
-
                 return Json(courses);
             }
             catch (Exception ex)
@@ -425,14 +423,15 @@ namespace Student_Attendance.Controllers
 
         [HttpGet]
         public async Task<IActionResult> AttendanceHistory(
-            int? studentId = null, 
+            int? studentId = null,
             int? academicYearId = null,
             int? classId = null,
             int? teacherId = null,
             int? subjectId = null,
             int? divisionId = null,
             DateTime? fromDate = null,
-            DateTime? toDate = null)
+            DateTime? toDate = null,
+            int? pageNumber = null)
         {
             try
             {
@@ -444,6 +443,7 @@ namespace Student_Attendance.Controllers
                         .ThenInclude(s => s.Division)
                     .AsQueryable();
 
+                // Apply filters
                 if (studentId.HasValue)
                     query = query.Where(a => a.StudentId == studentId);
                 if (academicYearId.HasValue)
@@ -461,8 +461,12 @@ namespace Student_Attendance.Controllers
                 if (toDate.HasValue)
                     query = query.Where(a => a.Date <= toDate.Value);
 
+                var pageSize = 50;
+                var page = pageNumber ?? 1;
                 var records = await query
                     .OrderByDescending(a => a.Date)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
                     .Select(a => new ArchivedAttendanceViewModel
                     {
                         StudentName = a.StudentName,
@@ -470,7 +474,13 @@ namespace Student_Attendance.Controllers
                         SubjectName = a.SubjectName,
                         Date = a.Date,
                         IsPresent = a.IsPresent,
-                        AcademicYear = a.AcademicYear.Name
+                        AcademicYear = a.AcademicYear.Name,
+                        ArchivedOn = a.ArchivedOn,
+                        MarkedByName = _context.Users
+                            .Where(u => u.Id == a.MarkedById)
+                            .Select(u => u.UserName)
+                            .FirstOrDefault() ?? "Unknown",
+                        ClassName = a.Student.Class.Name
                     })
                     .ToListAsync();
 
@@ -495,7 +505,10 @@ namespace Student_Attendance.Controllers
                     SelectedSubjectId = subjectId,
                     SelectedDivisionId = divisionId,
                     FromDate = fromDate,
-                    ToDate = toDate
+                    ToDate = toDate,
+                    TotalRecords = await query.CountAsync(),
+                    CurrentPage = page,
+                    PageSize = pageSize
                 };
 
                 return View(model);
@@ -504,6 +517,86 @@ namespace Student_Attendance.Controllers
             {
                 _logger.LogError(ex, "Error loading attendance history");
                 return View("Error");
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ExportAttendanceHistory(
+            int? studentId = null,
+            int? academicYearId = null,
+            int? classId = null,
+            int? teacherId = null,
+            int? subjectId = null,
+            int? divisionId = null,
+            DateTime? fromDate = null,
+            DateTime? toDate = null)
+        {
+            try
+            {
+                var query = _context.StudentAttendanceArchives
+                    .Include(a => a.AcademicYear)
+                    .AsQueryable();
+
+                // Apply filters
+                if (studentId.HasValue)
+                    query = query.Where(a => a.StudentId == studentId);
+                if (academicYearId.HasValue)
+                    query = query.Where(a => a.AcademicYearId == academicYearId);
+                if (classId.HasValue)
+                    query = query.Where(a => a.Student.ClassId == classId);
+                if (teacherId.HasValue)
+                    query = query.Where(a => a.MarkedById == teacherId);
+                if (subjectId.HasValue)
+                    query = query.Where(a => a.SubjectId == subjectId);
+                if (divisionId.HasValue)
+                    query = query.Where(a => a.Student.DivisionId == divisionId);
+                if (fromDate.HasValue)
+                    query = query.Where(a => a.Date >= fromDate.Value);
+                if (toDate.HasValue)
+                    query = query.Where(a => a.Date <= toDate.Value);
+
+                var records = await query
+                    .OrderByDescending(a => a.Date)
+                    .Select(a => new
+                    {
+                        Date = a.Date.ToString("dd/MM/yyyy"),
+                        StudentName = a.StudentName,
+                        EnrollmentNo = a.EnrollmentNo,
+                        Subject = a.SubjectName,
+                        Status = a.IsPresent ? "Present" : "Absent",
+                        AcademicYear = a.AcademicYear.Name,
+                        ArchivedOn = a.ArchivedOn.ToString("dd/MM/yyyy")
+                    })
+                    .ToListAsync();
+
+                // Create Excel file
+                using var package = new ExcelPackage();
+                var worksheet = package.Workbook.Worksheets.Add("Attendance History");
+
+                // Add headers
+                worksheet.Cells["A1"].Value = "Date";
+                worksheet.Cells["B1"].Value = "Student Name";
+                worksheet.Cells["C1"].Value = "Enrollment No";
+                worksheet.Cells["D1"].Value = "Subject";
+                worksheet.Cells["E1"].Value = "Status";
+                worksheet.Cells["F1"].Value = "Academic Year";
+                worksheet.Cells["G1"].Value = "Archived On";
+
+                // Add data
+                worksheet.Cells["A2"].LoadFromCollection(records);
+
+                // Auto-fit columns
+                worksheet.Cells.AutoFitColumns();
+
+                var content = package.GetAsByteArray();
+                string fileName = $"AttendanceHistory_{DateTime.Now:yyyyMMdd}.xlsx";
+
+                return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting attendance history");
+                return RedirectToAction(nameof(AttendanceHistory));
             }
         }
 

@@ -52,7 +52,13 @@
                     <input type="date" name="toDate" asp-for="ToDate" class="form-control">
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100">Filter</button>
+                    <div class="btn-group w-100">
+                        <button type="submit" class="btn btn-primary">Filter</button>
+                        <a href="@Url.Action("AttendanceHistory")" class="btn btn-secondary">Reset</a>
+                        <a href="@Url.Action("ExportAttendanceHistory", Context.Request.Query.ToDictionary(x => x.Key, x => x.Value.ToString()))" class="btn btn-success">
+                            <i class="fas fa-file-excel me-1"></i> Export
+                        </a>
+                    </div>
                 </div>
             </div>
         </form>
@@ -65,8 +71,11 @@
                         <th>Student</th>
                         <th>Enrollment</th>
                         <th>Subject</th>
+                        <th>Class</th>
                         <th>Status</th>
                         <th>Academic Year</th>
+                        <th>Marked By</th>
+                        <th>Archived On</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -77,17 +86,40 @@
                             <td>@record.StudentName</td>
                             <td>@record.EnrollmentNo</td>
                             <td>@record.SubjectName</td>
+                            <td>@record.ClassName</td>
                             <td>
                                 <span class="badge bg-@(record.IsPresent ? "success" : "danger")">
                                     @(record.IsPresent ? "Present" : "Absent")
                                 </span>
                             </td>
                             <td>@record.AcademicYear</td>
+                            <td>@record.MarkedByName</td>
+                            <td>@record.ArchivedOn.ToString("dd/MM/yyyy")</td>
                         </tr>
                     }
                 </tbody>
             </table>
         </div>
+
+        @if (Model.TotalPages > 1)
+        {
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                        <a class="page-link" href="@Url.Action("AttendanceHistory", new { pageNumber = Model.CurrentPage - 1 })">Previous</a>
+                    </li>
+                    @for (int i = 1; i <= Model.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                            <a class="page-link" href="@Url.Action("AttendanceHistory", new { pageNumber = i })">@i</a>
+                        </li>
+                    }
+                    <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                        <a class="page-link" href="@Url.Action("AttendanceHistory", new { pageNumber = Model.CurrentPage + 1 })">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        }
     </div>
 </div>
 

@@ -230,6 +230,10 @@ namespace Student_Attendance.Data
         .WithMany()
         .HasForeignKey(sa => sa.AcademicYearId)
         .OnDelete(DeleteBehavior.NoAction);
+
+      modelBuilder.Entity<StudentAttendanceArchive>()
+        .HasIndex(sa => new { sa.StudentId, sa.Date, sa.SubjectId })
+        .IsUnique();
     }
 
   }
