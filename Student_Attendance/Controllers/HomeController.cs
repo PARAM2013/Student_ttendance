@@ -265,5 +265,90 @@ namespace Student_Attendance.Controllers
         {
             return View();
         }
+// Add these methods to your existing HomeController class
+
+[HttpGet]
+[AllowAnonymous]
+public async Task<IActionResult> SearchStudents(string searchTerm)
+{
+    if (string.IsNullOrEmpty(searchTerm) || searchTerm.Length < 3)
+    {
+        return Json(new List<object>());
+    }
+
+    // Query your database for students matching the search term
+    var students = await _context.Students
+        .Include(s => s.Class)
+        .Where(s => s.Name.Contains(searchTerm) && s.IsActive)
+        .Select(s => new
+        {
+            id = s.Id,
+            name = s.Name,
+            className = s.Class.Name
+        })
+        .Take(10)
+        .ToListAsync();
+
+    return Json(students);
+}
+
+[HttpGet]
+[AllowAnonymous]
+public async Task<IActionResult> GetStudentAttendance(int studentId)
+{
+    try
+    {
+        // Get the student
+        var student = await _context.Students
+            .Include(s => s.Class)
+            .FirstOrDefaultAsync(s => s.Id == studentId);
+
+        if (student == null)
+        {
+            return Json(new { success = false, message = "Student not found" });
+        }
+
+        // Get all attendance records for this student
+        var attendanceRecords = await _context.AttendanceRecords
+            .Include(a => a.Subject)
+            .Where(a => a.StudentId == studentId)
+            .ToListAsync();
+
+        // Calculate overall attendance
+        int totalClasses = attendanceRecords.Count;
+        int attendedClasses = attendanceRecords.Count(a => a.IsPresent);
+        double overallAttendance = totalClasses > 0 
+            ? (double)attendedClasses / totalClasses * 100 
+            : 0;
+
+        // Group by subject for subject-wise attendance
+        var subjectAttendance = attendanceRecords
+            .GroupBy(a => a.SubjectId)
+            .Select(g => new
+            {
+                subjectId = g.Key,
+                subjectName = g.First().Subject.Name,
+                total = g.Count(),
+                present = g.Count(a => a.IsPresent)
+            })
+            .ToList();
+
+        return Json(new
+        {
+            success = true,
+            studentName = student.Name,
+            className = student.Class.Name,
+            totalClasses = totalClasses,
+            attendedClasses = attendedClasses,
+            overallAttendance = overallAttendance,
+            subjectAttendance = subjectAttendance
+        });
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error retrieving attendance data: {Message}", ex.Message);
+        return Json(new { success = false, message = "Error retrieving attendance data: " + ex.Message });
+    }
+}
     }
 }

@@ -1,5 +1,5 @@
 @{
-    ViewData["Title"] = "Welcome";
+    ViewData["Title"] = "Student Attendance Search";
     Layout = "_Layout";
 }
 
@@ -11,7 +11,12 @@
     <title>Student Attendance Search</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <style>
         /* Previous styles remain unchanged */
         :root {
@@ -232,29 +237,152 @@
             letter-spacing: 0.5px;
         }
 
+        /* New styles for student search and attendance report */
+        .select2-container {
+            width: 100% !important;
+        }
+
+        .select2-selection {
+            height: 46px !important;
+            border-radius: 24px !important;
+            border: 1px solid #dfe1e5 !important;
+            padding: 8px 12px !important;
+        }
+
+        .select2-selection__arrow {
+            height: 46px !important;
+        }
+
+        .attendance-report {
+            display: none;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .report-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .report-greeting {
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .overall-attendance {
+            font-size: 18px;
+            color: #555;
+            margin-bottom: 20px;
+        }
+
+        .chart-container {
+            margin-bottom: 30px;
+            height: 300px;
+        }
+
+        .subject-charts {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .subject-chart {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 15px;
+            height: 300px;
+        }
+
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .error-message {
+            display: none;
+            color: #d9534f;
+            text-align: center;
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #f8d7da;
+        }
+
+        .no-results {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+            color: #555;
+        }
+
+        .attendance-summary {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .summary-item {
+            text-align: center;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            min-width: 150px;
+            margin: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .summary-value {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .summary-label {
+            font-size: 14px;
+            color: #6c757d;
+        }
+
         @@media (max-width: 768px) {
-            .main-content
+            .main-content {
+                padding-top: 80px;
+            }
 
-        {
-            padding-top: 80px;
-        }
+            .search-logo {
+                font-size: 72px;
+            }
 
-        .search-logo {
-            font-size: 72px;
-        }
+            .search-container {
+                max-width: 90%;
+            }
 
-        .search-container {
-            max-width: 90%;
-        }
-
-        .header {
-            padding: 15px 20px;
-        }
+            .header {
+                padding: 15px 20px;
+            }
 
             .header h3 {
                 font-size: 18px;
             }
 
+            .subject-charts {
+                grid-template-columns: 1fr;
+            }
+
+            .attendance-summary {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .summary-item {
+                width: 100%;
+                max-width: 250px;
+            }
         }
     </style>
 </head>
@@ -268,15 +396,72 @@
     </div>
 
     <div class="main-content">
-        <div class="search-logo">
-            <span>S</span><span>e</span><span>a</span><span>r</span><span>c</span><span>h</span>
+        <div id="search-section">
+            <div class="search-logo">
+                <span>S</span><span>e</span><span>a</span><span>r</span><span>c</span><span>h</span>
+            </div>
+            <div class="search-container">
+                <i class="fas fa-search search-icon"></i>
+                <select id="student-search" class="form-control search-box">
+                    <option></option>
+                </select>
+            </div>
+            <div class="buttons-container">
+                <button id="search-btn" class="search-btn" disabled>Search Student</button>
+            </div>
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin fa-2x"></i>
+                <p>Loading attendance data...</p>
+            </div>
+            <div class="error-message">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="error-text">Attendance data could not be retrieved, please try again later.</span>
+            </div>
+            <div class="no-results">
+                <i class="fas fa-search"></i>
+                <p>No results found. Please try a different search.</p>
+            </div>
         </div>
-        <div class="search-container">
-            <i class="fas fa-search search-icon"></i>
-            <input type="text" class="search-box" placeholder="Search Students Attendance">
-        </div>
-        <div class="buttons-container">
-            <button class="search-btn">Search Student</button>
+
+        <div id="attendance-report" class="attendance-report">
+            <div class="report-header">
+                <h2 class="report-greeting">Hi, This is the attendance report of <span id="student-name"></span></h2>
+                <p class="overall-attendance">Overall attendance is <span id="overall-percentage"></span>%</p>
+            </div>
+
+            <div class="attendance-summary">
+                <div class="summary-item">
+                    <div class="summary-value" id="total-classes">0</div>
+                    <div class="summary-label">Total Classes</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value" id="attended-classes">0</div>
+                    <div class="summary-label">Classes Attended</div>
+                                    </div>
+                <div class="summary-item">
+                    <div class="summary-value" id="missed-classes">0</div>
+                    <div class="summary-label">Classes Missed</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value" id="attendance-percentage">0%</div>
+                    <div class="summary-label">Attendance Rate</div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="overall-chart"></canvas>
+            </div>
+
+            <h3 class="text-center mb-4">Subject-wise Attendance</h3>
+            <div class="subject-charts" id="subject-charts">
+                <!-- Subject charts will be dynamically added here -->
+            </div>
+
+            <div class="text-center mt-4">
+                <button id="back-to-search" class="btn btn-primary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Search
+                </button>
+            </div>
         </div>
     </div>
 
@@ -288,6 +473,224 @@
 
             This app is made by AMRISH PATEL
         </div>
-        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Initialize Select2 for student search with custom formatting
+            $('#student-search').select2({
+                placeholder: 'Search Students Attendance (type at least 3 characters)',
+                allowClear: true,
+                minimumInputLength: 3,
+                ajax: {
+                    url: '/Home/SearchStudents',
+                    dataType: 'json',
+                    delay: 300, // Debounce time in ms
+                    data: function(params) {
+                        return {
+                            searchTerm: params.term
+                        };
+                    },
+                    processResults: function(data) {
+                        // No results found
+                        if (data.length === 0) {
+                            $('.no-results').show();
+                        } else {
+                            $('.no-results').hide();
+                        }
+                        
+                        return {
+                            results: $.map(data, function(item) {
+                                return {
+                                    id: item.id,
+                                    text: item.name + ' - ' + item.className,
+                                    studentData: item
+                                };
+                            })
+                        };
+                    },
+                    cache: true
+                },
+                templateResult: formatStudent,
+                templateSelection: formatStudentSelection
+            });
+
+            // Format the student in dropdown
+            function formatStudent(student) {
+                if (!student.id) return student.text;
+                
+                return $('<div class="student-option">' +
+                    '<div class="student-name">' + student.text + '</div>' +
+                    '</div>');
+            }
+
+            // Format the selected student
+            function formatStudentSelection(student) {
+                if (!student.id) return student.text;
+                return student.text;
+            }
+
+            // Enable search button when a student is selected
+            $('#student-search').on('change', function() {
+                if ($(this).val()) {
+                    $('#search-btn').prop('disabled', false);
+                } else {
+                    $('#search-btn').prop('disabled', true);
+                }
+            });
+
+            // Handle search button click
+            $('#search-btn').on('click', function() {
+                const studentId = $('#student-search').val();
+                if (!studentId) return;
+
+                // Show loading spinner
+                $('.loading-spinner').show();
+                $('#search-btn').prop('disabled', true);
+
+                // Fetch attendance data
+                $.ajax({
+                    url: '/Home/GetStudentAttendance',
+                    type: 'GET',
+                    data: { studentId: studentId },
+                    success: function(data) {
+                        $('.loading-spinner').hide();
+                        
+                        if (data.success) {
+                            displayAttendanceReport(data);
+                        } else {
+                            $('.error-message').show();
+                            $('#error-text').text(data.message || 'Failed to retrieve attendance data');
+                            $('#search-btn').prop('disabled', false);
+                        }
+                    },
+                    error: function() {
+                        $('.loading-spinner').hide();
+                        $('.error-message').show();
+                        $('#search-btn').prop('disabled', false);
+                    }
+                });
+            });
+
+            // Back to search button
+            $('#back-to-search').on('click', function() {
+                $('#attendance-report').hide();
+                $('#search-section').show();
+                $('#search-btn').prop('disabled', false);
+                $('#student-search').val(null).trigger('change');
+                $('.error-message').hide();
+            });
+
+            // Function to display attendance report
+            function displayAttendanceReport(data) {
+                // Hide search section and show report
+                $('#search-section').hide();
+                $('#attendance-report').show();
+
+                // Set student name and overall attendance
+                $('#student-name').text(data.studentName);
+                $('#overall-percentage').text(data.overallAttendance.toFixed(1));
+                
+                // Update attendance summary
+                $('#total-classes').text(data.totalClasses);
+                $('#attended-classes').text(data.attendedClasses);
+                $('#missed-classes').text(data.totalClasses - data.attendedClasses);
+                $('#attendance-percentage').text(data.overallAttendance.toFixed(1) + '%');
+
+                // Create overall attendance chart
+                const overallCtx = document.getElementById('overall-chart').getContext('2d');
+                new Chart(overallCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Present', 'Absent'],
+                        datasets: [{
+                            data: [data.attendedClasses, data.totalClasses - data.attendedClasses],
+                            backgroundColor: ['#4CAF50', '#F44336'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Overall Attendance',
+                                font: {
+                                    size: 18
+                                }
+                            },
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+
+                // Clear previous subject charts
+                $('#subject-charts').empty();
+
+                // Create subject-wise attendance charts
+                data.subjectAttendance.forEach(function(subject, index) {
+                    // Create container for this subject
+                    const subjectDiv = $('<div class="subject-chart"></div>');
+                    const canvas = $('<canvas id="subject-chart-' + index + '"></canvas>');
+                    subjectDiv.append(canvas);
+                    $('#subject-charts').append(subjectDiv);
+
+                    // Create chart
+                    const subjectCtx = document.getElementById('subject-chart-' + index).getContext('2d');
+                    new Chart(subjectCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Present', 'Absent'],
+                            datasets: [{
+                                label: subject.subjectName,
+                                data: [subject.present, subject.total - subject.present],
+                                backgroundColor: ['#4CAF50', '#F44336'],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: subject.subjectName + ' (' + ((subject.present / subject.total) * 100).toFixed(1) + '%)',
+                                    font: {
+                                        size: 16
+                                    }
+                                },
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const label = context.dataset.label || '';
+                                            const value = context.raw || 0;
+                                            const total = subject.total;
+                                            const percentage = ((value / total) * 100).toFixed(1);
+                                            return label + ': ' + value + ' (' + percentage + '%)';
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    max: subject.total
+                                }
+                            }
+                        }
+                    });
+                });
+            }
+        });
+    </script>
 </body>
 </html>
