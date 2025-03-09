@@ -140,6 +140,7 @@ function loadStudents() {
         } else {
             $('#studentList').html(response);
             initializeAttendanceHandlers();
+            $('#saveAttendance').show(); // Show the save button when students are loaded
         }
     })
     .fail(function(xhr) {
@@ -147,6 +148,39 @@ function loadStudents() {
         showAlert('Error', 'Failed to load students. Please try again.', 'error');
         $('#studentList').html('');
     });
+}
+
+// Add this new function to load subjects based on teacher selection
+function loadSubjectsByTeacher() {
+    const teacherId = $('#TeacherId').val();
+    
+    if (!teacherId) {
+        // Clear the subject dropdown if no teacher is selected
+        $('#SubjectId').html('<option value="">Select Subject</option>');
+        return;
+    }
+    
+    // Show loading indicator
+    $('#SubjectId').html('<option value="">Loading subjects...</option>');
+    
+    $.get('/Attendance/GetSubjectsByTeacher', { teacherId: teacherId })
+        .done(function(response) {
+            if (response && response.length > 0) {
+                let options = '<option value="">Select Subject</option>';
+                response.forEach(function(subject) {
+                    options += `<option value="${subject.id}">${subject.name}</option>`;
+                });
+                $('#SubjectId').html(options);
+            } else {
+                $('#SubjectId').html('<option value="">No subjects available</option>');
+                showAlert('Warning', 'No subjects assigned to this teacher', 'warning');
+            }
+        })
+        .fail(function(xhr) {
+            console.error('Error loading subjects:', xhr);
+            $('#SubjectId').html('<option value="">Select Subject</option>');
+            showAlert('Error', 'Failed to load subjects. Please try again.', 'error');
+        });
 }
 
 function initializeAttendanceHandlers() {
@@ -267,6 +301,21 @@ function saveAttendance(e) {
 $(document).on('submit', '#attendanceForm', function(e) {
     e.preventDefault();
     saveAttendance(this);
+});
+
+// Add this to the document ready function
+$(document).ready(function() {
+    // Existing code...
+    
+    // Add event listener for teacher selection change
+    $('#TeacherId').on('change', function() {
+        loadSubjectsByTeacher();
+    });
+    
+    // If teacher is pre-selected (for teacher role), load subjects immediately
+    if ($('#TeacherId').val()) {
+        loadSubjectsByTeacher();
+    }
 });
 
 

@@ -461,6 +461,31 @@ namespace Student_Attendance.Controllers
             return PartialView("_BulkAttendanceGrid", gridModel);
         }
 
+// Add this method to your AttendanceController
+
+[HttpGet]
+public async Task<IActionResult> GetSubjectsByTeacher(int teacherId)
+{
+    try
+    {
+        var subjects = await _context.TeacherSubjects
+            .Where(ts => ts.UserId == teacherId && ts.IsActive)  // Changed TeacherId to UserId and added IsActive check
+            .Include(ts => ts.Subject)
+            .Select(ts => new
+            {
+                id = ts.SubjectId,
+                name = ts.Subject.Name
+            })
+            .ToListAsync();
+            
+        return Json(subjects);
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error retrieving subjects for teacher {TeacherId}", teacherId);
+        return Json(new List<object>());
+    }
+}
         [HttpGet]
         public async Task<IActionResult> GetBulkAttendanceSheetRange(int teacherId, int subjectId, int divisionId, DateTime startDate, DateTime endDate)
         {
