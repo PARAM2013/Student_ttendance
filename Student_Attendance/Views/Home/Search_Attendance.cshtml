@@ -1,13 +1,299 @@
-@{
+@@{
     ViewData["Title"] = "Student Attendance Search";
     Layout = "_Layout";
 }
 <style>
-        /* Previous styles remain unchanged */
-        :root {
-            --sidebar-width: 0px !important;
+    /* Previous styles remain unchanged */
+    :root {
+        --sidebar-width: 0px !important;
+    }
+    
+    /* Enhanced UI styles */
+    .attendance-search-page {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .login-btn {
+        padding: 8px 15px;
+        background-color: #007bff;
+        color: white;
+        border-radius: 4px;
+        text-decoration: none;
+        transition: background-color 0.3s;
+    }
+    
+    .login-btn:hover {
+        background-color: #0069d9;
+        color: white;
+    }
+    
+    .main-content {
+        flex: 1;
+        padding: 30px;
+        max-width: 1200px;
+        margin: 0 auto;
+        width: 100%;
+    }
+    
+    .search-logo {
+        text-align: center;
+        font-size: 3rem;
+        font-weight: bold;
+        margin-bottom: 30px;
+    }
+    
+    .search-logo span {
+        display: inline-block;
+        color: #007bff;
+        animation: bounce 1s infinite alternate;
+        animation-delay: calc(var(--i) * 0.1s);
+    }
+    
+    .search-logo span:nth-child(1) { --i: 1; }
+    .search-logo span:nth-child(2) { --i: 2; }
+    .search-logo span:nth-child(3) { --i: 3; }
+    .search-logo span:nth-child(4) { --i: 4; }
+    .search-logo span:nth-child(5) { --i: 5; }
+    .search-logo span:nth-child(6) { --i: 6; }
+    .search-logo span:nth-child(7) { --i: 7; }
+    
+    @@keyframes bounce {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(-10px); }
+    }
+    
+    .search-container {
+        position: relative;
+        max-width: 600px;
+        margin: 0 auto 20px;
+    }
+    
+    .search-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+    }
+    
+    .search-box {
+        width: 100%;
+        padding: 15px 15px 15px 45px;
+        border: 2px solid #ddd;
+        border-radius: 30px;
+        font-size: 1rem;
+        transition: all 0.3s;
+    }
+    
+    .search-box:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    }
+    
+    .student-dropdown {
+        position: absolute;
+        width: 100%;
+        max-height: 300px;
+        overflow-y: auto;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        z-index: 1000;
+    }
+    
+    .student-item {
+        padding: 10px 15px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .student-item:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .student-name {
+        font-weight: bold;
+    }
+    
+    .student-class {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    
+    .buttons-container {
+        text-align: center;
+        margin: 20px 0;
+    }
+    
+    .search-btn {
+        padding: 10px 25px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 30px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+    
+    .search-btn:hover {
+        background-color: #0069d9;
+    }
+    
+    .search-results {
+        max-width: 800px;
+        margin: 30px auto;
+        animation: fadeIn 0.5s ease-in-out;
+    }
+    
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .card {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    }
+    
+    .student-info {
+        text-align: center;
+        padding: 20px;
+        border-radius: 8px;
+        background-color: #f8f9fa;
+        margin-bottom: 20px;
+    }
+    
+    .attendance-stats {
+        padding: 20px;
+    }
+    
+    .progress {
+        height: 10px;
+        margin: 15px 0;
+        border-radius: 5px;
+        background-color: #e9ecef;
+    }
+    
+    .progress-bar {
+        border-radius: 5px;
+    }
+    
+    .subject-attendance {
+        margin-top: 20px;
+    }
+    
+    .subject-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .subject-stats {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .subject-stats .progress {
+        width: 150px;
+        height: 8px;
+    }
+    
+    .attendance-tabs {
+        margin-top: 20px;
+    }
+    
+    .tab-content {
+        padding: 20px 0;
+    }
+    
+    .chart-wrapper {
+        padding: 15px;
+        height: 300px;
+    }
+    
+    .actions-container {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 20px;
+    }
+    
+    .footer {
+        background-color: #f8f9fa;
+        padding: 15px 20px;
+        border-top: 1px solid #e9ecef;
+        margin-top: auto;
+    }
+    
+    .footer-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .footer-content img {
+        height: 30px;
+        margin-right: 10px;
+    }
+    
+    .footer-text {
+        font-weight: 500;
+    }
+    
+    .last-attendance-date {
+        display: block;
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-top: 5px;
+    }
+    
+    /* Print styles */
+    @@media print {
+        .header, .search-container, .buttons-container, .footer, .actions-container {
+            display: none !important;
         }
-        </style>
+        
+        .attendance-tabs {
+            border: none !important;
+        }
+        
+        .nav-tabs {
+            display: none !important;
+        }
+        
+        .tab-pane {
+            display: block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+    }
+</style>
 
 <div class="attendance-search-page">
     <div class="header">
@@ -39,11 +325,15 @@
         <div class="footer-content">
             <img src="~/Images/favicon.png" alt="Logo">
             <span class="footer-text">Student Attendance System</span>
+            <span id="lastAttendanceDate" class="last-attendance-date"></span>
         </div>
     </div>
 </div>
 
 @section Scripts {
+    <!-- Add Chart.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <script>
         $(document).ready(function() {
             let selectedStudentId = null;
@@ -109,49 +399,189 @@
                     data: { studentId: selectedStudentId },
                     success: function(data) {
                         if (data.success) {
-                            // Format the attendance data
+                            // Update last attendance date in footer
+                            if (data.lastAttendanceDate) {
+                                $('#lastAttendanceDate').text(`Last attendance taken on: ${data.lastAttendanceDate}`);
+                            }
+                            
+                            // Format the attendance data with enhanced UI
                             let html = `
-                                <div class="student-info">
+                                <div class="student-info card">
                                     <h3>${data.studentName}</h3>
                                     <p>Class: ${data.className}</p>
                                 </div>
-                                <div class="attendance-stats">
-                                    <h4>Overall Attendance: ${data.overallAttendance.toFixed(1)}%</h4>
-                                    <p>Attended ${data.attendedClasses} out of ${data.totalClasses} classes</p>
-                                    <div class="progress">
-                                        <div class="progress-bar ${data.overallAttendance < 75 ? 'bg-danger' : 'bg-success'}" 
-                                            role="progressbar" 
-                                            style="width: ${data.overallAttendance}%" 
-                                            aria-valuenow="${data.overallAttendance}" 
-                                            aria-valuemin="0" 
-                                            aria-valuemax="100"></div>
-                                    </div>
+                                
+                                <div class="attendance-tabs">
+                                    <ul class="nav nav-tabs" id="attendanceTabs" role="tablist">
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">Overview</button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="subjects-tab" data-bs-toggle="tab" data-bs-target="#subjects" type="button" role="tab">Subjects</button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="charts-tab" data-bs-toggle="tab" data-bs-target="#charts" type="button" role="tab">Charts</button>
+                                        </li>
+                                    </ul>
                                     
-                                    <div class="subject-attendance">
-                                        <h5>Subject-wise Attendance</h5>
-                                        ${data.subjectAttendance.map(subject => `
-                                            <div class="subject-row">
-                                                <div class="subject-name">${subject.subjectName}</div>
-                                                                                                <div class="subject-stats">
-                                                    <span class="badge ${subject.present/subject.total*100 < 75 ? 'bg-danger' : 'bg-success'}">
-                                                        ${subject.present}/${subject.total} (${(subject.present/subject.total*100).toFixed(1)}%)
-                                                    </span>
+                                    <div class="tab-content" id="attendanceTabContent">
+                                        <!-- Overview Tab -->
+                                        <div class="tab-pane fade show active" id="overview" role="tabpanel">
+                                            <div class="attendance-stats card">
+                                                <h4>Overall Attendance: ${data.overallAttendance.toFixed(1)}%</h4>
+                                                <p>Attended ${data.attendedClasses} out of ${data.totalClasses} classes</p>
+                                                <div class="progress">
+                                                    <div class="progress-bar ${data.overallAttendance < 75 ? 'bg-danger' : 'bg-success'}" 
+                                                        role="progressbar" 
+                                                        style="width: ${data.overallAttendance}%" 
+                                                        aria-valuenow="${data.overallAttendance}" 
+                                                        aria-valuemin="0" 
+                                                        aria-valuemax="100"></div>
+                                                </div>
+                                                
+                                                <div class="attendance-status mt-3">
+                                                    <h5>Status: 
+                                                        <span class="${data.overallAttendance >= 90 ? 'text-success' : 
+                                                                      data.overallAttendance >= 75 ? 'text-warning' : 'text-danger'}">
+                                                            ${data.overallAttendance >= 90 ? 'Excellent' : 
+                                                                                                        ${data.overallAttendance >= 90 ? 'Excellent' : 
+                                              data.overallAttendance >= 75 ? 'Satisfactory' : 'Needs Improvement'}
+                                        </span>
+                                    </h5>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Subjects Tab -->
+                        <div class="tab-pane fade" id="subjects" role="tabpanel">
+                            <div class="subject-attendance card">
+                                <h5>Subject-wise Attendance</h5>
+                                ${data.subjectAttendance.map(subject => `
+                                    <div class="subject-row">
+                                        <div class="subject-name">${subject.subjectName}</div>
+                                        <div class="subject-stats">
+                                            <div class="progress">
+                                                <div class="progress-bar ${subject.present/subject.total*100 < 75 ? 'bg-danger' : 'bg-success'}" 
+                                                    role="progressbar" 
+                                                    style="width: ${(subject.present/subject.total*100)}%" 
+                                                    aria-valuenow="${(subject.present/subject.total*100)}" 
+                                                    aria-valuemin="0" 
+                                                    aria-valuemax="100">
+                                                    ${(subject.present/subject.total*100).toFixed(1)}%
                                                 </div>
                                             </div>
-                                        `).join('')}
+                                            <span class="badge ${subject.present/subject.total*100 < 75 ? 'bg-danger' : 'bg-success'}">
+                                                ${subject.present}/${subject.total} (${(subject.present/subject.total*100).toFixed(1)}%)
+                                            </span>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        
+                        <!-- Charts Tab -->
+                        <div class="tab-pane fade" id="charts" role="tabpanel">
+                            <div class="charts-container card">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="chart-wrapper">
+                                            <h5>Overall Attendance</h5>
+                                                                                        <canvas id="attendancePieChart"></canvas>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="chart-wrapper">
+                                            <h5>Subject-wise Attendance</h5>
+                                            <canvas id="subjectBarChart"></canvas>
+                                        </div>
                                     </div>
                                 </div>
-                            `;
-                            $('#attendanceResults').html(html).show();
-                        } else {
-                            alert('Error: ' + data.message);
-                        }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="actions-container mt-3">
+                    <button class="btn btn-primary" id="printReport">
+                        <i class="fas fa-print"></i> Print Report
+                    </button>
+                </div>
+            `;
+            
+            $('#attendanceResults').html(html).show();
+            
+            // Initialize charts after DOM is updated
+            createAttendanceCharts(data);
+            
+            // Add print functionality
+            $('#printReport').on('click', function() {
+                window.print();
+            });
+            
+            // Add animation to show results
+            $('#attendanceResults').hide().fadeIn(500);
+        } else {
+            alert('Error: ' + data.message);
+        }
+    },
+    error: function() {
+        alert('Error retrieving attendance data');
+    }
+});
+            });
+            
+            // Function to create charts
+            function createAttendanceCharts(data) {
+                // Pie chart for overall attendance
+                const pieCtx = document.getElementById('attendancePieChart').getContext('2d');
+                new Chart(pieCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Present', 'Absent'],
+                        datasets: [{
+                            data: [data.attendedClasses, data.totalClasses - data.attendedClasses],
+                            backgroundColor: ['#28a745', '#dc3545'],
+                            borderWidth: 1
+                        }]
                     },
-                    error: function() {
-                        alert('Error retrieving attendance data');
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
                     }
                 });
-            });
+                
+                // Bar chart for subject-wise attendance
+                const barCtx = document.getElementById('subjectBarChart').getContext('2d');
+                const subjectNames = data.subjectAttendance.map(s => s.subjectName);
+                const attendancePercentages = data.subjectAttendance.map(s => (s.present/s.total*100).toFixed(1));
+                const barColors = data.subjectAttendance.map(s => s.present/s.total*100 < 75 ? '#dc3545' : '#28a745');
+                
+                new Chart(barCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: subjectNames,
+                        datasets: [{
+                            label: 'Attendance %',
+                            data: attendancePercentages,
+                            backgroundColor: barColors,
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100
+                            }
+                        }
+                    }
+                });
+            }
             
             // Close dropdown when clicking outside
             $(document).on('click', function(e) {
