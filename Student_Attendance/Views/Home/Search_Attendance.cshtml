@@ -2,28 +2,9 @@
     ViewData["Title"] = "Student Attendance Search";
     Layout = "_Layout";
 }
-<style>
-    /* Previous styles remain unchanged */
-    :root {
-        --sidebar-width: 0px !important;
-    }
-    
-    /* Weekly heatmap styles */
-    .weekly-heatmap {
-        margin-top: 10px;
-    }
-    
-    .day-cell {
-        height: 40px;
-        border-radius: 4px;
-        margin: 2px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        cursor: default;
-    }
-</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<link rel="stylesheet" href="~/css/homesearch.css">
+
 <div class="attendance-search-page">
     <div class="header">
         <h3>Student Attendance System</h3>
@@ -33,18 +14,20 @@
     </div>
 
     <div class="main-content">
-        <div class="search-logo">
-            <span>S</span><span>t</span><span>u</span><span>d</span><span>e</span><span>n</span><span>t</span>
-        </div>
+        <div id="searchSection">
+            <div class="search-logo">
+                <span>S</span><span>t</span><span>u</span><span>d</span><span>e</span><span>n</span><span>t</span>
+            </div>
 
-        <div class="search-container">
-            <i class="fas fa-search search-icon"></i>
-            <input type="text" id="studentSearch" class="search-box" placeholder="Search student by name..." autocomplete="off">
-            <div id="studentDropdown" class="student-dropdown" style="display: none;"></div>
-        </div>
+            <div class="search-container">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="studentSearch" class="search-box" placeholder="Search student by name..." autocomplete="off">
+                <div id="studentDropdown" class="student-dropdown" style="display: none;"></div>
+            </div>
 
-        <div class="buttons-container">
-            <button id="searchBtn" class="search-btn">Search Student</button>
+            <div class="buttons-container">
+                <button id="searchBtn" class="search-btn">Search Student</button>
+            </div>
         </div>
 
         <div id="attendanceResults" class="search-results" style="display: none;"></div>
@@ -127,13 +110,17 @@
                     data: { studentId: selectedStudentId },
                     success: function(data) {
                         if (data.success) {
-                            // Format the attendance data
+                            // Hide search section
+                            $('#searchSection').hide();
+                            
+                            // Format the attendance data with welcome message
                             let html = '<div class="student-info">' +
                                 '<h3>' + data.studentName + '</h3>' +
                                 '<p>Class: ' + data.className + '</p>' +
+                                '<div class="welcome-message">Hi, ' + data.studentName + ', your overall attendance is ' + 
+                                data.overallAttendance.toFixed(1) + '%.</div>' +
                                 '</div>' +
                                 '<div class="attendance-stats">' +
-                                '<h4>Overall Attendance: ' + data.overallAttendance.toFixed(1) + '%</h4>' +
                                 '<p>Attended ' + data.attendedClasses + ' out of ' + data.totalClasses + ' classes</p>' +
                                 '<div class="progress">' +
                                 '<div class="progress-bar ' + (data.overallAttendance < 75 ? 'bg-danger' : 'bg-success') + '" ' +
@@ -145,25 +132,26 @@
                                 '</div>' +
                                 '</div>';
                             
+                            // Add charts container for better layout
+                            html += '<div class="charts-container">';
+                            
                             // Add Subject Comparison Chart
-                            html += '<div class="mt-4">' +
+                            html += '<div class="chart-box comparison-chart">' +
                                 '<h5>Subject Comparison</h5>' +
-                                '<canvas id="subjectComparisonChart" width="400" height="200"></canvas>' +
+                                '<canvas id="subjectComparisonChart"></canvas>' +
                                 '</div>';
                             
                             // Add Attendance Status Chart
-                            html += '<div class="mt-4">' +
+                            html += '<div class="chart-box status-chart">' +
                                 '<h5>Attendance Status</h5>' +
-                                '<div class="row">' +
-                                '<div class="col-md-6 mx-auto">' +
-                                '<canvas id="attendanceStatusChart" width="200" height="200"></canvas>' +
-                                '</div>' +
-                                '</div>' +
+                                '<canvas id="attendanceStatusChart"></canvas>' +
                                 '</div>';
+                            
+                            html += '</div>'; // Close charts-container
                             
                             // Add Weekly Attendance Heatmap if data exists
                             if(data.weeklyAttendance) {
-                                html += '<div class="mt-4">' +
+                                html += '<div class="chart-box">' +
                                     '<h5>Weekly Attendance Pattern</h5>' +
                                     '<div class="weekly-heatmap">' +
                                     '<div class="row text-center">' +
@@ -199,6 +187,9 @@
                                 html += '</div></div></div>';
                             }
                             
+                            // Add back to search button
+                            html += '<button class="back-to-search" id="backToSearch">Back to Search</button>';
+                            
                             $('#attendanceResults').html(html).show();
                             
                             // Initialize charts after DOM is updated
@@ -221,6 +212,8 @@
                                         }]
                                     },
                                     options: {
+                                        responsive: true,
+                                        maintainAspectRatio: true,
                                         scales: {
                                             y: {
                                                 beginAtZero: true,
@@ -258,6 +251,8 @@
                                     }]
                                 },
                                 options: {
+                                    responsive: true,
+                                    maintainAspectRatio: true,
                                     plugins: {
                                         tooltip: {
                                             callbacks: {
@@ -275,6 +270,12 @@
                             
                             // Initialize tooltips
                             $('[data-bs-toggle="tooltip"]').tooltip();
+                            
+                            // Handle back to search button
+                            $('#backToSearch').on('click', function() {
+                                $('#attendanceResults').hide();
+                                $('#searchSection').show();
+                            });
                         } else {
                             alert('Error: ' + data.message);
                         }
@@ -285,6 +286,8 @@
                 });
             });
             
+            // ... existing code ...
+
             // Close dropdown when clicking outside
             $(document).on('click', function(e) {
                 if (!$(e.target).closest('.search-container').length) {
