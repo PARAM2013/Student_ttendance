@@ -1,0 +1,92 @@
+@model List<LessAttendanceStudentViewModel>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        No students found with attendance below the threshold.
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                Found @Model.Count students with low attendance
+            </h5>
+            <button class="btn btn-sm btn-outline-primary" onclick="exportReport()">
+                <i class="fas fa-file-export me-1"></i>Export
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Roll No</th>
+                            <th>Student Name</th>
+                            <th>Class</th>
+                            <th>Division</th>
+                            <th>Total Classes</th>
+                            <th>Present</th>
+                            <th>Absent</th>
+                            <th>Attendance %</th>
+                            <th>Risk Level</th>
+                            <th>Consecutive Absences</th>
+                            <th>Contact</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var student in Model)
+                        {
+                            <tr>
+                                <td>@student.EnrollmentNo</td>
+                                <td>@student.StudentName</td>
+                                <td>@student.Class</td>
+                                <td>@student.Division</td>
+                                <td>@student.TotalClasses</td>
+                                <td>@student.Present</td>
+                                <td>@student.Absent</td>
+                                <td>
+                                    <span class="badge bg-@(student.AttendancePercentage < 50 ? "danger" : 
+                                                          student.AttendancePercentage < 60 ? "warning" : "info")">
+                                        @student.AttendancePercentage.ToString("F1")%
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-@(student.RiskLevel == "High" ? "danger" : 
+                                                          student.RiskLevel == "Medium" ? "warning" : "info")">
+                                        @student.RiskLevel
+                                    </span>
+                                </td>
+                                <td>@student.ConsecutiveAbsences</td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(student.ContactNumber))
+                                    {
+                                        <a href="tel:@student.ContactNumber" class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-phone-alt"></i>
+                                        </a>
+                                    }
+                                    @if (!string.IsNullOrEmpty(student.Email))
+                                    {
+                                        <a href="mailto:@student.Email" class="btn btn-sm btn-outline-secondary ms-1">
+                                            <i class="fas fa-envelope"></i>
+                                        </a>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+<script>
+    function exportReport() {
+        var url = '/Attendance/ExportLessAttendanceReport' + window.location.search;
+        window.location.href = url;
+    }
+</script>

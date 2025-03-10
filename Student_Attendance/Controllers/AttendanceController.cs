@@ -21,6 +21,8 @@ using iText.IO.Font;
 using iText.Layout.Borders;
 using iText.Kernel.Events;  // Add this at the top with other using statements
 using iText.Kernel.Pdf.Canvas;  // Add this for PdfCanvas
+using System.IO;
+using OfficeOpenXml;
 
 namespace Student_Attendance.Controllers
 {
@@ -87,8 +89,8 @@ namespace Student_Attendance.Controllers
                 if (!User.IsInRole("Admin"))
                 {
                     var hasPermission = await _context.TeacherSubjects
-                        .AnyAsync(ts => ts.UserId == CurrentUser.Id && 
-                                      ts.SubjectId == model.SubjectId && 
+                        .AnyAsync(ts => ts.UserId == CurrentUser.Id &&
+                                      ts.SubjectId == model.SubjectId &&
                                       ts.IsActive);
                     if (!hasPermission)
                     {
@@ -97,7 +99,7 @@ namespace Student_Attendance.Controllers
                 }
 
                 var existingRecords = await _context.AttendanceRecords
-                    .Where(a => a.Date.Date == model.Date.Date && 
+                    .Where(a => a.Date.Date == model.Date.Date &&
                                a.SubjectId == model.SubjectId)
                     .ToListAsync();
 
@@ -105,7 +107,7 @@ namespace Student_Attendance.Controllers
                 foreach (var student in model.Students)
                 {
                     var existingRecord = existingRecords.FirstOrDefault(r => r.StudentId == student.StudentId);
-                    
+
                     if (existingRecord != null)
                     {
                         // If record exists and status changed, create audit and update record
@@ -120,7 +122,7 @@ namespace Student_Attendance.Controllers
                                 NewValue = student.IsPresent
                             };
                             _context.AttendanceAudits.Add(audit);
-                            
+
                             // Update existing record
                             existingRecord.IsPresent = student.IsPresent;
                             existingRecord.TimeStamp = DateTime.Now;
@@ -236,8 +238,8 @@ namespace Student_Attendance.Controllers
                         TotalClasses = data?.TotalClasses ?? 0,
                         Present = data?.Present ?? 0,
                         Absent = data?.Absent ?? 0,
-                        AttendancePercentage = data?.TotalClasses > 0 
-                            ? (decimal)data.Present / data.TotalClasses * 100 
+                        AttendancePercentage = data?.TotalClasses > 0
+                            ? (decimal)data.Present / data.TotalClasses * 100
                             : 0
                     };
                 }).ToList();
@@ -280,7 +282,7 @@ namespace Student_Attendance.Controllers
                     .ToListAsync();
 
                 var attendanceRecords = await _context.AttendanceRecords
-                    .Where(a => a.SubjectId == subjectId && 
+                    .Where(a => a.SubjectId == subjectId &&
                                a.Date.Date == date.Date)
                     .ToListAsync();
 
@@ -317,8 +319,8 @@ namespace Student_Attendance.Controllers
                     }
 
                     var hasPermission = await _context.TeacherSubjects
-                        .AnyAsync(ts => ts.UserId == CurrentUser.Id && 
-                                       ts.SubjectId == subjectId && 
+                        .AnyAsync(ts => ts.UserId == CurrentUser.Id &&
+                                       ts.SubjectId == subjectId &&
                                        ts.IsActive);
                     if (!hasPermission)
                     {
@@ -328,7 +330,7 @@ namespace Student_Attendance.Controllers
 
                 // Get existing discussion topic for this date and subject
                 var existingDiscussionTopic = await _context.AttendanceRecords
-                    .Where(a => a.SubjectId == subjectId && 
+                    .Where(a => a.SubjectId == subjectId &&
                                a.Date.Date == date.Date)
                     .Select(a => a.DiscussionTopic)
                     .FirstOrDefaultAsync();
@@ -336,7 +338,7 @@ namespace Student_Attendance.Controllers
                 // Get students who are mapped to this subject
                 var students = await _context.Students
                     .Include(s => s.StudentSubjects)
-                    .Where(s => s.DivisionId == divisionId && 
+                    .Where(s => s.DivisionId == divisionId &&
                                s.IsActive &&
                                s.StudentSubjects.Any(ss => ss.SubjectId == subjectId))
                     .Select(s => new StudentAttendanceViewModel
@@ -356,7 +358,7 @@ namespace Student_Attendance.Controllers
 
                 // Get existing attendance records if any
                 var existingRecords = await _context.AttendanceRecords
-                    .Where(a => a.SubjectId == subjectId && 
+                    .Where(a => a.SubjectId == subjectId &&
                                a.Date.Date == date.Date)
                     .ToListAsync();
 
@@ -389,7 +391,7 @@ namespace Student_Attendance.Controllers
             {
                 // If teacher, set logged-in teacher and allocated subjects; else, load all teachers.
                 Teachers = new SelectList(User.IsInRole("Admin")
-                    ? _context.Users.Where(u => u.Role=="Teacher").ToList()
+                    ? _context.Users.Where(u => u.Role == "Teacher").ToList()
                     : new List<User>(), "Id", "UserName"),
                 // For teacher login, teacher is read-only.
                 SelectedTeacherId = User.IsInRole("Teacher") ? CurrentUser.Id : 0,
@@ -405,7 +407,7 @@ namespace Student_Attendance.Controllers
             var model = new BulkAttendanceRangeViewModel
             {
                 Teachers = new SelectList(User.IsInRole("Admin")
-                    ? _context.Users.Where(u => u.Role=="Teacher").ToList()
+                    ? _context.Users.Where(u => u.Role == "Teacher").ToList()
                     : new List<User>(), "Id", "UserName"),
                 SelectedTeacherId = User.IsInRole("Teacher") ? CurrentUser.Id : 0,
                 Divisions = new SelectList(_context.Divisions.ToList(), "Id", "Name"),
@@ -428,10 +430,11 @@ namespace Student_Attendance.Controllers
             // Get only students who are mapped to this subject
             var students = await _context.Students
                                 .Include(s => s.StudentSubjects)
-                                .Where(s => s.DivisionId == divisionId && 
+                                .Where(s => s.DivisionId == divisionId &&
                                           s.IsActive &&
                                           s.StudentSubjects.Any(ss => ss.SubjectId == subjectId))
-                                .Select(s => new BulkAttendanceStudentViewModel {
+                                .Select(s => new BulkAttendanceStudentViewModel
+                                {
                                     StudentId = s.Id,
                                     EnrollmentNo = s.EnrollmentNo,
                                     StudentName = s.Name
@@ -450,7 +453,8 @@ namespace Student_Attendance.Controllers
                                         a.Date.Year == year)
                                 .ToListAsync();
 
-            var gridModel = new BulkAttendanceGridViewModel {
+            var gridModel = new BulkAttendanceGridViewModel
+            {
                 Dates = dates,
                 Students = students,
                 ExistingAttendance = records.ToDictionary(
@@ -461,31 +465,31 @@ namespace Student_Attendance.Controllers
             return PartialView("_BulkAttendanceGrid", gridModel);
         }
 
-// Add this method to your AttendanceController
+        // Add this method to your AttendanceController
 
-[HttpGet]
-public async Task<IActionResult> GetSubjectsByTeacher(int teacherId)
-{
-    try
-    {
-        var subjects = await _context.TeacherSubjects
-            .Where(ts => ts.UserId == teacherId && ts.IsActive)  // Changed TeacherId to UserId and added IsActive check
-            .Include(ts => ts.Subject)
-            .Select(ts => new
+        [HttpGet]
+        public async Task<IActionResult> GetSubjectsByTeacher(int teacherId)
+        {
+            try
             {
-                id = ts.SubjectId,
-                name = ts.Subject.Name
-            })
-            .ToListAsync();
-            
-        return Json(subjects);
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "Error retrieving subjects for teacher {TeacherId}", teacherId);
-        return Json(new List<object>());
-    }
-}
+                var subjects = await _context.TeacherSubjects
+                    .Where(ts => ts.UserId == teacherId && ts.IsActive)  // Changed TeacherId to UserId and added IsActive check
+                    .Include(ts => ts.Subject)
+                    .Select(ts => new
+                    {
+                        id = ts.SubjectId,
+                        name = ts.Subject.Name
+                    })
+                    .ToListAsync();
+
+                return Json(subjects);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving subjects for teacher {TeacherId}", teacherId);
+                return Json(new List<object>());
+            }
+        }
         [HttpGet]
         public async Task<IActionResult> GetBulkAttendanceSheetRange(int teacherId, int subjectId, int divisionId, DateTime startDate, DateTime endDate)
         {
@@ -501,10 +505,11 @@ public async Task<IActionResult> GetSubjectsByTeacher(int teacherId)
             // Get only students who are mapped to this subject
             var students = await _context.Students
                                 .Include(s => s.StudentSubjects)
-                                .Where(s => s.DivisionId == divisionId && 
+                                .Where(s => s.DivisionId == divisionId &&
                                           s.IsActive &&
                                           s.StudentSubjects.Any(ss => ss.SubjectId == subjectId))
-                                .Select(s => new BulkAttendanceStudentViewModel {
+                                .Select(s => new BulkAttendanceStudentViewModel
+                                {
                                     StudentId = s.Id,
                                     EnrollmentNo = s.EnrollmentNo,
                                     StudentName = s.Name
@@ -522,7 +527,8 @@ public async Task<IActionResult> GetSubjectsByTeacher(int teacherId)
                                         a.Date <= endDate)
                                 .ToListAsync();
 
-            var gridModel = new BulkAttendanceGridViewModel {
+            var gridModel = new BulkAttendanceGridViewModel
+            {
                 Dates = dates,
                 Students = students,
                 ExistingAttendance = records.ToDictionary(
@@ -631,8 +637,9 @@ public async Task<IActionResult> GetSubjectsByTeacher(int teacherId)
                     _context.AttendanceRecords.AddRange(newRecords);
 
                 await _context.SaveChangesAsync();
-                return Json(new { 
-                    success = true, 
+                return Json(new
+                {
+                    success = true,
                     message = "Attendance saved successfully",
                     updated = updatedRecords.Count,
                     new_records = newRecords.Count,
@@ -721,7 +728,7 @@ public async Task<IActionResult> GetSubjectsByTeacher(int teacherId)
         public async Task<IActionResult> MonthlyReport()
         {
             var model = new MonthlyReportViewModel { ReportDate = DateTime.Today };
-            
+
             if (User.IsInRole("Admin"))
             {
                 model.Teachers = new SelectList(
@@ -738,7 +745,7 @@ public async Task<IActionResult> GetSubjectsByTeacher(int teacherId)
                     .ToListAsync();
                 model.Subjects = new SelectList(subjects, "Id", "Name");
             }
-            
+
             return View(model);
         }
 
@@ -749,31 +756,31 @@ public async Task<IActionResult> GetSubjectsByTeacher(int teacherId)
             {
                 var date = DateTime.ParseExact(reportMonth, "yyyy-MM", CultureInfo.InvariantCulture);
                 var institute = await _context.Institutes.FirstOrDefaultAsync();
-                
+
                 // Get subject details with class and course
                 var subject = await _context.Subjects
                     .Include(s => s.Class)
                     .ThenInclude(c => c.Course)
                     .FirstOrDefaultAsync(s => s.Id == subjectId);
-                    
+
                 if (subject == null)
                     return Json(new { success = false, message = "Subject not found" });
-                    
+
                 // Get teacher name
                 var teacher = await _context.Users.FindAsync(teacherId);
                 if (teacher == null)
                     return Json(new { success = false, message = "Teacher not found" });
-                    
+
                 // Get academic year
                 var academicYear = await _context.AcademicYears
                     .FirstOrDefaultAsync(ay => ay.IsActive);
-                    
+
                 // Get all dates in the month excluding Sundays
                 var datesInMonth = Enumerable.Range(1, DateTime.DaysInMonth(date.Year, date.Month))
                     .Select(day => new DateTime(date.Year, date.Month, day))
                     .Where(d => d.DayOfWeek != DayOfWeek.Sunday)
                     .ToList();
-                    
+
                 // Get attendance records
                 var records = await _context.AttendanceRecords
                     .Where(ar => ar.SubjectId == subjectId &&
@@ -782,14 +789,14 @@ public async Task<IActionResult> GetSubjectsByTeacher(int teacherId)
                     .ToListAsync();
 
                 // Filter dates if skipEmptyDates is true
-                var finalDates = skipEmptyDates 
+                var finalDates = skipEmptyDates
                     ? datesInMonth.Where(d => records.Any(r => r.Date.Date == d.Date)).ToList()
                     : datesInMonth;
 
                 // Get active students who are enrolled in this subject
                 var students = await _context.Students
                     .Include(s => s.StudentSubjects)
-                    .Where(s => s.ClassId == subject.ClassId && 
+                    .Where(s => s.ClassId == subject.ClassId &&
                                s.IsActive &&
                                s.StudentSubjects.Any(ss => ss.SubjectId == subjectId))
                     .OrderBy(s => s.EnrollmentNo)
@@ -803,7 +810,7 @@ public async Task<IActionResult> GetSubjectsByTeacher(int teacherId)
                 // Get division name (using first student's division as they're all in same class)
                 var division = await _context.Divisions
                     .FirstOrDefaultAsync(d => d.Id == students.First().DivisionId);
-                    
+
                 // Get course and specialization details
                 var classDetails = await _context.Classes
                     .Include(c => c.Course)
@@ -835,7 +842,7 @@ public async Task<IActionResult> GetSubjectsByTeacher(int teacherId)
                         StudentName = s.Name,
                         AttendanceByDate = finalDates.ToDictionary(
                             d => d,
-                            d => (bool?)records.FirstOrDefault(r => 
+                            d => (bool?)records.FirstOrDefault(r =>
                                 r.StudentId == s.Id && r.Date.Date == d.Date)?.IsPresent
                         )
                     }).ToList(),
@@ -920,15 +927,15 @@ public async Task<IActionResult> GetSubjectsByTeacher(int teacherId)
                 AddCompactInfoRow(infoTable, "Teacher", reportData.TeacherName);
                 AddCompactInfoRow(infoTable, "Subject", reportData.SubjectInfo);
                 AddCompactInfoRow(infoTable, "Month", reportData.MonthYear);
-                
+
                 if (!string.IsNullOrEmpty(reportData.CourseName))
                     AddCompactInfoRow(infoTable, "Course", reportData.CourseName);
-                    
+
                 AddCompactInfoRow(infoTable, "Class", reportData.ClassInfo);
-                
+
                 if (!string.IsNullOrEmpty(reportData.Specialization))
                     AddCompactInfoRow(infoTable, "Specialization", reportData.Specialization);
-                    
+
                 AddCompactInfoRow(infoTable, "Division", reportData.DivisionName);
                 AddCompactInfoRow(infoTable, "Academic Year", reportData.AcademicYear);
                 document.Add(infoTable);
@@ -966,12 +973,12 @@ public async Task<IActionResult> GetSubjectsByTeacher(int teacherId)
                 foreach (var studentGroup in remainingStudents)
                 {
                     document.Add(new AreaBreak(AreaBreakType.NEXT_PAGE));
-                    
+
                     table = new Table(UnitValue.CreatePointArray(columnWidths))
                         .UseAllAvailableWidth()
                         .SetMarginTop(5);
                     AddTableHeader(table, reportData.Dates);
-                    
+
                     foreach (var student in studentGroup)
                     {
                         AddStudentRow(table, student, reportData.Dates);
@@ -1012,7 +1019,7 @@ public async Task<IActionResult> GetSubjectsByTeacher(int teacherId)
             // Attendance Cells
             int presentCount = 0;
             int totalDays = 0;
-            
+
             foreach (var date in dates)
             {
                 var status = student.AttendanceByDate.GetValueOrDefault(date);
@@ -1058,7 +1065,7 @@ public async Task<IActionResult> GetSubjectsByTeacher(int teacherId)
         }
 
         // Page number handler class
-        private class PageNumberEventHandler : IEventHandler 
+        private class PageNumberEventHandler : IEventHandler
         {
             public void HandleEvent(Event currentEvent)
             {
@@ -1068,7 +1075,7 @@ public async Task<IActionResult> GetSubjectsByTeacher(int teacherId)
 
                 Rectangle pageSize = page.GetPageSize();
                 PdfCanvas canvas = new PdfCanvas(page);
-                
+
                 canvas.BeginText()
                     .SetFontAndSize(PdfFontFactory.CreateFont(StandardFonts.HELVETICA), 8)
                     .MoveText(pageSize.GetWidth() / 2 - 20, 30)
@@ -1099,14 +1106,45 @@ public async Task<IActionResult> GetSubjectsByTeacher(int teacherId)
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetClasses(int courseId, int academicYearId)
+        public async Task<IActionResult> GetClasses(int courseId)
         {
             var classes = await _context.Classes
-                .Where(c => c.CourseId == courseId && c.AcademicYearId == academicYearId)
+                .Where(c => c.CourseId == courseId)
+                .OrderBy(c => c.Name)
                 .Select(c => new { id = c.Id, name = c.Name })
                 .ToListAsync();
+
             return Json(classes);
         }
+
+        [HttpGet]
+        public async Task<IActionResult> GetDivisions(int classId)
+        {
+            var divisions = await _context.Divisions
+                .Where(d => d.ClassId == classId)
+                .OrderBy(d => d.Name)
+                .Select(d => new { id = d.Id, name = d.Name })
+                .ToListAsync();
+
+            return Json(divisions);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetSubjects(int divisionId)
+        {
+            var subjects = await _context.Subjects
+                .Where(s => s.ClassId == (
+                    _context.Divisions
+                    .Where(d => d.Id == divisionId)
+                    .Select(d => d.ClassId)
+                    .FirstOrDefault()))
+                .OrderBy(s => s.Name)
+                .Select(s => new { id = s.Id, name = s.Name })
+                .ToListAsync();
+
+            return Json(subjects);
+        }
+
 
         [HttpGet]
         public async Task<IActionResult> GetClassWiseReport(int academicYearId, int courseId, int classId)
@@ -1151,8 +1189,9 @@ public async Task<IActionResult> GetSubjectsByTeacher(int teacherId)
                         StudentName = s.Name,
                         Division = s.Division?.Name ?? "N/A",
                         Specialization = s.Class?.Specialization?.Name ?? "N/A",
-                        SubjectAttendances = subjects.Select(subj => {
-                            var records = attendanceRecords.Where(ar => 
+                        SubjectAttendances = subjects.Select(subj =>
+                        {
+                            var records = attendanceRecords.Where(ar =>
                                 ar.StudentId == s.Id && ar.SubjectId == subj.Id);
                             var totalClasses = records.Count();
                             var present = records.Count(r => r.IsPresent);
@@ -1253,14 +1292,14 @@ public async Task<IActionResult> GetSubjectsByTeacher(int teacherId)
                 document.Add(infoTable);
 
                 // Check if specialization column should be shown
-                bool showSpecialization = reportData.Students.Any(s => 
+                bool showSpecialization = reportData.Students.Any(s =>
                     !string.IsNullOrEmpty(s.Specialization) && s.Specialization != "N/A");
 
                 // Calculate column widths based on subjects and specialization
                 var subjectCount = reportData.Students.FirstOrDefault()?.SubjectAttendances.Count ?? 0;
                 var columnCount = 4 + subjectCount + (showSpecialization ? 1 : 0); // Basic columns + subjects + specialization (if shown) + overall
                 var columnWidths = new float[columnCount];
-                
+
                 // Set column widths
                 int currentColumn = 0;
                 columnWidths[currentColumn++] = 80; // Enrollment
@@ -1399,17 +1438,329 @@ public async Task<IActionResult> GetSubjectsByTeacher(int teacherId)
 
                     // Auto-fit columns
                     worksheet.Cells.AutoFitColumns();
-                    
+
                     // Save the changes
                     package.Save();
                 }
 
                 stream.Position = 0;
                 string fileName = $"audit-trail-{DateTime.Now:yyyyMMdd}.xlsx";
-                return File(stream.ToArray(), 
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
+                return File(stream.ToArray(),
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     fileName);
             }
         }
+
+        [Authorize]
+        public async Task<IActionResult> LessAttendanceReport()
+        {
+            var viewModel = new LessAttendanceReportViewModel
+            {
+                Courses = new SelectList(await _context.Courses.OrderBy(c => c.Name).ToListAsync(), "Id", "Name"),
+                Classes = new SelectList(new List<Class>(), "Id", "Name"),
+                Divisions = new SelectList(new List<Division>(), "Id", "Name"),
+                Subjects = new SelectList(new List<Subject>(), "Id", "Name"),
+                StartDate = DateTime.Today.AddDays(-30), // Default to last 30 days
+                EndDate = DateTime.Today,
+                ThresholdPercentage = 75 // Default threshold
+            };
+
+            return View(viewModel);
+        }
+
+        [HttpGet]
+public async Task<IActionResult> GetLessAttendanceReport(int? courseId, int? classId, int? divisionId, 
+    int? subjectId, DateTime? startDate, DateTime? endDate, int thresholdPercentage = 75)
+{
+    try
+    {
+        // Validate input parameters
+        if (startDate.HasValue && endDate.HasValue && startDate > endDate)
+        {
+            return Content("<div class='alert alert-warning'>Start date cannot be after end date.</div>");
+        }
+
+        if (!startDate.HasValue)
+        {
+            startDate = DateTime.Today.AddDays(-30);
+        }
+        
+        if (!endDate.HasValue)
+        {
+            endDate = DateTime.Today;
+        }
+        
+        // Log the parameters for debugging
+        _logger.LogInformation($"Generating less attendance report with parameters: courseId={courseId}, classId={classId}, divisionId={divisionId}, " +
+                              $"subjectId={subjectId}, startDate={startDate}, endDate={endDate}, threshold={thresholdPercentage}");
+        
+        // Create a list to store the results
+        var lowAttendanceStudents = new List<LessAttendanceStudentViewModel>();
+        
+        // Get students based on filters
+        var studentsQuery = _context.Students.AsQueryable();
+        
+        if (courseId.HasValue && courseId.Value > 0)
+        {
+            // Check if the course exists
+            var courseExists = await _context.Courses.AnyAsync(c => c.Id == courseId.Value);
+            if (!courseExists)
+            {
+                return Content("<div class='alert alert-warning'>Selected course not found.</div>");
+            }
+            
+            studentsQuery = studentsQuery.Where(s => s.Class != null && s.Class.CourseId == courseId.Value);
+        }
+        
+        if (classId.HasValue && classId.Value > 0)
+        {
+            // Check if the class exists
+            var classExists = await _context.Classes.AnyAsync(c => c.Id == classId.Value);
+            if (!classExists)
+            {
+                return Content("<div class='alert alert-warning'>Selected class not found.</div>");
+            }
+            
+            studentsQuery = studentsQuery.Where(s => s.ClassId == classId.Value);
+        }
+        
+        if (divisionId.HasValue && divisionId.Value > 0)
+        {
+            // Check if the division exists
+            var divisionExists = await _context.Divisions.AnyAsync(d => d.Id == divisionId.Value);
+            if (!divisionExists)
+            {
+                return Content("<div class='alert alert-warning'>Selected division not found.</div>");
+            }
+            
+            studentsQuery = studentsQuery.Where(s => s.DivisionId == divisionId.Value);
+        }
+        
+        // Execute the query to get students
+        var students = await studentsQuery
+            .Include(s => s.Class)
+            .Include(s => s.Division)
+            .ToListAsync();
+        
+        if (!students.Any())
+        {
+            return PartialView("_LessAttendanceReport", lowAttendanceStudents);
+        }
+        
+        // Get student IDs for the attendance query
+        var studentIds = students.Select(s => s.Id).ToList();
+        
+        // Get attendance records for these students
+        var attendanceQuery = _context.AttendanceRecords
+            .Where(ar => studentIds.Contains(ar.StudentId))
+            .Where(ar => ar.Date >= startDate && ar.Date <= endDate);
+        
+        if (subjectId.HasValue && subjectId.Value > 0)
+        {
+            // Check if the subject exists
+            var subjectExists = await _context.Subjects.AnyAsync(s => s.Id == subjectId.Value);
+            if (!subjectExists)
+            {
+                return Content("<div class='alert alert-warning'>Selected subject not found.</div>");
+            }
+            
+            attendanceQuery = attendanceQuery.Where(ar => ar.SubjectId == subjectId.Value);
+        }
+        
+        var attendanceRecords = await attendanceQuery
+            .Include(ar => ar.Subject)
+            .ToListAsync();
+        
+        // Process each student
+        foreach (var student in students)
+        {
+            // Get records for this student
+            var studentRecords = attendanceRecords
+                .Where(ar => ar.StudentId == student.Id)
+                .ToList();
+            
+            // Skip if no records
+            if (!studentRecords.Any())
+            {
+                continue;
+            }
+            
+            // Calculate attendance
+            int totalClasses = studentRecords.Count;
+            int present = studentRecords.Count(r => r.IsPresent);
+            int absent = totalClasses - present;
+            decimal percentage = totalClasses > 0 ? (decimal)present * 100 / totalClasses : 0;
+            
+            // Skip if attendance is above threshold
+            if (percentage > thresholdPercentage)
+            {
+                continue;
+            }
+            
+            // Calculate consecutive absences
+            int consecutiveAbsences = 0;
+            var orderedRecords = studentRecords
+                .OrderByDescending(r => r.Date)
+                .ToList();
+                
+            foreach (var record in orderedRecords)
+            {
+                if (!record.IsPresent)
+                {
+                    consecutiveAbsences++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+            
+            // Determine risk level
+            string riskLevel;
+            if (percentage < 50)
+                riskLevel = "High";
+            else if (percentage < 60)
+                riskLevel = "Medium";
+            else
+                riskLevel = "Low";
+            
+            // Determine trend (simplified)
+            bool isDecreasing = false;
+            
+            // Create the view model
+            var studentViewModel = new LessAttendanceStudentViewModel
+            {
+                StudentId = student.Id,
+                EnrollmentNo = student.EnrollmentNo ?? "N/A",
+                StudentName = student.Name ?? "Unknown",
+                Class = student.Class?.Name ?? "N/A",
+                Division = student.Division?.Name ?? "N/A",
+                ContactNumber = student.Mobile ?? "",
+                Email = student.Email ?? "",
+                TotalClasses = totalClasses,
+                Present = present,
+                Absent = absent,
+                AttendancePercentage = percentage,
+                RiskLevel = riskLevel,
+                IsDecreasing = isDecreasing,
+                ConsecutiveAbsences = consecutiveAbsences,
+                SubjectWiseAttendance = new Dictionary<string, decimal>()
+            };
+            
+            lowAttendanceStudents.Add(studentViewModel);
+        }
+        
+        // Sort by attendance percentage
+        lowAttendanceStudents = lowAttendanceStudents
+            .OrderBy(s => s.AttendancePercentage)
+            .ToList();
+        
+        if (!lowAttendanceStudents.Any())
+        {
+            return Content("<div class='alert alert-info'>No students found with attendance below the threshold.</div>");
+        }
+        
+        return PartialView("_LessAttendanceReport", lowAttendanceStudents);
+    }
+    catch (Exception ex)
+    {
+        // Log the exception with detailed information
+        _logger.LogError(ex, "Error in GetLessAttendanceReport: {Message}", ex.Message);
+        
+        // Return a user-friendly error message
+        return Content($"<div class='alert alert-danger'><h5>Error generating report</h5><p>{ex.Message}</p><p>Please check the server logs for more details.</p></div>");
+    }
+}
+
+        [HttpGet]
+        public async Task<IActionResult> ExportLessAttendanceReport(int? courseId, int? classId, int? divisionId,
+            int? subjectId, DateTime? startDate, DateTime? endDate, int thresholdPercentage = 75)
+        {
+            // Reuse the same logic to get the data
+            var viewResult = await GetLessAttendanceReport(courseId, classId, divisionId, subjectId,
+                startDate, endDate, thresholdPercentage) as PartialViewResult;
+
+            if (viewResult == null || viewResult.Model == null)
+            {
+                return NotFound();
+            }
+
+            var students = (List<LessAttendanceStudentViewModel>)viewResult.Model;
+
+            // Generate Excel file using EPPlus
+            using (var package = new OfficeOpenXml.ExcelPackage())
+            {
+                var worksheet = package.Workbook.Worksheets.Add("Low Attendance Report");
+
+                // Add headers
+                worksheet.Cells[1, 1].Value = "Roll No";
+                worksheet.Cells[1, 2].Value = "Student Name";
+                worksheet.Cells[1, 3].Value = "Class";
+                worksheet.Cells[1, 4].Value = "Division";
+                worksheet.Cells[1, 5].Value = "Total Classes";
+                worksheet.Cells[1, 6].Value = "Present";
+                worksheet.Cells[1, 7].Value = "Absent";
+                worksheet.Cells[1, 8].Value = "Attendance %";
+                worksheet.Cells[1, 9].Value = "Risk Level";
+                worksheet.Cells[1, 10].Value = "Trend";
+                worksheet.Cells[1, 11].Value = "Consecutive Absences";
+                worksheet.Cells[1, 12].Value = "Contact Number";
+                worksheet.Cells[1, 13].Value = "Email";
+
+                // Style the header
+                using (var range = worksheet.Cells[1, 1, 1, 13])
+                {
+                    range.Style.Font.Bold = true;
+                    range.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
+                    range.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
+                }
+
+                // Add data
+                for (int i = 0; i < students.Count; i++)
+                {
+                    var student = students[i];
+                    int row = i + 2;
+
+                    worksheet.Cells[row, 1].Value = student.EnrollmentNo;
+                    worksheet.Cells[row, 2].Value = student.StudentName;
+                    worksheet.Cells[row, 3].Value = student.Class;
+                    worksheet.Cells[row, 4].Value = student.Division;
+                    worksheet.Cells[row, 5].Value = student.TotalClasses;
+                    worksheet.Cells[row, 6].Value = student.Present;
+                    worksheet.Cells[row, 7].Value = student.Absent;
+                    worksheet.Cells[row, 8].Value = student.AttendancePercentage;
+                    worksheet.Cells[row, 9].Value = student.RiskLevel;
+                    worksheet.Cells[row, 10].Value = student.IsDecreasing ? "Decreasing" : "Improving";
+                    worksheet.Cells[row, 11].Value = student.ConsecutiveAbsences;
+                    worksheet.Cells[row, 12].Value = student.ContactNumber;
+                    worksheet.Cells[row, 13].Value = student.Email;
+
+                    // Color code risk levels
+                    if (student.RiskLevel == "High")
+                    {
+                        worksheet.Cells[row, 9].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+                    }
+                    else if (student.RiskLevel == "Medium")
+                    {
+                        worksheet.Cells[row, 9].Style.Font.Color.SetColor(System.Drawing.Color.Orange);
+                    }
+                }
+
+                // Auto-fit columns
+                worksheet.Cells.AutoFitColumns();
+
+                // Generate file
+                var stream = new MemoryStream();
+                package.SaveAs(stream);
+                stream.Position = 0;
+
+                return File(
+                    stream,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    $"LowAttendanceReport_{DateTime.Now:yyyyMMdd}.xlsx");
+            }
+        }
+
+
     }
 }

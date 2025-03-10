@@ -1,0 +1,207 @@
+@model LessAttendanceReportViewModel
+@{
+    ViewData["Title"] = "Low Attendance Report";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-exclamation-triangle me-2"></i>Low Attendance Report</h3>
+    </div>
+    <div class="card-body">
+        <form id="reportForm" class="mb-4">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Course (Optional)</label>
+                    <select id="CourseId" name="CourseId" class="form-select">
+                        <option value="">All Courses</option>
+                        @foreach (var item in Model.Courses)
+                        {
+                            <option value="@item.Value">@item.Text</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Class (Optional)</label>
+                    <select id="ClassId" name="ClassId" class="form-select">
+                        <option value="">All Classes</option>
+                        @foreach (var item in Model.Classes)
+                        {
+                            <option value="@item.Value">@item.Text</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Division (Optional)</label>
+                    <select id="DivisionId" name="DivisionId" class="form-select">
+                        <option value="">All Divisions</option>
+                        @foreach (var item in Model.Divisions)
+                        {
+                            <option value="@item.Value">@item.Text</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Subject (Optional)</label>
+                    <select id="SubjectId" name="SubjectId" class="form-select">
+                        <option value="">All Subjects</option>
+                        @foreach (var item in Model.Subjects)
+                        {
+                            <option value="@item.Value">@item.Text</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            
+            <div class="row g-3 mt-2">
+                <!-- Update the date fields to have default values -->
+                <div class="col-md-3">
+                    <label class="form-label">Start Date (Optional)</label>
+                    <input type="date" id="StartDate" name="StartDate" class="form-control" 
+                           value="@(Model.StartDate.HasValue ? Model.StartDate.Value.ToString("yyyy-MM-dd") : DateTime.Today.AddDays(-30).ToString("yyyy-MM-dd"))" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">End Date (Optional)</label>
+                    <input type="date" id="EndDate" name="EndDate" class="form-control" 
+                           value="@(Model.EndDate.HasValue ? Model.EndDate.Value.ToString("yyyy-MM-dd") : DateTime.Today.ToString("yyyy-MM-dd"))" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Attendance Threshold (%)</label>
+                    <input type="number" id="ThresholdPercentage" name="ThresholdPercentage" 
+                           class="form-control" value="@Model.ThresholdPercentage" min="1" max="100" />
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="button" class="btn btn-primary w-100" onclick="generateReport()">
+                        <i class="fas fa-search me-2"></i>Generate Report
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <div id="reportContent" class="mt-4">
+            <!-- Report will be loaded here -->
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Handle course change to load classes
+            $('#CourseId').change(function() {
+                loadClasses();
+            });
+            
+            // Handle class change to load divisions
+            $('#ClassId').change(function() {
+                loadDivisions();
+            });
+            
+            // Handle division change to load subjects
+            $('#DivisionId').change(function() {
+                loadSubjects();
+            });
+        });
+        
+        function loadClasses() {
+            var courseId = $('#CourseId').val();
+            if (!courseId) {
+                $('#ClassId').html('<option value="">All Classes</option>');
+                return;
+            }
+            
+            $.get('/Attendance/GetClasses', { courseId: courseId })
+                .done(function(data) {
+                    var options = '<option value="">All Classes</option>';
+                    data.forEach(function(cls) {
+                        options += `<option value="${cls.id}">${cls.name}</option>`;
+                    });
+                    $('#ClassId').html(options);
+                })
+                .fail(function() {
+                    showAlert('Error', 'Failed to load classes', 'error');
+                });
+        }
+        
+        function loadDivisions() {
+            var classId = $('#ClassId').val();
+            if (!classId) {
+                $('#DivisionId').html('<option value="">All Divisions</option>');
+                return;
+            }
+            
+            $.get('/Attendance/GetDivisions', { classId: classId })
+                .done(function(data) {
+                    var options = '<option value="">All Divisions</option>';
+                    data.forEach(function(div) {
+                        options += `<option value="${div.id}">${div.name}</option>`;
+                    });
+                    $('#DivisionId').html(options);
+                })
+                .fail(function() {
+                    showAlert('Error', 'Failed to load divisions', 'error');
+                });
+        }
+        
+        function loadSubjects() {
+            var divisionId = $('#DivisionId').val();
+            if (!divisionId) {
+                $('#SubjectId').html('<option value="">All Subjects</option>');
+                return;
+            }
+            
+            $.get('/Attendance/GetSubjects', { divisionId: divisionId })
+                .done(function(data) {
+                    var options = '<option value="">All Subjects</option>';
+                    data.forEach(function(subject) {
+                        options += `<option value="${subject.id}">${subject.name}</option>`;
+                    });
+                    $('#SubjectId').html(options);
+                })
+                .fail(function() {
+                    showAlert('Error', 'Failed to load subjects', 'error');
+                });
+        }
+        
+        function generateReport() {
+            $('#reportContent').html('<div class="text-center"><i class="fas fa-spinner fa-spin me-2"></i>Generating report...</div>');
+            
+            var formData = {
+                courseId: $('#CourseId').val(),
+                classId: $('#ClassId').val(),
+                divisionId: $('#DivisionId').val(),
+                subjectId: $('#SubjectId').val(),
+                startDate: $('#StartDate').val(),
+                endDate: $('#EndDate').val(),
+                thresholdPercentage: $('#ThresholdPercentage').val()
+            };
+            
+            $.ajax({
+                url: '/Attendance/GetLessAttendanceReport',
+                type: 'GET',
+                data: formData,
+                success: function(response) {
+                    $('#reportContent').html(response);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error details:', xhr.responseText);
+                    $('#reportContent').html('<div class="alert alert-danger"><h5>Error generating report</h5><p>' + error + '</p></div>');
+                }
+            });
+        }
+        
+        function exportReport() {
+            var formData = {
+                courseId: $('#CourseId').val(),
+                classId: $('#ClassId').val(),
+                divisionId: $('#DivisionId').val(),
+                subjectId: $('#SubjectId').val(),
+                startDate: $('#StartDate').val(),
+                endDate: $('#EndDate').val(),
+                thresholdPercentage: $('#ThresholdPercentage').val()
+            };
+            
+            var queryString = $.param(formData);
+            window.location.href = '/Attendance/ExportLessAttendanceReport?' + queryString;
+        }
+    </script>
+}
