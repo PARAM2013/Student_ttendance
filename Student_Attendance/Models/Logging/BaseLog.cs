@@ -26,7 +26,7 @@ namespace Student_Attendance.Models.Logging
         [ForeignKey("UserId")]
         public User? User { get; set; }
 
-        [StringLength(100)]
+        [StringLength(500)]
         public string? UserAgent { get; set; }
 
         [StringLength(50)]
