@@ -62,17 +62,16 @@ else
                                 </td>
                                 <td>@student.ConsecutiveAbsences</td>
                                 <td>
-                                    @if (!string.IsNullOrEmpty(student.ContactNumber))
+                                    @if (!string.IsNullOrEmpty(student.ContactNumber) || !string.IsNullOrEmpty(student.Email))
                                     {
-                                        <a href="tel:@student.ContactNumber" class="btn btn-sm btn-outline-secondary">
-                                            <i class="fas fa-phone-alt"></i>
-                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                onclick="showContactInfo('@student.StudentId', '@student.StudentName', '@student.ContactNumber', '@student.Email')">
+                                            <i class="fas fa-address-card"></i>
+                                        </button>
                                     }
-                                    @if (!string.IsNullOrEmpty(student.Email))
+                                    else
                                     {
-                                        <a href="mailto:@student.Email" class="btn btn-sm btn-outline-secondary ms-1">
-                                            <i class="fas fa-envelope"></i>
-                                        </a>
+                                        <span class="text-muted"><i class="fas fa-times-circle"></i></span>
                                     }
                                 </td>
                             </tr>
@@ -82,11 +81,80 @@ else
             </div>
         </div>
     </div>
+
+    <!-- Contact Information Modal -->
+    <div class="modal fade" id="contactModal" tabindex="-1" aria-labelledby="contactModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="contactModalLabel">Contact Information</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title mb-3" id="studentName"></h5>
+                            
+                            <div id="phoneSection" class="mb-3">
+                                <h6 class="text-muted"><i class="fas fa-phone-alt me-2"></i>Phone</h6>
+                                <p id="phoneNumber" class="mb-0"></p>
+                                <a href="#" id="callLink" class="btn btn-sm btn-outline-primary mt-2">
+                                    <i class="fas fa-phone-alt me-1"></i>Call
+                                </a>
+                                <a href="#" id="smsLink" class="btn btn-sm btn-outline-primary mt-2 ms-2">
+                                    <i class="fas fa-sms me-1"></i>SMS
+                                </a>
+                            </div>
+                            
+                            <div id="emailSection">
+                                <h6 class="text-muted"><i class="fas fa-envelope me-2"></i>Email</h6>
+                                <p id="emailAddress" class="mb-0"></p>
+                                <a href="#" id="emailLink" class="btn btn-sm btn-outline-primary mt-2">
+                                    <i class="fas fa-envelope me-1"></i>Send Email
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 }
 
 <script>
     function exportReport() {
         var url = '/Attendance/ExportLessAttendanceReport' + window.location.search;
         window.location.href = url;
+    }
+    
+    function showContactInfo(studentId, studentName, phone, email) {
+        // Set student name
+        $('#studentName').text(studentName);
+        
+        // Handle phone information
+        if (phone && phone !== '') {
+            $('#phoneNumber').text(phone);
+            $('#callLink').attr('href', 'tel:' + phone);
+            $('#smsLink').attr('href', 'sms:' + phone);
+            $('#phoneSection').show();
+        } else {
+            $('#phoneSection').hide();
+        }
+        
+        // Handle email information
+        if (email && email !== '') {
+            $('#emailAddress').text(email);
+            $('#emailLink').attr('href', 'mailto:' + email);
+            $('#emailSection').show();
+        } else {
+            $('#emailSection').hide();
+        }
+        
+        // Show the modal
+        var contactModal = new bootstrap.Modal(document.getElementById('contactModal'));
+        contactModal.show();
     }
 </script>
