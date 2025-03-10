@@ -6,6 +6,11 @@ using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using OfficeOpenXml;
 using Student_Attendance.Services;
+using Student_Attendance.Services.Logging;
+using Microsoft.AspNetCore.Http;
+
+using CustomUserManager = Student_Attendance.Services.UserManager<Student_Attendance.Models.User>;
+using CustomSignInManager = Student_Attendance.Services.SignInManager<Student_Attendance.Models.User>;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +33,24 @@ builder.Services.AddDbContext<Student_Attendance.Data.ApplicationDbContext>(opti
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<SSIDGenerator>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ILoggingService, LoggingService>();
+
+// Add custom User management services
+builder.Services.AddScoped<CustomUserManager>(provider => 
+{
+    var context = provider.GetRequiredService<ApplicationDbContext>();
+    var logger = provider.GetRequiredService<ILogger<CustomUserManager>>();
+    return new CustomUserManager(context, logger);
+});
+
+builder.Services.AddScoped<CustomSignInManager>(provider => 
+{
+    var userManager = provider.GetRequiredService<CustomUserManager>();
+    var httpContextAccessor = provider.GetRequiredService<IHttpContextAccessor>();
+    var logger = provider.GetRequiredService<ILogger<CustomSignInManager>>();
+    return new CustomSignInManager(userManager, httpContextAccessor, logger);
+});
 
 var app = builder.Build();
 

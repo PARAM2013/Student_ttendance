@@ -9,9 +9,10 @@ using Student_Attendance.Models;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using OfficeOpenXml; // Add this at the top
+using OfficeOpenXml;
 using OfficeOpenXml.Style;
 using System.Drawing;
+using Student_Attendance.Services.Logging;
 
 namespace Student_Attendance.Controllers
 {
@@ -19,12 +20,14 @@ namespace Student_Attendance.Controllers
     public class StudentsController : BaseController
     {
         private readonly ILogger<StudentsController> _logger;
+        private readonly ILoggingService _loggingService;
 
         // Update constructor to call base constructor
-        public StudentsController(ApplicationDbContext context, ILogger<StudentsController> logger)
+        public StudentsController(ApplicationDbContext context, ILogger<StudentsController> logger, ILoggingService loggingService)
             : base(context)
         {
             _logger = logger;
+            _loggingService = loggingService;
         }
 
         // GET: Students
@@ -228,18 +231,39 @@ namespace Student_Attendance.Controllers
                         await _context.SaveChangesAsync();
                     }
 
+                    await _loggingService.LogActivityAsync(
+                        action: "Create Student",
+                        entityType: "Student",
+                        entityId: student.Id.ToString(),
+                        details: $"Created new student: {student.Name}",
+                        module: "Student Management",
+                        isSuccess: true
+                    );
+
                     return Json(new { success = true, message = "Student created successfully!" });
                 }
                 catch (DbUpdateException ex)
                 {
                     var innerMessage = ex.InnerException?.Message ?? ex.Message;
                     _logger.LogError(ex, "Database error while creating student: {Error}", innerMessage);
+                    await _loggingService.LogErrorAsync(
+                        errorMessage: innerMessage,
+                        stackTrace: ex.StackTrace,
+                        errorType: ex.GetType().Name,
+                        source: "StudentsController.Create"
+                    );
                     return Json(new { success = false, message = $"Database error: {innerMessage}" });
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating student");
+                await _loggingService.LogErrorAsync(
+                    errorMessage: ex.Message,
+                    stackTrace: ex.StackTrace,
+                    errorType: ex.GetType().Name,
+                    source: "StudentsController.Create"
+                );
                 var errorMessage = ex.InnerException?.Message ?? ex.Message;
                 return Json(new { success = false, message = $"Error creating student: {errorMessage}" });
             }
@@ -325,6 +349,8 @@ namespace Student_Attendance.Controllers
                         return NotFound();
                     }
 
+                    var oldName = student.Name;
+
                     student.EnrollmentNo = model.EnrollmentNo;
                     student.Name = model.Name;
                     student.Cast = model.Cast;
@@ -339,6 +365,18 @@ namespace Student_Attendance.Controllers
 
                     _context.Update(student);
                     await _context.SaveChangesAsync();
+
+                    await _loggingService.LogActivityAsync(
+                        action: "Edit Student",
+                        entityType: "Student",
+                        entityId: id.ToString(),
+                        details: $"Updated student: {model.Name}",
+                        oldValue: oldName,
+                        newValue: model.Name,
+                        module: "Student Management",
+                        isSuccess: true
+                    );
+
                     return Json(new { success = true, message = "Student updated successfully!" });
                 }
                 catch (DbUpdateConcurrencyException)
@@ -355,6 +393,12 @@ namespace Student_Attendance.Controllers
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error updating student");
+                    await _loggingService.LogErrorAsync(
+                        errorMessage: ex.Message,
+                        stackTrace: ex.StackTrace,
+                        errorType: ex.GetType().Name,
+                        source: "StudentsController.Edit"
+                    );
                     return Json(new { success = false, message = "An error occurred while updating the student", error = ex.Message });
                 }
             }

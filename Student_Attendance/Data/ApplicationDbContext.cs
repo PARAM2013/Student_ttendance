@@ -23,6 +23,8 @@ namespace Student_Attendance.Data
     public DbSet<AttendanceAudit> AttendanceAudits { get; set; }
     public DbSet<StudentAttendanceArchive> StudentAttendanceArchives { get; set; }
     public DbSet<StudentEnrollmentHistory> StudentEnrollmentHistories { get; set; }
+    public DbSet<Models.Logging.ActivityLog> ActivityLogs { get; set; }
+    public DbSet<Models.Logging.ErrorLog> ErrorLogs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

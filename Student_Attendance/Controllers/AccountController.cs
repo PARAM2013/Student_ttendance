@@ -2,13 +2,15 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
-using Microsoft.EntityFrameworkCore; // Add this
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Student_Attendance.Data;
 using Student_Attendance.Models;
+using Student_Attendance.Services;
+using Student_Attendance.Services.Logging;
 using Student_Attendance.ViewModels;
 using System.Security.Claims;
-using BCrypt.Net; // Add this
+using BCrypt.Net;
 
 namespace Student_Attendance.Controllers
 {
@@ -16,11 +18,18 @@ namespace Student_Attendance.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<AccountController> _logger;
+        private readonly ILoggingService _loggingService;
+        private readonly UserManager<User> _userManager;
+        private readonly SignInManager<User> _signInManager;
 
-        public AccountController(ApplicationDbContext context, ILogger<AccountController> logger)
+        public AccountController(ApplicationDbContext context, ILogger<AccountController> logger,
+            UserManager<User> userManager, SignInManager<User> signInManager, ILoggingService loggingService)
         {
             _context = context;
             _logger = logger;
+            _userManager = userManager;
+            _loggingService = loggingService;
+            _signInManager = signInManager;
         }
 
 [HttpGet]
@@ -40,49 +49,50 @@ namespace Student_Attendance.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)  // Add ? after string
         {
-            ViewData["ReturnUrl"] = returnUrl;
-            if (ModelState.IsValid)
+            try
             {
-                var user = await _context.Users
-                    .FirstOrDefaultAsync(u => u.UserName == model.UserName);
-
-                if (user != null && BCrypt.Net.BCrypt.Verify(model.Password, user.Password))
+                if (ModelState.IsValid)
                 {
-                    // Check if user is active
-                    if (!user.IsActive)
+                    var result = await _signInManager.PasswordSignInAsync(model.UserName, model.Password, model.RememberMe, lockoutOnFailure: true);
+                    if (result.Succeeded)
                     {
-                        ModelState.AddModelError(string.Empty, "Your account is not active. Please contact administrator.");
-                        return View(model);
+                        var user = await _userManager.FindByNameAsync(model.UserName);
+                        await _loggingService.LogActivityAsync(
+                            action: "Login",
+                            entityType: "User",
+                            entityId: user.Id.ToString(),
+                            details: $"User {model.UserName} logged in successfully",
+                            module: "Authentication",
+                            isSuccess: true
+                        );
+                        return LocalRedirect(returnUrl ?? "/");
                     }
-
-                    var claims = new List<Claim>
+                    else
                     {
-                        new Claim(ClaimTypes.Name, user.UserName),
-                        new Claim(ClaimTypes.Email, user.Email),
-                        new Claim(ClaimTypes.Role, user.Role),
-                        new Claim("IsActive", user.IsActive.ToString())
-                    };
-
-                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                    var authProperties = new AuthenticationProperties
-                    {
-                        IsPersistent = model.RememberMe
-                    };
-
-                    await HttpContext.SignInAsync(
-                        CookieAuthenticationDefaults.AuthenticationScheme,
-                        new ClaimsPrincipal(claimsIdentity),
-                        authProperties);
-
-                    _logger.LogInformation($"User {user.UserName} logged in successfully");
-                    return RedirectToLocal(returnUrl);
+                        await _loggingService.LogActivityAsync(
+                            action: "Login",
+                            entityType: "User",
+                            details: $"Failed login attempt for user {model.UserName}",
+                            module: "Authentication",
+                            isSuccess: false,
+                            status: "Failed"
+                        );
+                        ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                    }
                 }
-
-                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
                 return View(model);
             }
-
-            return View(model);
+            catch (Exception ex)
+            {
+                await _loggingService.LogErrorAsync(
+                    errorMessage: ex.Message,
+                    stackTrace: ex.StackTrace,
+                    errorType: ex.GetType().Name,
+                    source: "AccountController.Login"
+                );
+                ModelState.AddModelError(string.Empty, "An error occurred during login.");
+                return View(model);
+            }
         }
 
         [HttpPost]

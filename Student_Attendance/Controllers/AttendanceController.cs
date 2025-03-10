@@ -19,10 +19,11 @@ using iText.IO.Font.Constants;
 using iText.Kernel.Font;
 using iText.IO.Font;
 using iText.Layout.Borders;
-using iText.Kernel.Events;  // Add this at the top with other using statements
-using iText.Kernel.Pdf.Canvas;  // Add this for PdfCanvas
+using iText.Kernel.Events;
+using iText.Kernel.Pdf.Canvas;
 using System.IO;
 using OfficeOpenXml;
+using Student_Attendance.Services.Logging;
 
 namespace Student_Attendance.Controllers
 {
@@ -30,11 +31,14 @@ namespace Student_Attendance.Controllers
     public class AttendanceController : BaseController
     {
         private readonly ILogger<AttendanceController> _logger;
+        private readonly ILoggingService _loggingService;
 
-        public AttendanceController(ApplicationDbContext context, ILogger<AttendanceController> logger)
+        public AttendanceController(ApplicationDbContext context, ILogger<AttendanceController> logger,
+            ILoggingService loggingService)
             : base(context)
         {
             _logger = logger;
+            _loggingService = loggingService;
         }
 
         public async Task<IActionResult> Take()
@@ -151,12 +155,26 @@ namespace Student_Attendance.Controllers
                 }
 
                 await _context.SaveChangesAsync();
+
+                await _loggingService.LogActivityAsync(
+                    action: "Mark Attendance",
+                    entityType: "Attendance",
+                    entityId: model.SubjectId.ToString(),
+                    details: $"Marked attendance for {model.Students.Count} students in subject {model.SubjectId}",
+                    module: "Attendance"
+                );
+
                 return Json(new { success = true, message = "Attendance marked successfully" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error marking attendance");
-                return Json(new { success = false, message = "Error marking attendance" });
+                await _loggingService.LogErrorAsync(
+                    errorMessage: ex.Message,
+                    stackTrace: ex.StackTrace,
+                    errorType: ex.GetType().Name,
+                    source: "AttendanceController.MarkAttendance"
+                );
+                return StatusCode(500, "An error occurred while marking attendance.");
             }
         }
 
