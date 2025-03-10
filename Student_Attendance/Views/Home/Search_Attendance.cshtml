@@ -3,7 +3,11 @@
     Layout = "_Layout";
 }
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="~/css/homesearch.css">
+
+<!-- Add meta tag for proper viewport -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <div class="attendance-search-page">
     <div class="header">
@@ -26,11 +30,13 @@
             </div>
 
             <div class="buttons-container">
-                <button id="searchBtn" class="search-btn">Search Student</button>
+                <button id="searchBtn" class="search-btn">
+                    <i class="fas fa-chart-bar"></i> View Attendance
+                </button>
             </div>
         </div>
 
-        <div id="attendanceResults" class="search-results" style="display: none;"></div>
+                <div id="attendanceResults" class="search-results" style="display: none;"></div>
     </div>
 
     <div class="footer">
@@ -47,6 +53,18 @@
     
     <script>
         $(document).ready(function() {
+            // Ensure proper viewport height on mobile devices
+            function setViewportHeight() {
+                let vh = window.innerHeight * 0.01;
+                document.documentElement.style.setProperty('--vh', `${vh}px`);
+            }
+            
+            // Set the viewport height on page load
+            setViewportHeight();
+            
+            // Update the viewport height on resize
+            window.addEventListener('resize', setViewportHeight);
+            
             let selectedStudentId = null;
             
             // Handle student search with debounce
@@ -104,190 +122,213 @@
                     return;
                 }
                 
+                // Show loading indicator
+                $(this).html('<i class="fas fa-spinner fa-spin"></i> Loading...');
+                $(this).prop('disabled', true);
+                
                 $.ajax({
                     url: '/Home/GetStudentAttendance',
                     type: 'GET',
                     data: { studentId: selectedStudentId },
                     success: function(data) {
+                        // Reset button state
+                        $('#searchBtn').html('<i class="fas fa-chart-bar"></i> View Attendance');
+                        $('#searchBtn').prop('disabled', false);
+                        
                         if (data.success) {
-                            // Hide search section
-                            $('#searchSection').hide();
-                            
-                            // Format the attendance data with welcome message
-                            let html = '<div class="student-info">' +
-                                '<h3>' + data.studentName + '</h3>' +
-                                '<p>Class: ' + data.className + '</p>' +
-                                '<div class="welcome-message">Hi, ' + data.studentName + ', your overall attendance is ' + 
-                                data.overallAttendance.toFixed(1) + '%.</div>' +
-                                '</div>' +
-                                '<div class="attendance-stats">' +
-                                '<p>Attended ' + data.attendedClasses + ' out of ' + data.totalClasses + ' classes</p>' +
-                                '<div class="progress">' +
-                                '<div class="progress-bar ' + (data.overallAttendance < 75 ? 'bg-danger' : 'bg-success') + '" ' +
-                                'role="progressbar" ' +
-                                'style="width: ' + data.overallAttendance + '%" ' +
-                                'aria-valuenow="' + data.overallAttendance + '" ' +
-                                'aria-valuemin="0" ' +
-                                'aria-valuemax="100"></div>' +
-                                '</div>' +
-                                '</div>';
-                            
-                            // Add charts container for better layout
-                            html += '<div class="charts-container">';
-                            
-                            // Add Subject Comparison Chart
-                            html += '<div class="chart-box comparison-chart">' +
-                                '<h5>Subject Comparison</h5>' +
-                                '<canvas id="subjectComparisonChart"></canvas>' +
-                                '</div>';
-                            
-                            // Add Attendance Status Chart
-                            html += '<div class="chart-box status-chart">' +
-                                '<h5>Attendance Status</h5>' +
-                                '<canvas id="attendanceStatusChart"></canvas>' +
-                                '</div>';
-                            
-                            html += '</div>'; // Close charts-container
-                            
-                            // Add Weekly Attendance Heatmap if data exists
-                            if(data.weeklyAttendance) {
-                                html += '<div class="chart-box">' +
-                                    '<h5>Weekly Attendance Pattern</h5>' +
-                                    '<div class="weekly-heatmap">' +
-                                    '<div class="row text-center">' +
-                                    '<div class="col">Mon</div>' +
-                                    '<div class="col">Tue</div>' +
-                                    '<div class="col">Wed</div>' +
-                                    '<div class="col">Thu</div>' +
-                                    '<div class="col">Fri</div>' +
-                                    '<div class="col">Sat</div>' +
+                            // Hide search section with animation
+                            $('#searchSection').fadeOut(300, function() {
+                                // Format the attendance data
+                                let html = '<div class="student-info">' +
+                                    '<h3>' + data.studentName + '</h3>' +
+                                    '<p>Class: ' + data.className + '</p>' +
+                                    '<div class="welcome-message">Hi, ' + data.studentName + ', your overall attendance is ' + 
+                                    data.overallAttendance.toFixed(1) + '%.</div>' +
+                                    '<div class="attendance-stats">' +
+                                    '<p>Attended ' + data.attendedClasses + ' out of ' + data.totalClasses + ' classes</p>' +
+                                    '<div class="progress">' +
+                                    '<div class="progress-bar ' + (data.overallAttendance < 75 ? 'bg-danger' : 'bg-success') + '" ' +
+                                    'style="width: ' + data.overallAttendance + '%"></div>' +
                                     '</div>' +
-                                    '<div class="row text-center">';
+                                    '</div>' +
+                                    '</div>';
                                 
-                                ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(function(day) {
-                                    const dayData = data.weeklyAttendance[day] || { present: 0, total: 0 };
-                                    const percentage = dayData.total > 0 ? (dayData.present / dayData.total) * 100 : 0;
-                                    let colorClass = 'bg-light';
-                                    
-                                    if(dayData.total > 0) {
-                                        if(percentage >= 90) colorClass = 'bg-success';
-                                        else if(percentage >= 75) colorClass = 'bg-info';
-                                        else if(percentage >= 50) colorClass = 'bg-warning';
-                                        else colorClass = 'bg-danger';
-                                    }
-                                    
-                                    html += '<div class="col">' +
-                                        '<div class="day-cell ' + colorClass + '" data-bs-toggle="tooltip" ' +
-                                        'title="' + dayData.present + '/' + dayData.total + ' (' + percentage.toFixed(1) + '%)">' +
-                                        percentage.toFixed(0) + '%' +
+                                // Add charts container for better layout
+                                html += '<div class="charts-container">';
+                                
+                                // Add Subject Comparison Chart
+                                html += '<div class="chart-box comparison-chart">' +
+                                    '<h5>Subject Attendance</h5>' +
+                                    '<canvas id="subjectComparisonChart"></canvas>' +
+                                    '</div>';
+                                
+                                // Add Attendance Status Chart
+                                html += '<div class="chart-box status-chart">' +
+                                    '<h5>Attendance Status</h5>' +
+                                    '<canvas id="attendanceStatusChart"></canvas>' +
+                                    '</div>';
+                                
+                                html += '</div>'; // Close charts-container
+                                
+                                // Add Weekly Attendance Heatmap if data exists
+                                if(data.weeklyAttendance) {
+                                    html += '<div class="chart-box">' +
+                                        '<h5>Weekly Attendance Pattern</h5>' +
+                                        '<div class="weekly-heatmap">' +
+                                        '<div class="row">' +
+                                        '<div class="col">Mon</div>' +
+                                        '<div class="col">Tue</div>' +
+                                        '<div class="col">Wed</div>' +
+                                        '<div class="col">Thu</div>' +
+                                        '<div class="col">Fri</div>' +
+                                        '<div class="col">Sat</div>' +
                                         '</div>' +
-                                        '</div>';
-                                });
+                                        '<div class="row">';
+                                    
+                                    ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(function(day) {
+                                        const dayData = data.weeklyAttendance[day] || { total: 0, present: 0 };
+                                        const percentage = dayData.total > 0 ? (dayData.present / dayData.total) * 100 : 0;
+                                        let colorClass = 'bg-light';
+                                        let tooltipText = dayData.total > 0 ? 
+                                            `${dayData.present}/${dayData.total} (${percentage.toFixed(1)}%)` : 
+                                            'No classes';
+                                        
+                                        if(dayData.total > 0) {
+                                            if(percentage >= 90) colorClass = 'bg-success';
+                                            else if(percentage >= 75) colorClass = 'bg-info';
+                                            else if(percentage >= 50) colorClass = 'bg-warning';
+                                            else colorClass = 'bg-danger';
+                                        }
+                                        
+                                        html += '<div class="col">' +
+                                            '<div class="day-cell ' + colorClass + '" data-bs-toggle="tooltip" ' +
+                                            'title="' + tooltipText + '">' +
+                                            (dayData.total > 0 ? percentage.toFixed(0) + '%' : '-') +
+                                            '</div>' +
+                                            '</div>';
+                                    });
+                                    
+                                    html += '</div></div></div>';
+                                }
                                 
-                                html += '</div></div></div>';
-                            }
-                            
-                            // Add back to search button
-                            html += '<button class="back-to-search" id="backToSearch">Back to Search</button>';
-                            
-                            $('#attendanceResults').html(html).show();
-                            
-                            // Initialize charts after DOM is updated
-                            if(data.subjectAttendance && data.subjectAttendance.length > 0) {
-                                const subjectCtx = document.getElementById('subjectComparisonChart').getContext('2d');
-                                new Chart(subjectCtx, {
-                                    type: 'bar',
+                                // Add back to search button
+                                html += '<button class="back-to-search" id="backToSearch">' + 
+                                    '<i class="fas fa-arrow-left"></i> Back to Search' + 
+                                    '</button>';
+                                
+                                $('#attendanceResults').html(html).fadeIn(300);
+                                
+                                // Initialize charts after DOM is updated
+                                if(data.subjectAttendance && data.subjectAttendance.length > 0) {
+                                    const subjectCtx = document.getElementById('subjectComparisonChart').getContext('2d');
+                                    new Chart(subjectCtx, {
+                                        type: 'bar', // Use standard bar chart
+                                        data: {
+                                            labels: data.subjectAttendance.map(subject => subject.subjectName),
+                                            datasets: [{
+                                                label: 'Attendance %',
+                                                data: data.subjectAttendance.map(subject => (subject.present/subject.total*100).toFixed(1)),
+                                                backgroundColor: data.subjectAttendance.map(subject => 
+                                                    subject.present/subject.total*100 < 75 ? 'rgba(220, 53, 69, 0.7)' : 'rgba(40, 167, 69, 0.7)'
+                                                ),
+                                                borderColor: data.subjectAttendance.map(subject => 
+                                                    subject.present/subject.total*100 < 75 ? 'rgb(220, 53, 69)' : 'rgb(40, 167, 69)'
+                                                ),
+                                                borderWidth: 1
+                                            }]
+                                        },
+                                        options: {
+                                            responsive: true,
+                                            maintainAspectRatio: true,
+                                            indexAxis: 'y', // This works for Chart.js v3+
+                                            plugins: {
+                                                legend: {
+                                                    display: false
+                                                },
+                                                tooltip: {
+                                                    callbacks: {
+                                                        label: function(context) {
+                                                            const subject = data.subjectAttendance[context.dataIndex];
+                                                            return context.formattedValue + '% (' + subject.present + '/' + subject.total + ')';
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            scales: {
+                                                x: {
+                                                    beginAtZero: true,
+                                                    max: 100,
+                                                    title: {
+                                                        display: true,
+                                                        text: 'Attendance %'
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    });
+                                }
+                                
+                                const statusCtx = document.getElementById('attendanceStatusChart').getContext('2d');
+                                new Chart(statusCtx, {
+                                    type: 'doughnut',
                                     data: {
-                                        labels: data.subjectAttendance.map(subject => subject.subjectName),
+                                        labels: ['Present', 'Absent'],
                                         datasets: [{
-                                            label: 'Attendance %',
-                                            data: data.subjectAttendance.map(subject => (subject.present/subject.total*100).toFixed(1)),
-                                            backgroundColor: data.subjectAttendance.map(subject => 
-                                                subject.present/subject.total*100 < 75 ? 'rgba(220, 53, 69, 0.7)' : 'rgba(40, 167, 69, 0.7)'
-                                            ),
-                                            borderColor: data.subjectAttendance.map(subject => 
-                                                subject.present/subject.total*100 < 75 ? 'rgb(220, 53, 69)' : 'rgb(40, 167, 69)'
-                                            ),
+                                            data: [data.attendedClasses, data.totalClasses - data.attendedClasses],
+                                            backgroundColor: ['rgba(40, 167, 69, 0.7)', 'rgba(220, 53, 69, 0.7)'],
+                                            borderColor: ['rgb(40, 167, 69)', 'rgb(220, 53, 69)'],
                                             borderWidth: 1
                                         }]
                                     },
                                     options: {
                                         responsive: true,
                                         maintainAspectRatio: true,
-                                        scales: {
-                                            y: {
-                                                beginAtZero: true,
-                                                max: 100,
-                                                title: {
-                                                    display: true,
-                                                    text: 'Attendance %'
-                                                }
-                                            }
-                                        },
                                         plugins: {
                                             tooltip: {
                                                 callbacks: {
                                                     label: function(context) {
-                                                        const subject = data.subjectAttendance[context.dataIndex];
-                                                        return context.formattedValue + '% (' + subject.present + '/' + subject.total + ')';
+                                                        const value = context.raw;
+                                                        const total = data.totalClasses;
+                                                        const percentage = ((value / total) * 100).toFixed(1);
+                                                        return context.label + ': ' + value + ' (' + percentage + '%)';
                                                     }
                                                 }
                                             }
                                         }
                                     }
                                 });
-                            }
-                            
-                            const statusCtx = document.getElementById('attendanceStatusChart').getContext('2d');
-                            new Chart(statusCtx, {
-                                type: 'doughnut',
-                                data: {
-                                    labels: ['Present', 'Absent'],
-                                    datasets: [{
-                                        data: [data.attendedClasses, data.totalClasses - data.attendedClasses],
-                                        backgroundColor: ['rgba(40, 167, 69, 0.7)', 'rgba(220, 53, 69, 0.7)'],
-                                        borderColor: ['rgb(40, 167, 69)', 'rgb(220, 53, 69)'],
-                                        borderWidth: 1
-                                    }]
-                                },
-                                options: {
-                                    responsive: true,
-                                    maintainAspectRatio: true,
-                                    plugins: {
-                                        tooltip: {
-                                            callbacks: {
-                                                label: function(context) {
-                                                    const value = context.raw;
-                                                    const total = data.totalClasses;
-                                                    const percentage = ((value / total) * 100).toFixed(1);
-                                                    return context.label + ': ' + value + ' (' + percentage + '%)';
-                                                }
-                                            }
-                                        }
-                                    }
+                                
+                                // Initialize tooltips
+                                if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+                                    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                                    tooltipTriggerList.map(function (tooltipTriggerEl) {
+                                        return new bootstrap.Tooltip(tooltipTriggerEl);
+                                    });
                                 }
-                            });
-                            
-                            // Initialize tooltips
-                            $('[data-bs-toggle="tooltip"]').tooltip();
-                            
-                            // Handle back to search button
-                            $('#backToSearch').on('click', function() {
-                                $('#attendanceResults').hide();
-                                $('#searchSection').show();
+                                
+                                // Handle back to search button
+                                $('#backToSearch').on('click', function() {
+                                    $('#attendanceResults').fadeOut(300, function() {
+                                        $('#searchSection').fadeIn(300);
+                                        // Clear search field
+                                        $('#studentSearch').val('');
+                                        selectedStudentId = null;
+                                    });
+                                });
                             });
                         } else {
                             alert('Error: ' + data.message);
                         }
                     },
                     error: function() {
+                        // Reset button state
+                        $('#searchBtn').html('<i class="fas fa-chart-bar"></i> View Attendance');
+                        $('#searchBtn').prop('disabled', false);
                         alert('Error retrieving attendance data');
                     }
                 });
             });
             
-            // ... existing code ...
-
             // Close dropdown when clicking outside
             $(document).on('click', function(e) {
                 if (!$(e.target).closest('.search-container').length) {
@@ -299,6 +340,16 @@
             $('#studentSearch').on('keypress', function(e) {
                 if (e.which === 13 && selectedStudentId) {
                     $('#searchBtn').click();
+                }
+            });
+            
+            // Make sure dropdown properly handles overflow
+            $(window).on('resize', function() {
+                if ($('#studentDropdown').is(':visible')) {
+                    const windowHeight = $(window).height();
+                    const dropdownTop = $('#studentDropdown').offset().top;
+                    const maxHeight = windowHeight - dropdownTop - 20;
+                    $('#studentDropdown').css('max-height', maxHeight + 'px');
                 }
             });
         });
