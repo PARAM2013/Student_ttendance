@@ -115,7 +115,7 @@ namespace Student_Attendance.Controllers
                     .Include(ar => ar.Subject)
                     .OrderByDescending(ar => ar.TimeStamp)
                     .Take(5)
-                    .Select(ar => new ActivityLog
+                    .Select(ar => new ActivityLogSummary
                     {
                         Timestamp = ar.TimeStamp,
                         Action = "Marked Attendance",

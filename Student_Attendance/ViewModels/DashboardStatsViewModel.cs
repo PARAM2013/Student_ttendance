@@ -4,18 +4,18 @@ namespace Student_Attendance.ViewModels
     {
         public DashboardStatsViewModel()
         {
-            RecentActivities = new List<ActivityLog>();
+            RecentActivities = new List<ActivityLogSummary>();
             LowAttendanceStudents = new List<StudentAttendanceAlert>();
             WeeklyTrends = new WeeklyAttendanceData();
         }
 
-        public List<ActivityLog> RecentActivities { get; set; }
+        public List<ActivityLogSummary> RecentActivities { get; set; }
         public List<StudentAttendanceAlert> LowAttendanceStudents { get; set; }
         public WeeklyAttendanceData WeeklyTrends { get; set; }
         public double OverallAttendancePercentage { get; set; }
     }
 
-    public class ActivityLog
+    public class ActivityLogSummary
     {
         public DateTime Timestamp { get; set; }
         public string Action { get; set; }
