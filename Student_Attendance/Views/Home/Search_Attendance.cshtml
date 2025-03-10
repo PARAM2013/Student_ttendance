@@ -3,12 +3,27 @@
     Layout = "_Layout";
 }
 <style>
-        /* Previous styles remain unchanged */
-        :root {
-            --sidebar-width: 0px !important;
-        }
-        </style>
-
+    /* Previous styles remain unchanged */
+    :root {
+        --sidebar-width: 0px !important;
+    }
+    
+    /* Weekly heatmap styles */
+    .weekly-heatmap {
+        margin-top: 10px;
+    }
+    
+    .day-cell {
+        height: 40px;
+        border-radius: 4px;
+        margin: 2px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        cursor: default;
+    }
+</style>
 <div class="attendance-search-page">
     <div class="header">
         <h3>Student Attendance System</h3>
@@ -44,6 +59,9 @@
 </div>
 
 @section Scripts {
+    <!-- Add Chart.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <script>
         $(document).ready(function() {
             let selectedStudentId = null;
@@ -68,10 +86,10 @@
                             if (data && data.length > 0) {
                                 let html = '';
                                 data.forEach(function(student) {
-                                    html += `<div class="student-item" data-id="${student.id}">
-                                        <div class="student-name">${student.name}</div>
-                                        <div class="student-class">${student.className}</div>
-                                    </div>`;
+                                    html += '<div class="student-item" data-id="' + student.id + '">' +
+                                        '<div class="student-name">' + student.name + '</div>' +
+                                        '<div class="student-class">' + student.className + '</div>' +
+                                    '</div>';
                                 });
                                 $('#studentDropdown').html(html).show();
                             } else {
@@ -110,39 +128,153 @@
                     success: function(data) {
                         if (data.success) {
                             // Format the attendance data
-                            let html = `
-                                <div class="student-info">
-                                    <h3>${data.studentName}</h3>
-                                    <p>Class: ${data.className}</p>
-                                </div>
-                                <div class="attendance-stats">
-                                    <h4>Overall Attendance: ${data.overallAttendance.toFixed(1)}%</h4>
-                                    <p>Attended ${data.attendedClasses} out of ${data.totalClasses} classes</p>
-                                    <div class="progress">
-                                        <div class="progress-bar ${data.overallAttendance < 75 ? 'bg-danger' : 'bg-success'}" 
-                                            role="progressbar" 
-                                            style="width: ${data.overallAttendance}%" 
-                                            aria-valuenow="${data.overallAttendance}" 
-                                            aria-valuemin="0" 
-                                            aria-valuemax="100"></div>
-                                    </div>
+                            let html = '<div class="student-info">' +
+                                '<h3>' + data.studentName + '</h3>' +
+                                '<p>Class: ' + data.className + '</p>' +
+                                '</div>' +
+                                '<div class="attendance-stats">' +
+                                '<h4>Overall Attendance: ' + data.overallAttendance.toFixed(1) + '%</h4>' +
+                                '<p>Attended ' + data.attendedClasses + ' out of ' + data.totalClasses + ' classes</p>' +
+                                '<div class="progress">' +
+                                '<div class="progress-bar ' + (data.overallAttendance < 75 ? 'bg-danger' : 'bg-success') + '" ' +
+                                'role="progressbar" ' +
+                                'style="width: ' + data.overallAttendance + '%" ' +
+                                'aria-valuenow="' + data.overallAttendance + '" ' +
+                                'aria-valuemin="0" ' +
+                                'aria-valuemax="100"></div>' +
+                                '</div>' +
+                                '</div>';
+                            
+                            // Add Subject Comparison Chart
+                            html += '<div class="mt-4">' +
+                                '<h5>Subject Comparison</h5>' +
+                                '<canvas id="subjectComparisonChart" width="400" height="200"></canvas>' +
+                                '</div>';
+                            
+                            // Add Attendance Status Chart
+                            html += '<div class="mt-4">' +
+                                '<h5>Attendance Status</h5>' +
+                                '<div class="row">' +
+                                '<div class="col-md-6 mx-auto">' +
+                                '<canvas id="attendanceStatusChart" width="200" height="200"></canvas>' +
+                                '</div>' +
+                                '</div>' +
+                                '</div>';
+                            
+                            // Add Weekly Attendance Heatmap if data exists
+                            if(data.weeklyAttendance) {
+                                html += '<div class="mt-4">' +
+                                    '<h5>Weekly Attendance Pattern</h5>' +
+                                    '<div class="weekly-heatmap">' +
+                                    '<div class="row text-center">' +
+                                    '<div class="col">Mon</div>' +
+                                    '<div class="col">Tue</div>' +
+                                    '<div class="col">Wed</div>' +
+                                    '<div class="col">Thu</div>' +
+                                    '<div class="col">Fri</div>' +
+                                    '<div class="col">Sat</div>' +
+                                    '</div>' +
+                                    '<div class="row text-center">';
+                                
+                                ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(function(day) {
+                                    const dayData = data.weeklyAttendance[day] || { present: 0, total: 0 };
+                                    const percentage = dayData.total > 0 ? (dayData.present / dayData.total) * 100 : 0;
+                                    let colorClass = 'bg-light';
                                     
-                                    <div class="subject-attendance">
-                                        <h5>Subject-wise Attendance</h5>
-                                        ${data.subjectAttendance.map(subject => `
-                                            <div class="subject-row">
-                                                <div class="subject-name">${subject.subjectName}</div>
-                                                                                                <div class="subject-stats">
-                                                    <span class="badge ${subject.present/subject.total*100 < 75 ? 'bg-danger' : 'bg-success'}">
-                                                        ${subject.present}/${subject.total} (${(subject.present/subject.total*100).toFixed(1)}%)
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                </div>
-                            `;
+                                    if(dayData.total > 0) {
+                                        if(percentage >= 90) colorClass = 'bg-success';
+                                        else if(percentage >= 75) colorClass = 'bg-info';
+                                        else if(percentage >= 50) colorClass = 'bg-warning';
+                                        else colorClass = 'bg-danger';
+                                    }
+                                    
+                                    html += '<div class="col">' +
+                                        '<div class="day-cell ' + colorClass + '" data-bs-toggle="tooltip" ' +
+                                        'title="' + dayData.present + '/' + dayData.total + ' (' + percentage.toFixed(1) + '%)">' +
+                                        percentage.toFixed(0) + '%' +
+                                        '</div>' +
+                                        '</div>';
+                                });
+                                
+                                html += '</div></div></div>';
+                            }
+                            
                             $('#attendanceResults').html(html).show();
+                            
+                            // Initialize charts after DOM is updated
+                            if(data.subjectAttendance && data.subjectAttendance.length > 0) {
+                                const subjectCtx = document.getElementById('subjectComparisonChart').getContext('2d');
+                                new Chart(subjectCtx, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: data.subjectAttendance.map(subject => subject.subjectName),
+                                        datasets: [{
+                                            label: 'Attendance %',
+                                            data: data.subjectAttendance.map(subject => (subject.present/subject.total*100).toFixed(1)),
+                                            backgroundColor: data.subjectAttendance.map(subject => 
+                                                subject.present/subject.total*100 < 75 ? 'rgba(220, 53, 69, 0.7)' : 'rgba(40, 167, 69, 0.7)'
+                                            ),
+                                            borderColor: data.subjectAttendance.map(subject => 
+                                                subject.present/subject.total*100 < 75 ? 'rgb(220, 53, 69)' : 'rgb(40, 167, 69)'
+                                            ),
+                                            borderWidth: 1
+                                        }]
+                                    },
+                                    options: {
+                                        scales: {
+                                            y: {
+                                                beginAtZero: true,
+                                                max: 100,
+                                                title: {
+                                                    display: true,
+                                                    text: 'Attendance %'
+                                                }
+                                            }
+                                        },
+                                        plugins: {
+                                            tooltip: {
+                                                callbacks: {
+                                                    label: function(context) {
+                                                        const subject = data.subjectAttendance[context.dataIndex];
+                                                        return context.formattedValue + '% (' + subject.present + '/' + subject.total + ')';
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                });
+                            }
+                            
+                            const statusCtx = document.getElementById('attendanceStatusChart').getContext('2d');
+                            new Chart(statusCtx, {
+                                type: 'doughnut',
+                                data: {
+                                    labels: ['Present', 'Absent'],
+                                    datasets: [{
+                                        data: [data.attendedClasses, data.totalClasses - data.attendedClasses],
+                                        backgroundColor: ['rgba(40, 167, 69, 0.7)', 'rgba(220, 53, 69, 0.7)'],
+                                        borderColor: ['rgb(40, 167, 69)', 'rgb(220, 53, 69)'],
+                                        borderWidth: 1
+                                    }]
+                                },
+                                options: {
+                                    plugins: {
+                                        tooltip: {
+                                            callbacks: {
+                                                label: function(context) {
+                                                    const value = context.raw;
+                                                    const total = data.totalClasses;
+                                                    const percentage = ((value / total) * 100).toFixed(1);
+                                                    return context.label + ': ' + value + ' (' + percentage + '%)';
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                            
+                            // Initialize tooltips
+                            $('[data-bs-toggle="tooltip"]').tooltip();
                         } else {
                             alert('Error: ' + data.message);
                         }

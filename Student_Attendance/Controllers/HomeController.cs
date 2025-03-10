@@ -1,9 +1,12 @@
-using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using Student_Attendance.Models;
-using Student_Attendance.Data;
-using Student_Attendance.ViewModels;
 using Microsoft.EntityFrameworkCore;
+using Student_Attendance.Data;
+using Student_Attendance.Models;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using Student_Attendance.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Student_Attendance.Controllers
@@ -254,101 +257,136 @@ namespace Student_Attendance.Controllers
         [AllowAnonymous]
         public IActionResult Search_Attendance()
         {
-            if (User.Identity.IsAuthenticated)
-            {
-                return RedirectToAction("Index");
-            }
             return View();
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult SearchStudents(string searchTerm)
+        {
+            if (string.IsNullOrEmpty(searchTerm) || searchTerm.Length < 3)
+            {
+                return Json(new List<object>());
+            }
+
+            try
+            {
+                // Query your database for students matching the search term with proper Include
+                var students = _context.Students
+                    .Include(s => s.Class)
+                    .Where(s => s.Name.Contains(searchTerm) && s.IsActive)
+                    .Select(s => new
+                    {
+                        id = s.Id,
+                        name = s.Name,
+                        className = s.Class != null ? s.Class.Name : "No Class"
+                    })
+                    .Take(10)
+                    .ToList();
+
+                return Json(students);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching for students: {Message}", ex.Message);
+                return Json(new List<object>());
+            }
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult GetStudentAttendance(int studentId)
+        {
+            try
+            {
+                // Get student details
+                var student = _context.Students
+                    .Include(s => s.Class)
+                    .FirstOrDefault(s => s.Id == studentId);
+
+                if (student == null)
+                {
+                    return Json(new { success = false, message = "Student not found" });
+                }
+
+                // Get attendance records - changed from Attendance to AttendanceRecords
+                var attendanceRecords = _context.AttendanceRecords
+                    .Where(a => a.StudentId == studentId)
+                    .ToList();
+
+                // Calculate overall attendance - fixed Count() method call
+                int totalClasses = attendanceRecords.Count;
+                int attendedClasses = attendanceRecords.Count(a => a.IsPresent);
+                double overallAttendance = totalClasses > 0 
+                    ? (double)attendedClasses / totalClasses * 100 
+                    : 0;
+
+                // Get subject-wise attendance - changed from Attendance to AttendanceRecords
+                var subjectAttendance = _context.AttendanceRecords
+                    .Where(a => a.StudentId == studentId)
+                    .Include(a => a.Subject)
+                    .GroupBy(a => a.Subject.Name)
+                    .Select(g => new
+                    {
+                        subjectName = g.Key,
+                        total = g.Count(),
+                        present = g.Count(a => a.IsPresent)
+                    })
+                    .ToList();
+
+                // Calculate monthly attendance for trend chart - changed from Attendance to AttendanceRecords
+                var monthlyAttendance = _context.AttendanceRecords
+                    .Where(a => a.StudentId == studentId)
+                    .GroupBy(a => new { Month = a.Date.Month, Year = a.Date.Year })
+                    .OrderBy(g => g.Key.Year)
+                    .ThenBy(g => g.Key.Month)
+                    .Select(g => new
+                    {
+                        month = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(g.Key.Month) + " " + g.Key.Year,
+                        total = g.Count(),
+                        present = g.Count(a => a.IsPresent),
+                        percentage = g.Count() > 0 ? (double)g.Count(a => a.IsPresent) / g.Count() * 100 : 0
+                    })
+                    .ToList();
+
+                // Calculate weekly attendance pattern - changed from Attendance to AttendanceRecords
+                var attendanceForWeeklyPattern = _context.AttendanceRecords
+                    .Where(a => a.StudentId == studentId)
+                    .ToList(); // Execute the query first to bring data into memory
+
+                var weeklyAttendance = attendanceForWeeklyPattern
+                    .GroupBy(a => a.Date.DayOfWeek)
+                    .ToDictionary(
+                        g => g.Key.ToString().Substring(0, 3), // Get first 3 letters of day name
+                        g => new
+                        {
+                            total = g.Count(),
+                            present = g.Count(a => a.IsPresent)
+                        }
+                    );
+
+                return Json(new
+                {
+                    success = true,
+                    studentName = student.Name,
+                    className = student.Class.Name,
+                    totalClasses = totalClasses,
+                    attendedClasses = attendedClasses,
+                    overallAttendance = overallAttendance,
+                    subjectAttendance = subjectAttendance,
+                    monthlyAttendance = monthlyAttendance,
+                    weeklyAttendance = weeklyAttendance
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
         }
 
         public IActionResult Privacy()
         {
             return View();
         }
-// Add these methods to your existing HomeController class
-
-[HttpGet]
-[AllowAnonymous]
-public async Task<IActionResult> SearchStudents(string searchTerm)
-{
-    if (string.IsNullOrEmpty(searchTerm) || searchTerm.Length < 3)
-    {
-        return Json(new List<object>());
-    }
-
-    // Query your database for students matching the search term
-    var students = await _context.Students
-        .Include(s => s.Class)
-        .Where(s => s.Name.Contains(searchTerm) && s.IsActive)
-        .Select(s => new
-        {
-            id = s.Id,
-            name = s.Name,
-            className = s.Class.Name
-        })
-        .Take(10)
-        .ToListAsync();
-
-    return Json(students);
-}
-
-[HttpGet]
-[AllowAnonymous]
-public async Task<IActionResult> GetStudentAttendance(int studentId)
-{
-    try
-    {
-        // Get the student
-        var student = await _context.Students
-            .Include(s => s.Class)
-            .FirstOrDefaultAsync(s => s.Id == studentId);
-
-        if (student == null)
-        {
-            return Json(new { success = false, message = "Student not found" });
-        }
-
-        // Get all attendance records for this student
-        var attendanceRecords = await _context.AttendanceRecords
-            .Include(a => a.Subject)
-            .Where(a => a.StudentId == studentId)
-            .ToListAsync();
-
-        // Calculate overall attendance
-        int totalClasses = attendanceRecords.Count;
-        int attendedClasses = attendanceRecords.Count(a => a.IsPresent);
-        double overallAttendance = totalClasses > 0 
-            ? (double)attendedClasses / totalClasses * 100 
-            : 0;
-
-        // Group by subject for subject-wise attendance
-        var subjectAttendance = attendanceRecords
-            .GroupBy(a => a.SubjectId)
-            .Select(g => new
-            {
-                subjectId = g.Key,
-                subjectName = g.First().Subject.Name,
-                total = g.Count(),
-                present = g.Count(a => a.IsPresent)
-            })
-            .ToList();
-
-        return Json(new
-        {
-            success = true,
-            studentName = student.Name,
-            className = student.Class.Name,
-            totalClasses = totalClasses,
-            attendedClasses = attendedClasses,
-            overallAttendance = overallAttendance,
-            subjectAttendance = subjectAttendance
-        });
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "Error retrieving attendance data: {Message}", ex.Message);
-        return Json(new { success = false, message = "Error retrieving attendance data: " + ex.Message });
-    }
-}
     }
 }
